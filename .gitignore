@@ -11,6 +11,8 @@ backend/media/
 frontend/node_modules/
 frontend/build/
 frontend/.env
+frontend/dist/
+frontend/.vite/
 
 # IDE
 .vscode/
@@ -20,7 +22,12 @@ frontend/.env
 .DS_Store
 Thumbs.db
 
-# Environnement virtuel (TRÈS IMPORTANT!)
+# Environnement virtuel
 venv/
 *.pyc
 __pycache__/
+
+# Fichiers à la racine à ignorer
+node_modules/
+package.json
+package-lock.json
