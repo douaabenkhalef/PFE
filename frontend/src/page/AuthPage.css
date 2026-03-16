@@ -1,16 +1,30 @@
-/* AuthPage.css */
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:ital,wght@0,400..900;1,400..900&family=Tilt+Warp&display=swap');
 
-.auth-page-wrapper {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
   background: radial-gradient(circle at center, #23143d 0%, #050308 100%);
-  padding: 20px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Schibsted Grotesk', sans-serif; /* default font */
   color: white;
 }
 
+/* PAGE WRAPPER */
+.auth-page-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* MAIN CARD */
 .main-container {
   position: relative;
   width: 100%;
@@ -20,7 +34,26 @@
   border-radius: 35px;
   overflow: hidden;
   display: flex;
-  box-shadow: 0 0 60px rgba(147, 51, 234, 0.2);
+
+  box-shadow:
+    0 25px 60px rgba(0,0,0,0.6),
+    0 0 80px rgba(147, 51, 234, 0.35),
+    0 0 140px rgba(147, 51, 234, 0.15);
+
+  backdrop-filter: blur(6px);
+}
+
+.main-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 35px;
+  background: linear-gradient(
+    120deg,
+    rgba(147,51,234,0.08),
+    rgba(147,51,234,0.02)
+  );
+  pointer-events: none;
 }
 
 /* Sliding Panel */
@@ -32,10 +65,12 @@
   height: 100%;
   background: linear-gradient(135deg, #9333ea 0%, #6b21a8 100%);
   z-index: 30;
+
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+
   transition: clip-path 0.6s ease-in-out;
 }
 
@@ -52,19 +87,29 @@
   padding: 40px;
 }
 
+/* WELCOME TEXT */
 .welcome-text {
-  font-size: 3.5rem;
-  font-weight: 900;
-  margin-bottom: 10px;
-  letter-spacing: -2px;
+  font-family: 'Tilt Warp', cursive; /* bold / decorative font */
+  font-size: 3.2rem;
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin-bottom: 18px;
+  line-height: 1.1;
 }
 
+/* DESCRIPTION TEXT */
 .sub-text {
-  font-size: 1.1rem;
-  opacity: 0.8;
+  font-family: 'Schibsted Grotesk', sans-serif; /* regular font */
+  font-size: 1rem;
+  opacity: 0.9;
+  line-height: 1.6;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+  max-width: 320px;
+  margin: 0 auto;
 }
 
-/* Form Styles */
+/* FORM SECTION */
 .form-section {
   width: 50%;
   padding: 60px;
@@ -90,18 +135,21 @@
 }
 
 .form-title {
+  font-family: 'Tilt Warp', cursive; /* bold / headings font */
   font-size: 2rem;
   font-weight: 700;
   text-align: center;
   margin-bottom: 30px;
 }
 
+/* INPUT STACK */
 .input-stack {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
+/* INPUT GROUP */
 .input-group {
   position: relative;
   border-bottom: 1px solid #374151;
@@ -117,6 +165,7 @@
   color: white;
   font-size: 0.95rem;
   border: none;
+  font-family: 'Schibsted Grotesk', sans-serif; /* regular text */
 }
 
 .input-group .icon {
@@ -124,13 +173,11 @@
   margin-left: 10px;
 }
 
-/* Small input variant */
-.small-input input {
-  font-size: 0.8rem;
-  padding: 4px 0;
+.input-group:focus-within {
+  border-bottom: 1px solid #a855f7;
 }
 
-/* Button */
+/* BUTTON */
 .auth-btn {
   width: 100%;
   background-color: #9333ea;
@@ -139,30 +186,56 @@
   font-size: 1.1rem;
   font-weight: 600;
   margin-top: 10px;
-  transition: background 0.3s;
+  transition: all 0.3s ease;
   border: none;
   color: white;
   cursor: pointer;
+  font-family: 'Schibsted Grotesk', sans-serif; /* regular */
 }
 
 .auth-btn:hover {
   background-color: #7e22ce;
+  transform: translateY(-1px);
 }
 
+/* LOGIN / SIGNUP LINK */
 .toggle-text {
   text-align: center;
   font-size: 0.85rem;
   color: #9ca3af;
   margin-top: 15px;
+  font-family: 'Schibsted Grotesk', sans-serif; /* regular */
 }
 
 .toggle-text span {
-  color: #a855f7;
+  color: #c084fc;
   cursor: pointer;
   font-weight: 600;
+  transition: all 0.25s ease;
 }
 
-/* Role Selector */
+.toggle-text span:hover {
+  color: #e9d5ff;
+  text-decoration: underline;
+}
+
+.panel-login-link {
+  display: inline-block;
+  margin-top: 14px;
+  color: #e9d5ff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-family: 'Schibsted Grotesk', sans-serif; /* regular */
+}
+
+.panel-login-link:hover {
+  color: white;
+  text-decoration: underline;
+}
+
+/* ROLE SELECTOR */
 .role-container {
   position: relative;
 }
@@ -174,6 +247,7 @@
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
+  font-family: 'Schibsted Grotesk', sans-serif;
 }
 
 .role-dropdown-bottom {
@@ -197,51 +271,14 @@
   font-size: 0.8rem;
   transition: background 0.2s;
   cursor: pointer;
+  font-family: 'Schibsted Grotesk', sans-serif;
 }
 
 .role-item:hover {
   background-color: #2d1b4d;
 }
 
-/* Animation for chevron */
-.rotate-180 {
-  transform: rotate(180deg);
-  transition: transform 0.3s;
-}
-
-/* Extra inputs grid */
-.extra-inputs-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin-top: 10px;
-}
-
-/* Text colors */
-.text-white {
-  color: white;
-}
-
-.text-gray-500 {
-  color: #9ca3af;
-}
-
-.text-\[\#a855f7\] {
-  color: #a855f7;
-}
-
-/* Shrink/normal inputs (adjust as needed) */
-.normal-inputs {
-  display: block;
-}
-
-.shrunk-inputs {
-  display: block;
-}
-
-.mt-2 {
-  margin-top: 0.5rem;
-}
+/* GRID */
 .grid {
   display: grid;
   gap: 16px;
@@ -251,6 +288,7 @@
   grid-template-columns: repeat(2, 1fr);
 }
 
+/* SCROLLABLE FORM */
 .form-scrollable {
   max-height: 400px;
   overflow-y: auto;

@@ -197,6 +197,17 @@ const AuthPage = () => {
       setLoading(false);
       return;
     }
+     if (studentData.password.length < 8) {
+      toast.error("Le mot de passe doit comporter au moins 8 caractères");
+      setLoading(false);
+      return;
+    }
+
+       if (studentData.email == email) {
+      toast.error("Le mot de passe doit comporter au moins 8 caractères");
+      setLoading(false);
+      return;
+    }
 
     const apiData = {
       ...studentData,
@@ -296,10 +307,21 @@ const AuthPage = () => {
               {isLogin ? "WELCOME BACK!" : "WELCOME!"}
             </h1>
             <p className="sub-text">
-              {isLogin
+               {isLogin
                 ? "Login to access your internship dashboard."
-                : "Create your account to start your internship journey."}
-            </p>
+                : (
+               <>
+                 Create your account to start your internship journey.
+               <br />
+               <span
+                     className="panel-login-link"
+                     onClick={() => setIsLogin(true)}
+               >
+                     Already have an account? Log in
+               </span>
+               </>
+               )}  
+               </p>
           </div>
         </motion.div>
 
@@ -431,111 +453,108 @@ const AuthPage = () => {
                     Student Registration
                   </h3>
 
-                  <div className="grid grid-cols-2">
-                    <InputGroup
-                      icon={<User size={18} />}
-                      label="Username"
-                      type="text"
-                      value={studentData.username}
-                      onChange={(e) =>
-                        setStudentData({
-                          ...studentData,
-                          username: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                    <InputGroup
-                      icon={<Mail size={18} />}
-                      label="Email"
-                      type="email"
-                      value={studentData.email}
-                      onChange={(e) =>
-                        setStudentData({
-                          ...studentData,
-                          email: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
+                  <InputGroup
+                    icon={<User size={18} />}
+                    label="Username"
+                    type="text"
+                    value={studentData.username}
+                    onChange={(e) =>
+                      setStudentData({
+                        ...studentData,
+                        username: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                  
+                  <InputGroup
+                    icon={<Mail size={18} />}
+                    label="Email"
+                    type="email"
+                    value={studentData.email}
+                    onChange={(e) =>
+                      setStudentData({
+                        ...studentData,
+                        email: e.target.value,
+                      })
+                    }
+                    required
+                  />
 
-                  <div className="grid grid-cols-2">
-                    <InputGroup
-                      icon={<Lock size={18} />}
-                      label="Password"
-                      type="password"
-                      value={studentData.password}
-                      onChange={(e) =>
-                        setStudentData({
-                          ...studentData,
-                          password: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                    <InputGroup
-                      icon={<Lock size={18} />}
-                      label="Confirm Password"
-                      type="password"
-                      value={studentData.confirm_password}
-                      onChange={(e) =>
-                        setStudentData({
-                          ...studentData,
-                          confirm_password: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
+                  <InputGroup
+                    icon={<Lock size={18} />}
+                    label="Password"
+                    type="password"
+                    value={studentData.password}
+                    onChange={(e) =>
+                      setStudentData({
+                        ...studentData,
+                        password: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                  
+                  <InputGroup
+                    icon={<Lock size={18} />}
+                    label="Confirm Password"
+                    type="password"
+                    value={studentData.confirm_password}
+                    onChange={(e) =>
+                      setStudentData({
+                        ...studentData,
+                        confirm_password: e.target.value,
+                      })
+                    }
+                    required
+                  />
 
-                  <div className="grid grid-cols-2">
-                    <InputGroup
-                      icon={<User size={18} />}
-                      label="Full Name"
-                      type="text"
-                      value={studentData.full_name}
+                  <InputGroup
+                    icon={<User size={18} />}
+                    label="Full Name"
+                    type="text"
+                    value={studentData.full_name}
+                    onChange={(e) =>
+                      setStudentData({
+                        ...studentData,
+                        full_name: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                  
+                  <div className="input-group">
+                    <select
+                      value={studentData.wilaya}
                       onChange={(e) =>
                         setStudentData({
                           ...studentData,
-                          full_name: e.target.value,
+                          wilaya: e.target.value,
                         })
                       }
                       required
-                    />
-                    <div className="input-group">
-                      <select
-                        value={studentData.wilaya}
-                        onChange={(e) =>
-                          setStudentData({
-                            ...studentData,
-                            wilaya: e.target.value,
-                          })
-                        }
-                        required
-                        style={{
-                          background: "transparent",
-                          color: "white",
-                          width: "100%",
-                          border: "none",
-                          outline: "none",
-                        }}
-                      >
-                        <option value="" style={{ background: "#120d1d" }}>
-                          Select Wilaya
+                      style={{
+                        background: "transparent",
+                        color: "white",
+                        width: "100%",
+                        border: "none",
+                        outline: "none",
+                      }}
+                    >
+                      <option value="" style={{ background: "#120d1d" }}>
+                        Select Wilaya
+                      </option>
+                      {wilayas.map((w) => (
+                        <option
+                          key={w}
+                          value={w}
+                          style={{ background: "#120d1d" }}
+                        >
+                          {w}
                         </option>
-                        {wilayas.map((w) => (
-                          <option
-                            key={w}
-                            value={w}
-                            style={{ background: "#120d1d" }}
-                          >
-                            {w}
-                          </option>
-                        ))}
-                      </select>
-                      <MapPin size={18} className="icon" />
-                    </div>
+                      ))}
+                    </select>
+                    <MapPin size={18} className="icon" />
                   </div>
 
                   {/* Skills */}
@@ -599,110 +618,107 @@ const AuthPage = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2">
-                    <InputGroup
-                      icon={<Github size={18} />}
-                      label="GitHub (optional)"
-                      type="url"
-                      value={studentData.github}
-                      onChange={(e) =>
-                        setStudentData({
-                          ...studentData,
-                          github: e.target.value,
-                        })
-                      }
-                    />
-                    <InputGroup
-                      icon={<Globe size={18} />}
-                      label="Portfolio (optional)"
-                      type="url"
-                      value={studentData.portfolio}
-                      onChange={(e) =>
-                        setStudentData({
-                          ...studentData,
-                          portfolio: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
+                  <InputGroup
+                    icon={<Github size={18} />}
+                    label="GitHub (optional)"
+                    type="url"
+                    value={studentData.github}
+                    onChange={(e) =>
+                      setStudentData({
+                        ...studentData,
+                        github: e.target.value,
+                      })
+                    }
+                  />
+                  
+                  <InputGroup
+                    icon={<Globe size={18} />}
+                    label="Portfolio (optional)"
+                    type="url"
+                    value={studentData.portfolio}
+                    onChange={(e) =>
+                      setStudentData({
+                        ...studentData,
+                        portfolio: e.target.value,
+                      })
+                    }
+                  />
 
-                  <div className="grid grid-cols-2">
-                    <div className="input-group">
-                      <select
-                        value={studentData.education_level}
-                        onChange={(e) =>
-                          setStudentData({
-                            ...studentData,
-                            education_level: e.target.value,
-                          })
-                        }
-                        required
-                        style={{
-                          background: "transparent",
-                          color: "white",
-                          width: "100%",
-                          border: "none",
-                          outline: "none",
-                        }}
-                      >
-                        <option value="" style={{ background: "#120d1d" }}>
-                          Education Level
+                  <div className="input-group">
+                    <select
+                      value={studentData.education_level}
+                      onChange={(e) =>
+                        setStudentData({
+                          ...studentData,
+                          education_level: e.target.value,
+                        })
+                      }
+                      required
+                      style={{
+                        background: "transparent",
+                        color: "white",
+                        width: "100%",
+                        border: "none",
+                        outline: "none",
+                      }}
+                    >
+                      <option value="" style={{ background: "#120d1d" }}>
+                        Education Level
+                      </option>
+                      {educationLevels.map((level) => (
+                        <option
+                          key={level}
+                          value={level}
+                          style={{ background: "#120d1d" }}
+                        >
+                          {level}
                         </option>
-                        {educationLevels.map((level) => (
-                          <option
-                            key={level}
-                            value={level}
-                            style={{ background: "#120d1d" }}
-                          >
-                            {level}
-                          </option>
-                        ))}
-                      </select>
-                      <GraduationCap size={18} className="icon" />
-                    </div>
-                    <InputGroup
-                      icon={<BookOpen size={18} />}
-                      label="University"
-                      type="text"
-                      value={studentData.university}
-                      onChange={(e) =>
-                        setStudentData({
-                          ...studentData,
-                          university: e.target.value,
-                        })
-                      }
-                      required
-                    />
+                      ))}
+                    </select>
+                    <GraduationCap size={18} className="icon" />
                   </div>
+                  
+                  <InputGroup
+                    icon={<BookOpen size={18} />}
+                    label="University"
+                    type="text"
+                    value={studentData.university}
+                    onChange={(e) =>
+                      setStudentData({
+                        ...studentData,
+                        university: e.target.value,
+                      })
+                    }
+                    required
+                  />
 
-                  <div className="grid grid-cols-2">
-                    <InputGroup
-                      icon={<Award size={18} />}
-                      label="Major"
-                      type="text"
-                      value={studentData.major}
-                      onChange={(e) =>
-                        setStudentData({
-                          ...studentData,
-                          major: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                    <InputGroup
-                      icon={<Calendar size={18} />}
-                      label="Graduation Year"
-                      type="number"
-                      value={studentData.graduation_year}
-                      onChange={(e) =>
-                        setStudentData({
-                          ...studentData,
-                          graduation_year: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
+                  <InputGroup
+                    icon={<Award size={18} />}
+                    label="Major"
+                    type="text"
+                    value={studentData.major}
+                    onChange={(e) =>
+                      setStudentData({
+                        ...studentData,
+                        major: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                  
+                  <InputGroup
+                    icon={<Calendar size={18} />}
+                    label="Graduation Year"
+                    type="number"
+                    value={studentData.graduation_year}
+                    onChange={(e) =>
+                      setStudentData({
+                        ...studentData,
+                        graduation_year: e.target.value,
+                      })
+                    }
+                    required
+                  />
 
                   <button type="submit" className="auth-btn" disabled={loading}>
                     {loading ? "Creating..." : "Sign up as Student"}
@@ -733,63 +749,61 @@ const AuthPage = () => {
                     Company Registration
                   </h3>
 
-                  <div className="grid grid-cols-2">
-                    <InputGroup
-                      icon={<User size={18} />}
-                      label="Username"
-                      type="text"
-                      value={companyData.username}
-                      onChange={(e) =>
-                        setCompanyData({
-                          ...companyData,
-                          username: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                    <InputGroup
-                      icon={<Mail size={18} />}
-                      label="Email"
-                      type="email"
-                      value={companyData.email}
-                      onChange={(e) =>
-                        setCompanyData({
-                          ...companyData,
-                          email: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
+                  <InputGroup
+                    icon={<User size={18} />}
+                    label="Username"
+                    type="text"
+                    value={companyData.username}
+                    onChange={(e) =>
+                      setCompanyData({
+                        ...companyData,
+                        username: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                  
+                  <InputGroup
+                    icon={<Mail size={18} />}
+                    label="Email"
+                    type="email"
+                    value={companyData.email}
+                    onChange={(e) =>
+                      setCompanyData({
+                        ...companyData,
+                        email: e.target.value,
+                      })
+                    }
+                    required
+                  />
 
-                  <div className="grid grid-cols-2">
-                    <InputGroup
-                      icon={<Lock size={18} />}
-                      label="Password"
-                      type="password"
-                      value={companyData.password}
-                      onChange={(e) =>
-                        setCompanyData({
-                          ...companyData,
-                          password: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                    <InputGroup
-                      icon={<Lock size={18} />}
-                      label="Confirm Password"
-                      type="password"
-                      value={companyData.confirm_password}
-                      onChange={(e) =>
-                        setCompanyData({
-                          ...companyData,
-                          confirm_password: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
+                  <InputGroup
+                    icon={<Lock size={18} />}
+                    label="Password"
+                    type="password"
+                    value={companyData.password}
+                    onChange={(e) =>
+                      setCompanyData({
+                        ...companyData,
+                        password: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                  
+                  <InputGroup
+                    icon={<Lock size={18} />}
+                    label="Confirm Password"
+                    type="password"
+                    value={companyData.confirm_password}
+                    onChange={(e) =>
+                      setCompanyData({
+                        ...companyData,
+                        confirm_password: e.target.value,
+                      })
+                    }
+                    required
+                  />
 
                   <InputGroup
                     icon={<Building2 size={18} />}
@@ -833,74 +847,72 @@ const AuthPage = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2">
-                    <div className="input-group">
-                      <select
-                        value={companyData.location}
-                        onChange={(e) =>
-                          setCompanyData({
-                            ...companyData,
-                            location: e.target.value,
-                          })
-                        }
-                        required
-                        style={{
-                          background: "transparent",
-                          color: "white",
-                          width: "100%",
-                          border: "none",
-                          outline: "none",
-                        }}
-                      >
-                        <option value="" style={{ background: "#120d1d" }}>
-                          Location (Wilaya)
+                  <div className="input-group">
+                    <select
+                      value={companyData.location}
+                      onChange={(e) =>
+                        setCompanyData({
+                          ...companyData,
+                          location: e.target.value,
+                        })
+                      }
+                      required
+                      style={{
+                        background: "transparent",
+                        color: "white",
+                        width: "100%",
+                        border: "none",
+                        outline: "none",
+                      }}
+                    >
+                      <option value="" style={{ background: "#120d1d" }}>
+                        Location (Wilaya)
+                      </option>
+                      {wilayas.map((w) => (
+                        <option
+                          key={w}
+                          value={w}
+                          style={{ background: "#120d1d" }}
+                        >
+                          {w}
                         </option>
-                        {wilayas.map((w) => (
-                          <option
-                            key={w}
-                            value={w}
-                            style={{ background: "#120d1d" }}
-                          >
-                            {w}
-                          </option>
-                        ))}
-                      </select>
-                      <MapPin size={18} className="icon" />
-                    </div>
+                      ))}
+                    </select>
+                    <MapPin size={18} className="icon" />
+                  </div>
 
-                    <div className="input-group">
-                      <select
-                        value={companyData.industry}
-                        onChange={(e) =>
-                          setCompanyData({
-                            ...companyData,
-                            industry: e.target.value,
-                          })
-                        }
-                        required
-                        style={{
-                          background: "transparent",
-                          color: "white",
-                          width: "100%",
-                          border: "none",
-                          outline: "none",
-                        }}
-                      >
-                        <option value="" style={{ background: "#120d1d" }}>
-                          Industry
+                  <div className="input-group">
+                    <select
+                      value={companyData.industry}
+                      onChange={(e) =>
+                        setCompanyData({
+                          ...companyData,
+                          industry: e.target.value,
+                        })
+                      }
+                      required
+                      style={{
+                        background: "transparent",
+                        color: "white",
+                        width: "100%",
+                        border: "none",
+                        outline: "none",
+                      }}
+                    >
+                      <option value="" style={{ background: "#120d1d" }}>
+                        Industry
+                      </option>
+                      {industries.map((ind) => (
+                        <option
+                          key={ind}
+                          value={ind}
+                          style={{ background: "#120d1d" }}
+                        >
+                          {ind}
                         </option>
-                        {industries.map((ind) => (
-                          <option
-                            key={ind}
-                            value={ind}
-                            style={{ background: "#120d1d" }}
-                          >
-                            {ind}
-                          </option>
-                        ))}
-                      </select>
-                      <Briefcase size={18} className="icon" />
-                    </div>
+                      ))}
+                    </select>
+                    <Briefcase size={18} className="icon" />
                   </div>
 
                   <InputGroup
@@ -945,54 +957,52 @@ const AuthPage = () => {
                     Administration Registration
                   </h3>
 
-                  <div className="grid grid-cols-2">
-                    <InputGroup
-                      icon={<User size={18} />}
-                      label="Username"
-                      type="text"
-                      value={adminData.username}
-                      onChange={(e) =>
-                        setAdminData({ ...adminData, username: e.target.value })
-                      }
-                      required
-                    />
-                    <InputGroup
-                      icon={<Mail size={18} />}
-                      label="Email"
-                      type="email"
-                      value={adminData.email}
-                      onChange={(e) =>
-                        setAdminData({ ...adminData, email: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
+                  <InputGroup
+                    icon={<User size={18} />}
+                    label="Username"
+                    type="text"
+                    value={adminData.username}
+                    onChange={(e) =>
+                      setAdminData({ ...adminData, username: e.target.value })
+                    }
+                    required
+                  />
+                  
+                  <InputGroup
+                    icon={<Mail size={18} />}
+                    label="Email"
+                    type="email"
+                    value={adminData.email}
+                    onChange={(e) =>
+                      setAdminData({ ...adminData, email: e.target.value })
+                    }
+                    required
+                  />
 
-                  <div className="grid grid-cols-2">
-                    <InputGroup
-                      icon={<Lock size={18} />}
-                      label="Password"
-                      type="password"
-                      value={adminData.password}
-                      onChange={(e) =>
-                        setAdminData({ ...adminData, password: e.target.value })
-                      }
-                      required
-                    />
-                    <InputGroup
-                      icon={<Lock size={18} />}
-                      label="Confirm Password"
-                      type="password"
-                      value={adminData.confirm_password}
-                      onChange={(e) =>
-                        setAdminData({
-                          ...adminData,
-                          confirm_password: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
+                  <InputGroup
+                    icon={<Lock size={18} />}
+                    label="Password"
+                    type="password"
+                    value={adminData.password}
+                    onChange={(e) =>
+                      setAdminData({ ...adminData, password: e.target.value })
+                    }
+                    required
+                  />
+                  
+                  <InputGroup
+                    icon={<Lock size={18} />}
+                    label="Confirm Password"
+                    type="password"
+                    value={adminData.confirm_password}
+                    onChange={(e) =>
+                      setAdminData({
+                        ...adminData,
+                        confirm_password: e.target.value,
+                      })
+                    }
+                    required
+                  />
 
                   <InputGroup
                     icon={<User size={18} />}
@@ -1005,52 +1015,50 @@ const AuthPage = () => {
                     required
                   />
 
-                  <div className="grid grid-cols-2">
-                    <div className="input-group">
-                      <select
-                        value={adminData.wilaya}
-                        onChange={(e) =>
-                          setAdminData({ ...adminData, wilaya: e.target.value })
-                        }
-                        required
-                        style={{
-                          background: "transparent",
-                          color: "white",
-                          width: "100%",
-                          border: "none",
-                          outline: "none",
-                        }}
-                      >
-                        <option value="" style={{ background: "#120d1d" }}>
-                          Select Wilaya
-                        </option>
-                        {wilayas.map((w) => (
-                          <option
-                            key={w}
-                            value={w}
-                            style={{ background: "#120d1d" }}
-                          >
-                            {w}
-                          </option>
-                        ))}
-                      </select>
-                      <MapPin size={18} className="icon" />
-                    </div>
-
-                    <InputGroup
-                      icon={<BookOpen size={18} />}
-                      label="University"
-                      type="text"
-                      value={adminData.university}
+                  <div className="input-group">
+                    <select
+                      value={adminData.wilaya}
                       onChange={(e) =>
-                        setAdminData({
-                          ...adminData,
-                          university: e.target.value,
-                        })
+                        setAdminData({ ...adminData, wilaya: e.target.value })
                       }
                       required
-                    />
+                      style={{
+                        background: "transparent",
+                        color: "white",
+                        width: "100%",
+                        border: "none",
+                        outline: "none",
+                      }}
+                    >
+                      <option value="" style={{ background: "#120d1d" }}>
+                        Select Wilaya
+                      </option>
+                      {wilayas.map((w) => (
+                        <option
+                          key={w}
+                          value={w}
+                          style={{ background: "#120d1d" }}
+                        >
+                          {w}
+                        </option>
+                      ))}
+                    </select>
+                    <MapPin size={18} className="icon" />
                   </div>
+
+                  <InputGroup
+                    icon={<BookOpen size={18} />}
+                    label="University"
+                    type="text"
+                    value={adminData.university}
+                    onChange={(e) =>
+                      setAdminData({
+                        ...adminData,
+                        university: e.target.value,
+                      })
+                    }
+                    required
+                  />
 
                   <button type="submit" className="auth-btn" disabled={loading}>
                     {loading ? "Creating..." : "Register as Admin"}
