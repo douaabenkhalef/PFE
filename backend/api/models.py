@@ -9,6 +9,8 @@ class User(Document):
     email = EmailField(required=True, unique=True)
     password_hash = StringField(required=True, max_length=128)
     role = StringField(required=True, choices=['student', 'company', 'admin'])
+    sub_role = StringField(default='')  # 'company_manager'|'hiring_manager'|'admin'|'co_dept_head'
+    status = BooleanField(default=False)  # False = pending approval, True = approved
     is_university_email = BooleanField(default=False)
     created_at = DateTimeField(default=datetime.now)
     updated_at = DateTimeField(default=datetime.now)
@@ -32,9 +34,11 @@ class Company(Document):
     logo = FileField(blank=True)
     description = StringField(required=True)
     location = StringField(required=True, max_length=100)
-    website = StringField(blank=True, default='')  # Changé de URLField à StringField
+    website = StringField(blank=True, default='')
     industry = StringField(required=True, max_length=100)
     verified = BooleanField(default=False)
+    # Links a hiring_manager's Company doc back to their company_manager's Company doc
+    parent_company = ReferenceField('self', null=True, default=None)
     
     def __str__(self):
         return self.company_name
@@ -108,13 +112,14 @@ class InternshipAgreement(Document):
     
     def __str__(self):
         return f"Convention - {self.student_name} - {self.company_name}"
+
 class Admin(Document):
     meta = {'collection': 'admins'}
     
     user = ReferenceField(User, required=True, unique=True, reverse_delete_rule=2)
     full_name = StringField(required=True, max_length=100)
-    wilaya = StringField(required=True, max_length=50)  # ← AJOUTÉ
-    university = StringField(required=True, max_length=200)  # ← AJOUTÉ
+    wilaya = StringField(required=True, max_length=50)
+    university = StringField(required=True, max_length=200)
     
     def __str__(self):
         return f"{self.full_name} - {self.user.email}"

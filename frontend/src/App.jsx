@@ -14,6 +14,7 @@ function App() {
       <AuthProvider>
         <div className="min-h-screen bg-gray-50">
           <Routes>
+
             <Route path="/" element={<Home />} />
             <Route path="/" element={<AuthPage />} />
             <Route path="/login" element={<AuthPage />} />
