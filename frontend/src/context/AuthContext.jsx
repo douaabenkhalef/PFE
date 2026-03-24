@@ -1,6 +1,5 @@
 import React, { createContext, useState, useContext } from "react";
 import { authAPI } from "../services/auth";
-import toast from "react-hot-toast";
 
 const AuthContext = createContext();
 
@@ -17,58 +16,50 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
 
   const login = async (email, password) => {
-  setLoading(true);
-  try {
-    const response = await authAPI.login(email, password);
-    
-    console.log("🔍 RÉPONSE COMPLÈTE DU BACKEND:", response);
-    console.log("🔍 Success:", response.success);
-    console.log("🔍 Token:", response.token);  // ← Changé de tokens à token
-    console.log("🔍 User:", response.user);
-    console.log("🔍 Redirect URL:", response.redirect_url);
-
-    if (response.success) {
-      localStorage.setItem("access_token", response.token);  // ← Changé
-      localStorage.setItem("user_role", response.user.role); // ← Pas de refresh_token
-      setUser(response.user);
-      toast.success("Connexion réussie!");
-      return { success: true, redirectUrl: response.redirect_url };
-    } else {
-      toast.error(response.message || "Erreur de connexion");
-      return { success: false };
+    setLoading(true);
+    try {
+      const response = await authAPI.login(email, password);
+      if (response.success) {
+        localStorage.setItem("access_token", response.token);
+        localStorage.setItem("user_role", response.user.role);
+        setUser(response.user);
+        return { success: true, redirectUrl: response.redirect_url };
+      }
+      return {
+        success: false,
+        errors: response.errors || null,
+        message: response.message || "Login failed.",
+      };
+    } catch {
+      return {
+        success: false,
+        errors: { non_field_errors: ["Unable to connect to the server. Please try again."] },
+      };
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("❌ ERREUR API:", error);
-    toast.error("Erreur de connexion au serveur");
-    return { success: false };
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const registerStudent = async (studentData) => {
     setLoading(true);
     try {
       const response = await authAPI.registerStudent(studentData);
-
       if (response.success) {
-        localStorage.setItem("access_token", response.tokens.access);
-        localStorage.setItem("refresh_token", response.tokens.refresh);
+        localStorage.setItem("access_token", response.token);
         localStorage.setItem("user_role", response.user.role);
         setUser(response.user);
-        toast.success("Inscription réussie!");
         return { success: true, redirectUrl: response.redirect_url };
-      } else {
-        if (response.errors) {
-          Object.values(response.errors).forEach((err) => {
-            if (Array.isArray(err)) toast.error(err[0]);
-          });
-        }
-        return { success: false };
       }
-    } catch (error) {
-      toast.error("Erreur d'inscription");
-      return { success: false };
+      return {
+        success: false,
+        errors: response.errors || null,
+        message: response.message || "Registration failed.",
+      };
+    } catch {
+      return {
+        success: false,
+        errors: { non_field_errors: ["Unable to connect to the server. Please try again."] },
+      };
     } finally {
       setLoading(false);
     }
@@ -78,25 +69,26 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const response = await authAPI.registerCompany(companyData);
-
+      // pending = true means account created but not yet approved — no token
+      if (response.success && response.pending) {
+        return { success: true, pending: true, message: response.message };
+      }
       if (response.success) {
-        localStorage.setItem("access_token", response.tokens.access);
-        localStorage.setItem("refresh_token", response.tokens.refresh);
+        localStorage.setItem("access_token", response.token);
         localStorage.setItem("user_role", response.user.role);
         setUser(response.user);
-        toast.success("Inscription entreprise réussie!");
         return { success: true, redirectUrl: response.redirect_url };
-      } else {
-        if (response.errors) {
-          Object.values(response.errors).forEach((err) => {
-            if (Array.isArray(err)) toast.error(err[0]);
-          });
-        }
-        return { success: false };
       }
-    } catch (error) {
-      toast.error("Erreur d'inscription");
-      return { success: false };
+      return {
+        success: false,
+        errors: response.errors || null,
+        message: response.message || "Registration failed.",
+      };
+    } catch {
+      return {
+        success: false,
+        errors: { non_field_errors: ["Unable to connect to the server. Please try again."] },
+      };
     } finally {
       setLoading(false);
     }
@@ -106,21 +98,25 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const response = await authAPI.registerAdmin(adminData);
-
+      if (response.success && response.pending) {
+        return { success: true, pending: true, message: response.message };
+      }
       if (response.success) {
         localStorage.setItem("access_token", response.token);
         localStorage.setItem("user_role", response.user.role);
         setUser(response.user);
-        toast.success("Inscription admin réussie!");
         return { success: true, redirectUrl: response.redirect_url };
-      } else {
-        toast.error(response.message || "Erreur d'inscription admin");
-        return { success: false };
       }
-    } catch (error) {
-      console.error("Registration error:", error);
-      toast.error("Erreur d'inscription admin");
-      return { success: false };
+      return {
+        success: false,
+        errors: response.errors || null,
+        message: response.message || "Registration failed.",
+      };
+    } catch {
+      return {
+        success: false,
+        errors: { non_field_errors: ["Unable to connect to the server. Please try again."] },
+      };
     } finally {
       setLoading(false);
     }
@@ -131,7 +127,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("user_role");
     setUser(null);
-    toast.success("Déconnexion réussie");
   };
 
   return (
@@ -143,7 +138,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         registerStudent,
         registerCompany,
-        registerAdmin,  // ← AJOUTÉ
+        registerAdmin,
         isAuthenticated: !!user,
       }}
     >
