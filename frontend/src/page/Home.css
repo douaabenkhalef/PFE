@@ -10,10 +10,9 @@
   --gold:        #FFC107;
   --text-white:  #ffffff;
   --text-muted:  rgba(255,255,255,0.65);
-  --card-bg:     #5D0292;          /* couleur principale des cards services */
-  --card-light:  #DFC0FF;          /* couleur claire */
+  --card-bg:     #5D0292;          
   --grad-title:  linear-gradient(90deg, #F75AFA 0%, #8D23D4 50%, #1F36A9 100%);
-  --grad-btn:    linear-gradient(135deg, #8D23D4, #F75AFA);
+  --grad-btn:    linear-gradient(135deg, #B556D7 0%, #8E2FFB 55%, #5D77D4 100%);
   --nav-bg:      rgba(8, 6, 20, 0.82);
 }
 
@@ -23,36 +22,53 @@
 html {
   scroll-behavior: smooth;
   min-height: 100%;
-  /* خلفية الصفحة كلها: داكن كحلي + 3 بقع بنفسجية ناعمة */
-  background-color: black;
+
+  
+  background-color: #0c0a1c;
   background-image:
-    radial-gradient(ellipse 40% 35% at 6% 10%,
-      rgba(141,35,212,0.55) 0%, rgba(123,47,247,0.20) 52%, transparent 78%),
-    radial-gradient(ellipse 34% 32% at 5% 72%,
-      rgba(247,90,250,0.50) 0%, rgba(141,35,212,0.16) 52%, transparent 76%),
-    radial-gradient(ellipse 55% 52% at 72% 52%,
-      rgba(247,90,250,0.56) 0%, rgba(141,35,212,0.30) 42%,
-      rgba(123,47,247,0.08) 68%, transparent 86%),
-    linear-gradient(148deg, #0b0920 0%, #0e0c27 55%, #0b0920 100%);
+   
+    radial-gradient(ellipse 40% 35% at 7% 12%,
+      rgba(172, 67, 217, 0.38) 0%,
+      rgba(32, 20, 115, 0.18) 50%,
+      transparent 78%),
+
+    
+    radial-gradient(ellipse 32% 30% at 5% 80%,
+      rgba(172, 67, 217, 0.35) 0%,
+      rgba(32, 20, 115, 0.15) 48%,
+      transparent 75%),
+
+    
+    radial-gradient(ellipse 50% 46% at 70% 54%,
+      rgba(160, 50, 180, 0.42) 0%,
+      rgba(32, 20, 115, 0.22) 42%,
+      rgba(26, 27, 47, 0.10) 65%,
+      transparent 82%);
+
   background-attachment: fixed;
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }
 
-/* Blur layer */
+
 html::before {
   content: '';
   position: fixed;
-  inset: -25%;
-  width: 150%; height: 150%;
+  inset: -20%;
+  width: 140%; height: 140%;
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 55% 52% at 72% 52%, rgba(247,90,250,0.42) 0%, rgba(141,35,212,0.18) 48%, transparent 78%),
-    radial-gradient(ellipse 40% 35% at 6% 10%,  rgba(141,35,212,0.38) 0%, transparent 70%),
-    radial-gradient(ellipse 34% 32% at 5% 72%,  rgba(247,90,250,0.36) 0%, transparent 70%);
-  filter: blur(75px) saturate(1.2);
-  opacity: 0.85;
+    radial-gradient(ellipse 40% 35% at 7% 12%,
+      rgba(140, 50, 200, 0.28) 0%, transparent 70%),
+    radial-gradient(ellipse 32% 30% at 5% 80%,
+      rgba(140, 50, 200, 0.25) 0%, transparent 68%),
+    radial-gradient(ellipse 50% 46% at 70% 54%,
+      rgba(150, 40, 170, 0.30) 0%,
+      rgba(30, 18, 100, 0.15) 45%,
+      transparent 72%);
+  filter: blur(70px) saturate(1.15);
+  opacity: 0.88;
 }
 
 body {
@@ -67,10 +83,10 @@ body {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 1000;
-  background: var(--nav-bg);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: 1px solid rgba(255,255,255,0.55);
   padding: 0 4%;
   height: 64px;
   display: flex;
@@ -95,10 +111,10 @@ body {
   background: transparent;
   border: none;
   cursor: pointer;
-  color: rgba(255,255,255,0.65);
+  color: rgba(255,255,255,0.75);
   display: flex;
   align-items: center;
-  padding: 5px;
+  padding: 250px;
   transition: color 0.2s;
 }
 .navbar-search-btn:hover { color: #fff; }
@@ -135,7 +151,7 @@ body {
   position: absolute;
   bottom: -4px; left: 0; right: 0;
   height: 2.5px;
-  background: linear-gradient(90deg, #F75AFA, #8D23D4, #1F36A9);
+  background: linear-gradient(90deg, #fff);
   border-radius: 4px;
 }
 
@@ -146,7 +162,7 @@ body {
 }
 
 .btn-contact {
-  background: var(--grad-btn);
+  background: linear-gradient(135deg, #B556D7 29%, #8E2FFB 50%, #5D77D4 85%);
   color: #fff;
   border: none;
   padding: 9px 22px;
@@ -156,7 +172,7 @@ body {
   cursor: pointer;
   font-family: 'Poppins', sans-serif;
   transition: opacity 0.2s, transform 0.2s;
-  box-shadow: 0 3px 16px rgba(141,35,212,0.45);
+  box-shadow: 0 3px 18px rgba(142, 47, 251, 0.50);
 }
 .btn-contact:hover { opacity: 0.88; transform: translateY(-1px); }
 
@@ -246,7 +262,7 @@ section { padding: 100px 5% 80px; }
   letter-spacing: -1px;
 }
 .hero-content h1 span {
-  background: linear-gradient(90deg, #F75AFA, #8D23D4);
+  background: linear-gradient(90deg, #F75AFA, #8D23D4 ,#1F36A9 );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -260,41 +276,48 @@ section { padding: 100px 5% 80px; }
   max-width: 420px;
 }
 
-/* زرّان داخل capsule واحدة */
+
 .hero-buttons {
   display: flex;
-  background: rgba(255,255,255,0.08);
-  border-radius: 50px;
-  padding: 5px;
   width: fit-content;
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 30px;
+  overflow: hidden;
+  border: none;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.40);
+  background: none;
+  padding: 0;
+  backdrop-filter: none;
 }
+
+/* Get started — نصف أبيض يسار */
 .btn-primary {
   background: #ffffff;
   color: #1a0535;
   border: none;
-  padding: 11px 30px;
-  border-radius: 50px;
-  font-size: 0.88rem;
+  padding: 7px 70px;
+  border-radius: 0;
+  font-size: 0.92rem;
   font-weight: 700;
   cursor: pointer;
   font-family: 'Poppins', sans-serif;
-  transition: transform 0.2s;
+  transition: background 0.2s;
+  white-space: nowrap;
 }
-.btn-primary:hover { transform: scale(1.03); }
+.btn-primary:hover { background: #f0f0f0; }
 
+/* About us — نصف بنفسجي يمين */
 .btn-outline {
-  background: var(--grad-btn);
+  background: linear-gradient(135deg, #B556D7 0%, #8E2FFB 55%, #5D77D4 100%);
   color: #fff;
   border: none;
-  padding: 11px 30px;
-  border-radius: 50px;
-  font-size: 0.88rem;
+  padding: 7px 70px;
+  border-radius: 0;
+  font-size: 0.92rem;
   font-weight: 700;
   cursor: pointer;
   font-family: 'Poppins', sans-serif;
   transition: opacity 0.2s;
+  white-space: nowrap;
 }
 .btn-outline:hover { opacity: 0.88; }
 
@@ -322,7 +345,7 @@ section { padding: 100px 5% 80px; }
   background: transparent;
 }
 
-/* عنوان "Top Companies" — Top بنفسجي، Companies بنفسجي فاتح-وردي */
+
 .section-title {
   text-align: center;
   font-size: clamp(1.8rem, 3.5vw, 2.6rem);
@@ -330,19 +353,19 @@ section { padding: 100px 5% 80px; }
   margin-bottom: 3rem;
   color: #fff;
 }
-/* "Top" = بنفسجي قوي */
+
 .section-title .word-top {
-  color: #8D23D4;
+  color: #F75AFA;
 }
-/* "Companies" أو "services" = gradient وردي→بنفسجي */
+
 .section-title .word-grad {
-  background: linear-gradient(90deg, #F75AFA, #8D23D4);
+  background: linear-gradient(74deg, #8D23D4, #1F36A9);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
-/* "Our" = أبيض */
-.section-title .word-white { color: #fff; }
+
+.section-title .word-white { color: #F75AFA; }
 
 .companies-grid {
   display: grid;
@@ -352,7 +375,7 @@ section { padding: 100px 5% 80px; }
   margin: 0 auto 2.5rem;
 }
 
-/* كارد الشركة */
+
 .company-card {
   background: rgba(30, 10, 70, 0.55);
   backdrop-filter: blur(14px);
@@ -369,7 +392,7 @@ section { padding: 100px 5% 80px; }
   border-color: rgba(247,90,250,0.55);
 }
 
-/* صورة الشركة — placeholder مستطيل أعلى الكارد */
+
 .company-img-box {
   width: 100%;
   height: 180px;
@@ -482,15 +505,28 @@ section { padding: 100px 5% 80px; }
 
 /* ===== OUR SERVICES ===== */
 .services-section { background: transparent; }
-
+ 
 .services-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 2rem;
   max-width: 1050px;
   margin: 0 auto 3rem;
+  align-items: center;   /* محاذاة عمودية للكاردات */
 }
-
+ 
+/* الكارد الوسطى — أكبر وأبرز */
+.services-grid .service-card:nth-child(2) {
+  transform: scale(1.08) translateY(-10px);
+  box-shadow: 0 24px 55px rgba(93, 2, 146, 0.65);
+  border-color: rgba(223, 192, 255, 0.55);
+  z-index: 2;
+}
+.services-grid .service-card:nth-child(2):hover {
+  transform: scale(1.08) translateY(-16px);
+  box-shadow: 0 32px 65px rgba(93, 2, 146, 0.75);
+}
+ 
 /*
  * Service card:
  * fond = #5D0292 (violet profond)
@@ -695,3 +731,165 @@ section { padding: 100px 5% 80px; }
 @media (max-width: 480px) {
   section { padding: 80px 4% 60px; }
 }
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+
+/* ── 1. Keyframes ─────────────────────────────────────── */
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeSlideLeft {
+  from { opacity: 0; transform: translateX(50px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-14px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0px rgba(172,67,217,0); }
+  50%       { box-shadow: 0 0 28px rgba(172,67,217,0.55); }
+}
+
+@keyframes navbarDrop {
+  from { opacity: 0; transform: translateY(-100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ── 2. Navbar — slide down on load ──────────────────── */
+.navbar {
+  animation: navbarDrop 0.6s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+/* ── 3. Hero — staggered fade + slide up ─────────────── */
+.hero-content h1 {
+  animation: fadeSlideUp 0.8s cubic-bezier(0.22,1,0.36,1) 0.2s both;
+}
+.hero-content p {
+  animation: fadeSlideUp 0.8s cubic-bezier(0.22,1,0.36,1) 0.42s both;
+}
+.hero-buttons {
+  animation: fadeSlideUp 0.8s cubic-bezier(0.22,1,0.36,1) 0.60s both;
+}
+
+/* Hero image — slide in from right + floating */
+.hero-image-box {
+  animation:
+    fadeSlideLeft 0.9s cubic-bezier(0.22,1,0.36,1) 0.35s both,
+    float 5s ease-in-out 1.3s infinite;
+}
+
+/* ── 4. Section titles — fade up on scroll ───────────── */
+.section-title {
+  animation: fadeSlideUp 0.7s cubic-bezier(0.22,1,0.36,1) both;
+  animation-play-state: paused;
+}
+.section-title.is-visible {
+  animation-play-state: running;
+}
+
+/* ── 5. Company cards — staggered fade up ────────────── */
+.company-card {
+  opacity: 0;
+  transform: translateY(35px);
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s cubic-bezier(0.22,1,0.36,1),
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+.company-card.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.company-card:nth-child(1) { transition-delay: 0.05s; }
+.company-card:nth-child(2) { transition-delay: 0.18s; }
+.company-card:nth-child(3) { transition-delay: 0.31s; }
+
+/* ── 6. Service cards — staggered fade up ────────────── */
+.service-card {
+  opacity: 0;
+  transform: translateY(35px);
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s cubic-bezier(0.22,1,0.36,1),
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+.service-card.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+/* middle card keeps its scale when visible */
+.services-grid .service-card:nth-child(2).is-visible {
+  transform: scale(1.08) translateY(-10px);
+}
+.service-card:nth-child(1) { transition-delay: 0.05s; }
+.service-card:nth-child(2) { transition-delay: 0.20s; }
+.service-card:nth-child(3) { transition-delay: 0.35s; }
+
+/* ── 7. Hover effects ────────────────────────────────── */
+
+/* Contact Us button — animated gradient */
+.btn-contact {
+  background-size: 200% 200%;
+  animation: gradientShift 4s ease infinite;
+}
+
+/* Cards hover glow pulse */
+.company-card:hover {
+  animation: pulseGlow 1.8s ease-in-out infinite;
+}
+
+/* Navbar links — underline slide in */
+.navbar-links a::after {
+  content: '';
+  position: absolute;
+  bottom: -4px; left: 0;
+  width: 0; height: 2.5px;
+  background: linear-gradient(90deg, #B556D7, #8E2FFB, #5D77D4);
+  border-radius: 4px;
+  transition: width 0.3s cubic-bezier(0.22,1,0.36,1);
+}
+.navbar-links a:hover::after,
+.navbar-links a.active::after {
+  width: 100%;
+}
+
+/* Buttons — scale on hover */
+.btn-primary,
+.btn-outline,
+.btn-see-all,
+.btn-learn-more {
+  transition: transform 0.2s cubic-bezier(0.22,1,0.36,1),
+              opacity 0.2s,
+              box-shadow 0.2s;
+}
+.btn-primary:hover  { transform: scale(1.04); }
+.btn-outline:hover  { transform: scale(1.04); opacity: 0.9; }
+.btn-see-all:hover  { transform: translateY(-3px) scale(1.02); }
+.btn-learn-more:hover { transform: translateY(-3px); }
+
+/* Footer socials */
+.footer-socials a {
+  transition: color 0.2s, transform 0.25s cubic-bezier(0.22,1,0.36,1);
+}
+.footer-socials a:hover { transform: translateY(-4px) scale(1.15); }

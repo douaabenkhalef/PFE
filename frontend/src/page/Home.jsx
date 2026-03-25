@@ -98,6 +98,26 @@ export default function Home() {
     return () => obs.disconnect();
   }, []);
 
+  /* ── Scroll animations: add .is-visible when element enters viewport ── */
+  useEffect(() => {
+    const targets = document.querySelectorAll(
+      ".company-card, .service-card, .section-title"
+    );
+    const revealObs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            revealObs.unobserve(entry.target); // fire once
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+    targets.forEach((el) => revealObs.observe(el));
+    return () => revealObs.disconnect();
+  }, []);
+
   const scrollTo = (id, ref) => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     setActiveSection(id);
