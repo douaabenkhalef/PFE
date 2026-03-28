@@ -1,5 +1,4 @@
 # api/views.py
-from .models import User, Student, Company, Admin, InternshipOffer, Application, OTPVerification, PendingApproval
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -13,7 +12,7 @@ from .serializers import (
 )
 from .auth import create_token
 from .otp_utils import create_otp_verification, send_otp_email, verify_otp_code
-from .email_utils import send_email, send_approval_email, send_rejection_email
+from .email_utils import send_email, send_approval_email, send_rejection_email, send_proof_request_email, send_proof_received_confirmation
 from .decorators import jwt_authenticated, role_required
 from datetime import datetime
 import traceback
@@ -305,7 +304,7 @@ def login(request):
     if not email or not password:
         return Response({
             'success': False,
-            'errors': {'non_field_errors': ['Email and password are required.']}
+            'errors': {'non_field_errors': ['Email et mot de passe requis.']}
         }, status=status.HTTP_400_BAD_REQUEST)
 
     user = User.objects(email=email).first()
@@ -313,14 +312,14 @@ def login(request):
     if not user or not user.check_password(password):
         return Response({
             'success': False,
-            'errors': {'non_field_errors': ['Incorrect email or password.']}
+            'errors': {'non_field_errors': ['Email ou mot de passe incorrect.']}
         }, status=status.HTTP_401_UNAUTHORIZED)
 
     if not user.status:
         return Response({
             'success': False,
             'errors': {'non_field_errors': [
-                'Your account is pending approval. Please wait for an administrator to activate your account.'
+                'Votre compte est en attente d\'approbation. Veuillez patienter.'
             ]}
         }, status=status.HTTP_403_FORBIDDEN)
 
@@ -354,7 +353,7 @@ def login(request):
 
     return Response({
         'success': True,
-        'message': 'Login successful.',
+        'message': 'Connexion réussie !',
         'token': token,
         'user': user_data,
         'redirect_url': redirect_urls.get(user.role, '/dashboard'),
@@ -1191,7 +1190,6 @@ def approve_company_manager(request, user_id):
     manager_user.status = True
     manager_user.save()
     
-    # Nettoyer la collection pending_approvals
     cleanup_pending_approval(str(manager_user.id))
     
     send_approval_email(
@@ -1326,7 +1324,6 @@ def reject_co_dept_head(request, user_id):
         'message': f'Co Department Head {co_dept_user.username} a été refusé. Un email de notification lui sera envoyé.'
     })
 
-# api/views.py - ajouter ces fonctions
 
 # ============= GESTION DES DEMANDES DE PREUVES =============
 
@@ -1342,16 +1339,13 @@ def request_proof_from_admin(request, pending_id):
     if not pending:
         return Response({'error': 'Demande non trouvée', 'success': False}, status=status.HTTP_404_NOT_FOUND)
     
-    # Mettre à jour le statut
     pending.verification_status = 'proof_requested'
     pending.proof_requested_at = datetime.now()
     pending.save()
     
-    # Envoyer l'email de demande de preuves
     role_display = "Company Manager" if pending.sub_role == 'company_manager' else "Department Head"
     
-    # L'email de l'admin pour recevoir les réponses
-    admin_email = "stageplatform.verification@gmail.com"  # À modifier par votre email
+    admin_email = "stageplatform.verification@gmail.com"
     
     send_proof_request_email(
         recipient=pending.email,
@@ -1382,13 +1376,14 @@ def mark_proof_received(request, pending_id):
     pending.proof_received_at = datetime.now()
     pending.save()
     
-    # Envoyer l'email de confirmation de réception
     send_proof_received_confirmation(pending.email, pending.username)
     
     return Response({
         'success': True,
         'message': f'Documents marqués comme reçus pour {pending.email}'
     })
+
+
 # ============= UTILITIES =============
 
 @api_view(['GET'])

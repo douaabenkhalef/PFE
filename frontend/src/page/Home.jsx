@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Home.css";
-import { Navigate, useNavigate } from "react-router-dom";
 
 /* ========== SVG ICONS ========== */
 const SearchIcon = () => (
@@ -108,7 +108,7 @@ export default function Home() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add("is-visible");
-            revealObs.unobserve(entry.target); // fire once
+            revealObs.unobserve(entry.target);
           }
         });
       },
@@ -168,7 +168,7 @@ export default function Home() {
               search criteria, while also allowing for the immediate review of attached CVs.
             </p>
             <div className="hero-buttons">
-              <button className="btn-primary" onClick={()=>navigate("/page/AuthPage")}>Get started</button>
+              <button className="btn-primary" onClick={() => navigate("/login")}>Get started</button>
               <button className="btn-outline">About us</button>
             </div>
           </div>
@@ -190,13 +190,11 @@ export default function Home() {
         <div className="companies-grid">
           {companies.map(c => (
             <div className="company-card" key={c.id}>
-              {/* Image placeholder */}
               <div className="company-img-box">
                 <ImgIcon />
                 <span>Logo / Photo</span>
               </div>
 
-              {/* Info */}
               <div className="company-info-zone">
                 <div className="company-name">{c.name}</div>
 
@@ -239,12 +237,10 @@ export default function Home() {
         <div className="services-grid">
           {services.map(s => (
             <div className="service-card" key={s.id}>
-              {/* Image placeholder — haut de la carte */}
               <div className="service-img-box">
                 <ImgIcon />
                 <span>Image</span>
               </div>
-              {/* Corps de la carte */}
               <div className="service-card-body">
                 <h3>{s.title}</h3>
                 <p>{s.desc}</p>
@@ -253,9 +249,8 @@ export default function Home() {
           ))}
         </div>
 
-        {/* LEARN MORE — sous les cartes, pas dedans */}
         <div className="learn-more-wrap">
-          <button className="btn-learn-more">LEARN  MORE</button>
+          <button className="btn-learn-more">LEARN MORE</button>
         </div>
       </section>
 
