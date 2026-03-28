@@ -1,3 +1,4 @@
+# backend/settings.py
 from pathlib import Path
 from decouple import config
 import os
@@ -32,6 +33,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'api.middleware.JWTAuthenticationMiddleware'
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -83,14 +85,13 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOW_CREDENTIALS = True
 
-# REST Framework - Désactiver complètement l'authentification par défaut
+# REST Framework - UTILISER NOTRE AUTHENTIFICATION PERSONNALISÉE
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [],  # Pas d'authentification par défaut
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',  # Permettre tout le monde
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'api.authentication.JWTAuthentication',  # Notre authentification personnalisée
     ],
-    'UNAUTHENTICATED_USER': None,  # Désactiver l'utilisateur anonyme
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',  # On gère les permissions avec nos décorateurs
+    ],
+    'UNAUTHENTICATED_USER': None,
 }
-
-# Supprimer ou commenter toute référence à AUTH_USER_MODEL
-# AUTH_USER_MODEL = 'api.User'  # À NE PAS UTILISER

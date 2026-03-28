@@ -1,3 +1,4 @@
+# api/serializers.py
 from rest_framework import serializers
 from .models import User
 
@@ -30,6 +31,16 @@ class StudentRegistrationSerializer(serializers.Serializer):
             raise serializers.ValidationError("Invalid graduation year. Must be between 1900 and 2100.")
         return value
 
+    def validate_email(self, value):
+        if User.objects(email=value).first():
+            raise serializers.ValidationError("Cet email est déjà utilisé.")
+        return value
+
+    def validate_username(self, value):
+        if User.objects(username=value).first():
+            raise serializers.ValidationError("Ce nom d'utilisateur est déjà pris.")
+        return value
+
     def validate(self, data):
         if data['password'] != data['confirm_password']:
             raise serializers.ValidationError({'confirm_password': ['Passwords do not match.']})
@@ -46,25 +57,61 @@ class CompanyRegistrationSerializer(serializers.Serializer):
     # Sub-role
     sub_role = serializers.ChoiceField(choices=['company_manager', 'hiring_manager'])
 
-    # Company profile
-    company_name = serializers.CharField(max_length=200)
-    description = serializers.CharField()
-    location = serializers.CharField(max_length=100)
+    # Company profile fields (obligatoires pour company_manager, optionnels pour hiring_manager)
+    company_name = serializers.CharField(max_length=200, required=False, allow_blank=True)
+    description = serializers.CharField(required=False, allow_blank=True)
+    location = serializers.CharField(max_length=100, required=False, allow_blank=True)
     website = serializers.URLField(required=False, allow_blank=True)
-    industry = serializers.CharField(max_length=100)
+    industry = serializers.CharField(max_length=100, required=False, allow_blank=True)
 
-    # Only required when sub_role == 'hiring_manager'
+    # Uniquement pour hiring_manager
     company_manager_email = serializers.EmailField(required=False, allow_blank=True)
+    company_name_for_hiring = serializers.CharField(required=False, allow_blank=True)
+
+    def validate_email(self, value):
+        if User.objects(email=value).first():
+            raise serializers.ValidationError("Cet email est déjà utilisé.")
+        return value
+
+    def validate_username(self, value):
+        if User.objects(username=value).first():
+            raise serializers.ValidationError("Ce nom d'utilisateur est déjà pris.")
+        return value
 
     def validate(self, data):
         if data['password'] != data['confirm_password']:
             raise serializers.ValidationError({'confirm_password': ['Passwords do not match.']})
-        if data.get('sub_role') == 'hiring_manager' and not data.get('company_manager_email'):
-            raise serializers.ValidationError(
-                {'company_manager_email': ['Company manager email is required for hiring managers.']}
-            )
+        
+        # Validation spécifique selon le sous-rôle
+        if data.get('sub_role') == 'company_manager':
+            # Pour company manager, tous les champs sont requis
+            required_fields = ['company_name', 'description', 'location', 'industry']
+            missing = [f for f in required_fields if not data.get(f)]
+            if missing:
+                raise serializers.ValidationError(
+                    {f: ['Ce champ est requis pour les company managers.'] for f in missing}
+                )
+        
+        elif data.get('sub_role') == 'hiring_manager':
+            # Pour hiring manager, on vérifie les champs spécifiques
+            if not data.get('company_manager_email'):
+                raise serializers.ValidationError(
+                    {'company_manager_email': ['L\'email du gestionnaire d\'entreprise est requis pour les recruteurs.']}
+                )
+            if not data.get('company_name_for_hiring'):
+                raise serializers.ValidationError(
+                    {'company_name_for_hiring': ['Le nom de l\'entreprise est requis pour les recruteurs.']}
+                )
+            # Pour hiring manager, on ignore les champs company_name, description, etc.
+            data['company_name'] = ''
+            data['description'] = ''
+            data['location'] = ''
+            data['industry'] = ''
+        
         return data
 
+
+# api/serializers.py - modifier AdminRegistrationSerializer
 
 class AdminRegistrationSerializer(serializers.Serializer):
     # Authentication
@@ -76,24 +123,54 @@ class AdminRegistrationSerializer(serializers.Serializer):
     # Sub-role
     sub_role = serializers.ChoiceField(choices=['admin', 'co_dept_head'])
 
-    # Admin profile
-    full_name = serializers.CharField(max_length=100)
-    wilaya = serializers.CharField(max_length=50)
-    university = serializers.CharField(max_length=200)
+    # Admin profile (obligatoire pour admin, optionnel pour co_dept_head)
+    full_name = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    wilaya = serializers.CharField(max_length=50, required=False, allow_blank=True)
+    university = serializers.CharField(max_length=200, required=False, allow_blank=True)
+
+    # Uniquement pour co_dept_head
+    dept_head_email = serializers.EmailField(required=False, allow_blank=True)
+    university_for_verification = serializers.CharField(required=False, allow_blank=True)
 
     def validate_email(self, value):
         if User.objects(email=value).first():
-            raise serializers.ValidationError("This email is already in use.")
+            raise serializers.ValidationError("Cet email est déjà utilisé.")
         return value
 
     def validate_username(self, value):
         if User.objects(username=value).first():
-            raise serializers.ValidationError("This username is already taken.")
+            raise serializers.ValidationError("Ce nom d'utilisateur est déjà pris.")
         return value
 
     def validate(self, data):
         if data['password'] != data['confirm_password']:
             raise serializers.ValidationError({'confirm_password': ['Passwords do not match.']})
+        
+        # Validation spécifique selon le sous-rôle
+        if data.get('sub_role') == 'admin':
+            # Pour admin (Department Head), tous les champs sont requis
+            required_fields = ['full_name', 'wilaya', 'university']
+            missing = [f for f in required_fields if not data.get(f)]
+            if missing:
+                raise serializers.ValidationError(
+                    {f: ['Ce champ est requis pour les administrateurs.'] for f in missing}
+                )
+        
+        elif data.get('sub_role') == 'co_dept_head':
+            # Pour co_dept_head, on vérifie les champs spécifiques
+            if not data.get('dept_head_email'):
+                raise serializers.ValidationError(
+                    {'dept_head_email': ['L\'email du Department Head est requis pour les co-department heads.']}
+                )
+            if not data.get('university_for_verification'):
+                raise serializers.ValidationError(
+                    {'university_for_verification': ['Le nom de l\'université est requis pour la vérification.']}
+                )
+            # Pour co_dept_head, on ignore les champs full_name, wilaya, university
+            data['full_name'] = ''
+            data['wilaya'] = ''
+            data['university'] = ''
+        
         return data
 
 
