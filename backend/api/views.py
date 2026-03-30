@@ -21,14 +21,36 @@ import traceback
 # ============= FONCTION UTILITAIRE =============
 
 def cleanup_pending_approval(user_id):
-    """Supprime l'entrée de pending_approvals après approbation"""
+    """Remove entry from pending_approvals after approval"""
     try:
         pending = PendingApproval.objects(user_id=user_id).first()
         if pending:
             pending.delete()
-            print(f"🗑️ Demande supprimée de pending_approvals")
     except Exception as e:
-        print(f"⚠️ Erreur lors du nettoyage: {e}")
+        print(f"Warning: cleanup failed: {e}")
+
+
+def _get_user_company(user):
+    """
+    Returns the authoritative Company for an authenticated company user.
+
+    - company_manager: has their own Company record → return it directly.
+    - hiring_manager:  has NO Company record. At signup only a User is created
+      and the parent company's ID is stored in user.pending_company_id.
+      So we look up the Company by that ID directly.
+    """
+    if user.sub_role == 'hiring_manager':
+        # Hiring managers never get their own Company document.
+        # Their parent company ID is stored as a string on the User.
+        if not user.pending_company_id:
+            return None
+        try:
+            return Company.objects(id=user.pending_company_id).first()
+        except Exception:
+            return None
+
+    # company_manager: look up by user reference
+    return Company.objects(user=user).first()
 
 
 # ============= AUTHENTICATION =============
@@ -1015,19 +1037,6 @@ def company_dashboard(request):
     return Response({'message': 'Company dashboard', 'success': True})
 
 
-@api_view(['POST'])
-@jwt_authenticated
-@role_required(allowed_roles=['company'])
-def create_offer(request):
-    return Response({'message': 'Create offer', 'success': True})
-
-
-@api_view(['PUT'])
-@jwt_authenticated
-@role_required(allowed_roles=['company'])
-def update_offer(request, offer_id):
-    return Response({'message': f'Update offer {offer_id}', 'success': True})
-
 
 @api_view(['POST'])
 @jwt_authenticated
@@ -1144,6 +1153,245 @@ def reject_hiring_manager(request, user_id):
         'success': True,
         'message': f'Hiring manager {hiring_user.username} a été refusé. Un email de notification lui sera envoyé.'
     })
+
+
+
+
+
+
+# ============= INTERNSHIP OFFERS — COMPANY CRUD =============
+# Accessible by both company_manager and hiring_manager.
+# All offer operations are scoped to the authenticated user's company.
+ 
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['company'])
+def list_offers(request):
+    """
+    List all internship offers for the user's company.
+    Query params (all optional):
+      ?search=keyword      filters by title or description
+      ?type=PFE|...        filters by internship_type
+      ?active=true|false   filters by is_active
+    """
+    company = _get_user_company(request.user)
+    if not company:
+        return Response({'success': False, 'message': 'Company profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+ 
+    offers = list(InternshipOffer.objects(company=company))
+ 
+    search = request.query_params.get('search', '').strip().lower()
+    if search:
+        offers = [o for o in offers if search in o.title.lower() or search in o.description.lower()]
+ 
+    internship_type = request.query_params.get('type', '').strip()
+    if internship_type:
+        offers = [o for o in offers if o.internship_type == internship_type]
+ 
+    active_param = request.query_params.get('active', '').strip().lower()
+    if active_param == 'true':
+        offers = [o for o in offers if o.is_active]
+    elif active_param == 'false':
+        offers = [o for o in offers if not o.is_active]
+ 
+    return Response({
+        'success': True,
+        'count': len(offers),
+        'offers': [{
+            'id': str(o.id),
+            'title': o.title,
+            'description': o.description,
+            'wilaya': o.wilaya,
+            'internship_type': o.internship_type,
+            'required_skills': o.required_skills,
+            'duration': o.duration,
+            'start_date': o.start_date.strftime('%Y-%m-%d') if o.start_date else None,
+            'is_active': o.is_active,
+            'company_name': o.company.company_name,
+            'created_at': o.created_at.strftime('%Y-%m-%d') if o.created_at else None,
+        } for o in offers]
+    })
+ 
+ 
+@api_view(['POST'])
+@jwt_authenticated
+@role_required(allowed_roles=['company'])
+def create_offer(request):
+    """Create a new internship offer linked to the user's company"""
+    company = _get_user_company(request.user)
+    if not company:
+        return Response({'success': False, 'message': 'Company profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+ 
+    required = ['title', 'description', 'wilaya', 'internship_type', 'duration', 'start_date']
+    missing = [f for f in required if not request.data.get(f)]
+    if missing:
+        return Response({'success': False, 'message': f'Missing required fields: {missing}'}, status=status.HTTP_400_BAD_REQUEST)
+ 
+    internship_type = request.data.get('internship_type')
+    if internship_type not in ['PFE', 'ouvrier', 'technicien', 'été']:
+        return Response({'success': False, 'message': 'internship_type must be one of: PFE, ouvrier, technicien, été'}, status=status.HTTP_400_BAD_REQUEST)
+ 
+    try:
+        start_date = datetime.strptime(request.data.get('start_date'), '%Y-%m-%d')
+    except ValueError:
+        return Response({'success': False, 'message': 'start_date must be in YYYY-MM-DD format.'}, status=status.HTTP_400_BAD_REQUEST)
+ 
+    # Prevent duplicate title within the same company
+    if InternshipOffer.objects(company=company, title=request.data.get('title')).first():
+        return Response({'success': False, 'message': 'An offer with this title already exists for your company.'}, status=status.HTTP_400_BAD_REQUEST)
+ 
+    skills = request.data.get('required_skills', [])
+    if isinstance(skills, str):
+        skills = [s.strip() for s in skills.split(',') if s.strip()]
+ 
+    offer = InternshipOffer(
+        company=company,
+        title=request.data.get('title'),
+        description=request.data.get('description'),
+        wilaya=request.data.get('wilaya'),
+        internship_type=internship_type,
+        required_skills=skills,
+        duration=request.data.get('duration'),
+        start_date=start_date,
+        is_active=request.data.get('is_active', True),
+    )
+    offer.save()
+ 
+    return Response({
+        'success': True,
+        'message': 'Internship offer created successfully.',
+        'offer': {
+            'id': str(offer.id),
+            'title': offer.title,
+            'internship_type': offer.internship_type,
+            'wilaya': offer.wilaya,
+            'is_active': offer.is_active,
+            'created_at': offer.created_at.strftime('%Y-%m-%d'),
+        }
+    }, status=status.HTTP_201_CREATED)
+ 
+ 
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['company'])
+def view_offer(request, offer_id):
+    """View full details of a single internship offer"""
+    company = _get_user_company(request.user)
+    if not company:
+        return Response({'success': False, 'message': 'Company profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+ 
+    try:
+        offer = InternshipOffer.objects(id=offer_id, company=company).first()
+    except Exception:
+        return Response({'success': False, 'message': 'Invalid offer ID.'}, status=status.HTTP_400_BAD_REQUEST)
+ 
+    if not offer:
+        return Response({'success': False, 'message': 'Offer not found or does not belong to your company.'}, status=status.HTTP_404_NOT_FOUND)
+ 
+    return Response({
+        'success': True,
+        'offer': {
+            'id': str(offer.id),
+            'title': offer.title,
+            'description': offer.description,
+            'wilaya': offer.wilaya,
+            'internship_type': offer.internship_type,
+            'required_skills': offer.required_skills,
+            'duration': offer.duration,
+            'start_date': offer.start_date.strftime('%Y-%m-%d') if offer.start_date else None,
+            'is_active': offer.is_active,
+            'company_name': offer.company.company_name,
+            'created_at': offer.created_at.strftime('%Y-%m-%d') if offer.created_at else None,
+        }
+    })
+ 
+ 
+@api_view(['PUT', 'PATCH'])
+@jwt_authenticated
+@role_required(allowed_roles=['company'])
+def update_offer(request, offer_id):
+    """
+    Edit an existing internship offer.
+    Only fields present in the request body are updated.
+    """
+    company = _get_user_company(request.user)
+    if not company:
+        return Response({'success': False, 'message': 'Company profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+ 
+    try:
+        offer = InternshipOffer.objects(id=offer_id, company=company).first()
+    except Exception:
+        return Response({'success': False, 'message': 'Invalid offer ID.'}, status=status.HTTP_400_BAD_REQUEST)
+ 
+    if not offer:
+        return Response({'success': False, 'message': 'Offer not found or does not belong to your company.'}, status=status.HTTP_404_NOT_FOUND)
+ 
+    for field in ['title', 'description', 'wilaya', 'duration', 'is_active']:
+        if field in request.data:
+            setattr(offer, field, request.data[field])
+ 
+    if 'internship_type' in request.data:
+        if request.data['internship_type'] not in ['PFE', 'ouvrier', 'technicien', 'été']:
+            return Response({'success': False, 'message': 'internship_type must be one of: PFE, ouvrier, technicien, été'}, status=status.HTTP_400_BAD_REQUEST)
+        offer.internship_type = request.data['internship_type']
+ 
+    if 'start_date' in request.data:
+        try:
+            offer.start_date = datetime.strptime(request.data['start_date'], '%Y-%m-%d')
+        except ValueError:
+            return Response({'success': False, 'message': 'start_date must be in YYYY-MM-DD format.'}, status=status.HTTP_400_BAD_REQUEST)
+ 
+    if 'required_skills' in request.data:
+        skills = request.data['required_skills']
+        if isinstance(skills, str):
+            skills = [s.strip() for s in skills.split(',') if s.strip()]
+        offer.required_skills = skills
+ 
+    # Check duplicate title only if title is being changed
+    if 'title' in request.data:
+        duplicate = InternshipOffer.objects(company=company, title=request.data['title']).first()
+        if duplicate and str(duplicate.id) != offer_id:
+            return Response({'success': False, 'message': 'An offer with this title already exists for your company.'}, status=status.HTTP_400_BAD_REQUEST)
+ 
+    offer.save()
+ 
+    return Response({
+        'success': True,
+        'message': 'Internship offer updated successfully.',
+        'offer': {
+            'id': str(offer.id),
+            'title': offer.title,
+            'internship_type': offer.internship_type,
+            'wilaya': offer.wilaya,
+            'is_active': offer.is_active,
+        }
+    })
+ 
+ 
+@api_view(['DELETE'])
+@jwt_authenticated
+@role_required(allowed_roles=['company'])
+def delete_offer(request, offer_id):
+    """Delete an internship offer — only if it belongs to the authenticated user's company"""
+    company = _get_user_company(request.user)
+    if not company:
+        return Response({'success': False, 'message': 'Company profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+ 
+    try:
+        offer = InternshipOffer.objects(id=offer_id, company=company).first()
+    except Exception:
+        return Response({'success': False, 'message': 'Invalid offer ID.'}, status=status.HTTP_400_BAD_REQUEST)
+ 
+    if not offer:
+        return Response({'success': False, 'message': 'Offer not found or does not belong to your company.'}, status=status.HTTP_404_NOT_FOUND)
+ 
+    title = offer.title
+    offer.delete()
+    return Response({'success': True, 'message': f'Offer "{title}" deleted successfully.'})
+
+
+
+
 
 
 # ============= ADMIN SPACE - GESTION DES COMPANY MANAGERS =============

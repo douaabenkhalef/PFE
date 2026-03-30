@@ -9,6 +9,8 @@ import CompanyDashboard from './page/CompanyDashboard';
 import CompanyManagerDashboard from './page/CompanyManagerDashboard';
 import AdminDashboard from './page/AdminDashboard';
 import CoDeptHeadDashboard from './page/CoDeptHeadDashboard';
+// 1. IMPORT THE NEW COMPONENT
+import InternshipOfferManager from './page/InternshipOfferManager'; 
 import './App.css';
 
 const ProtectedRoute = ({ children, allowedRoles, allowedSubRoles }) => {
@@ -31,36 +33,6 @@ const ProtectedRoute = ({ children, allowedRoles, allowedSubRoles }) => {
   }
 
   return children;
-};
-
-const DashboardRedirect = () => {
-  const { user, isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">Chargement...</div>;
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (user?.role === 'student') {
-    return <Navigate to="/student/dashboard" replace />;
-  } else if (user?.role === 'company') {
-    if (user?.sub_role === 'company_manager') {
-      return <Navigate to="/company-manager/dashboard" replace />;
-    } else {
-      return <Navigate to="/company/dashboard" replace />;
-    }
-  } else if (user?.role === 'admin') {
-    if (user?.sub_role === 'admin') {
-      return <Navigate to="/admin/dashboard" replace />;
-    } else {
-      return <Navigate to="/co-dept-head/dashboard" replace />;
-    }
-  }
-
-  return <Navigate to="/login" replace />;
 };
 
 function App() {
@@ -87,6 +59,17 @@ function App() {
           <Route path="/company-manager/dashboard" element={
             <ProtectedRoute allowedRoles={['company']} allowedSubRoles={['company_manager']}>
               <CompanyManagerDashboard />
+            </ProtectedRoute>
+          } />
+
+          {/* 2. ADD THE NEW MANAGE OFFERS ROUTE */}
+          {/* Accessible by both types of company managers */}
+          <Route path="/company/manage-offers" element={
+            <ProtectedRoute 
+              allowedRoles={['company']} 
+              allowedSubRoles={['hiring_manager', 'company_manager']}
+            >
+              <InternshipOfferManager />
             </ProtectedRoute>
           } />
           
