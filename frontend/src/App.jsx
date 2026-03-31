@@ -9,6 +9,8 @@ import CompanyDashboard from './page/CompanyDashboard';
 import CompanyManagerDashboard from './page/CompanyManagerDashboard';
 import AdminDashboard from './page/AdminDashboard';
 import CoDeptHeadDashboard from './page/CoDeptHeadDashboard';
+import CompanyApplications from './page/CompanyApplications';
+import StudentApplications from './page/StudentApplications';
 // 1. IMPORT THE NEW COMPONENT
 import InternshipOfferManager from './page/InternshipOfferManager'; 
 import './App.css';
@@ -84,6 +86,17 @@ function App() {
               <CoDeptHeadDashboard />
             </ProtectedRoute>
           } />
+
+          <Route path="/company/applications" element={
+          <ProtectedRoute allowedRoles={['company']} allowedSubRoles={['hiring_manager', 'company_manager']}>
+         <CompanyApplications />
+         </ProtectedRoute>
+        } />
+        <Route path="/student/applications" element={
+  <ProtectedRoute allowedRoles={['student']}>
+    <StudentApplications />
+  </ProtectedRoute>
+} />
           
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

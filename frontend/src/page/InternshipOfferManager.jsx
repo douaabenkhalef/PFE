@@ -18,7 +18,7 @@ const WILAYAS  = [
 ];
 const EMPTY = {
   title: '', description: '', wilaya: '', internship_type: '',
-  duration: '', start_date: '', required_skills: '', is_active: true,
+  duration: '', start_date: '', required_skills: '', is_active: true, deadline: '',
 };
 const inp = 'bg-[#1e293b] border border-slate-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-sm text-white outline-none transition w-full';
 
@@ -95,6 +95,10 @@ function OfferForm({ initial, onSubmit, submitLabel, submitting }) {
           <option value="false">Inactive</option>
         </select>
       </div>
+      <div>
+  <label className="block text-xs text-slate-400 mb-1 font-medium">Deadline <span className="text-red-400">*</span></label>
+  <input type="date" className={inp} value={f.deadline} onChange={set('deadline')} required />
+</div>
       <div className="md:col-span-2 pt-2">
         <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-semibold px-8 py-2.5 rounded-lg transition">
           {submitting && <Loader2 size={16} className="animate-spin" />}
@@ -175,6 +179,7 @@ export default function InternshipOfferManager() {
       ...offer,
       required_skills: Array.isArray(offer.required_skills) ? offer.required_skills.join(', ') : (offer.required_skills || ''),
       start_date: offer.start_date || '',
+      deadline: offer.deadline || '',
     });
     setSection('edit'); setMsg(null);
   };

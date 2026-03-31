@@ -9,7 +9,7 @@ const CompanyManagerDashboard = () => {
   const [pendingHiringManagers, setPendingHiringManagers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-  const [message, setMessage] = useState(null); // { type: 'success'|'error', text: '' }
+  const [message, setMessage] = useState(null);
 
   useEffect(() => {
     fetchPendingHiringManagers();
@@ -99,7 +99,6 @@ const CompanyManagerDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 to-indigo-900">
-      {/* Navbar */}
       <nav className="bg-white/10 backdrop-blur-lg border-b border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -115,6 +114,13 @@ const CompanyManagerDashboard = () => {
               >
                 Manage Offers
               </Link>
+              {/* Applications button */}
+              <Link
+                to="/company/applications"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold transition shadow-lg"
+              >
+                Applications
+              </Link>
               <span className="text-white/80">{user?.company_name}</span>
               <button
                 onClick={handleLogout}
@@ -128,7 +134,6 @@ const CompanyManagerDashboard = () => {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Inline message */}
         {message && (
           <div
             className={`mb-6 p-4 rounded-lg border text-sm font-medium ${

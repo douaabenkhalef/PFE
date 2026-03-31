@@ -277,3 +277,37 @@ def send_proof_received_confirmation(recipient, name):
     
     return send_email(recipient, subject, html_content, text_content)
     
+
+def send_application_confirmation_student(recipient, student_name, offer_title):
+    subject = f"Application Confirmation: {offer_title}"
+    html = f"""
+    <html><body>
+    <p>Hello {student_name},</p>
+    <p>Your application for <strong>{offer_title}</strong> has been submitted successfully.</p>
+    <p>You can track your application status in your dashboard.</p>
+    <p>Best regards,<br>Internship Platform</p>
+    </body></html>
+    """
+    return send_email(recipient, subject, html)
+
+def send_application_notification_company(recipient, offer_title, student_name):
+    subject = f"New Application for {offer_title}"
+    html = f"""
+    <html><body>
+    <p>A new application has been submitted by <strong>{student_name}</strong> for the internship <strong>{offer_title}</strong>.</p>
+    <p>Please log in to your company dashboard to review and respond.</p>
+    <p>Best regards,<br>Internship Platform</p>
+    </body></html>
+    """
+    return send_email(recipient, subject, html)
+
+def send_company_response_email(recipient, offer_title, status):
+    subject = f"Application Update: {offer_title}"
+    html = f"""
+    <html><body>
+    <p>Your application for <strong>{offer_title}</strong> has been <strong>{status}</strong> by the company.</p>
+    <p>Log in to your dashboard for more details.</p>
+    <p>Best regards,<br>Internship Platform</p>
+    </body></html>
+    """
+    return send_email(recipient, subject, html)

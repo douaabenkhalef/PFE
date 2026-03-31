@@ -21,7 +21,9 @@ urlpatterns = [
     path('student/dashboard/',                           views.student_dashboard, name='student-dashboard'),
     path('student/offers/search/',                       views.search_offers,     name='search-offers'),
     path('student/offers/<str:offer_id>/apply/',         views.apply_to_offer,    name='apply-offer'),
-
+    path('student/profile/', views.student_profile, name='student-profile'),
+    path('student/generate-custom-cv/', views.generate_custom_cv, name='generate-custom-cv'),
+    path('student/applications/', views.student_applications, name='student-applications'),
     # ── Company Space ────────────────────────────────────────────────────────
     path('company/dashboard/',                                     views.company_dashboard,    name='company-dashboard'),
     path('company/applications/<str:application_id>/respond/',     views.respond_to_candidate, name='respond-candidate'),
@@ -61,4 +63,10 @@ urlpatterns = [
 
     # ── Utilities ────────────────────────────────────────────────────────────
     path('utils/skills/',    views.get_skills_tags, name='skills-tags'),
-]
+    #cv _____
+    path('student/generate-cv/', views.generate_cv, name='generate-cv'),
+    path('company/applications/', views.company_applications, name='company-applications'),
+    path('company/applications/<str:application_id>/respond/', views.respond_to_application, name='respond-application'),
+    path('companies/list/', views.list_companies, name='list-companies'),
+    ]
+

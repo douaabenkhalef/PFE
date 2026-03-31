@@ -175,7 +175,7 @@ export default function Home() {
 
           <div className="hero-image-box">
             <ImgIcon />
-            <p>Votre image ici</p>
+            <img src="images/home.png" alt="image"/>
           </div>
         </div>
       </section>

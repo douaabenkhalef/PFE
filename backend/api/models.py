@@ -88,6 +88,8 @@ class InternshipOffer(Document):
     start_date = DateTimeField(required=True)
     is_active = BooleanField(default=True)
     created_at = DateTimeField(default=datetime.now)
+    deadline = DateTimeField(required=True)
+    company_name = StringField(max_length=200)  
     
     def __str__(self):
         return f"{self.title} - {self.company.company_name}"
@@ -105,6 +107,8 @@ class Application(Document):
     admin_validation_date = DateTimeField(null=True)
     admin_notes = StringField(blank=True)
     internship_agreement = FileField(blank=True)
+    cv_file = FileField(blank=True)
+    cover_letter = StringField(blank=True)
     
     def __str__(self):
         return f"{self.student.full_name} - {self.offer.title}"
