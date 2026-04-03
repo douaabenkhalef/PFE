@@ -26,7 +26,6 @@ urlpatterns = [
     path('student/applications/', views.student_applications, name='student-applications'),
     # ── Company Space ────────────────────────────────────────────────────────
     path('company/dashboard/',                                     views.company_dashboard,    name='company-dashboard'),
-    path('company/applications/<str:application_id>/respond/',     views.respond_to_candidate, name='respond-candidate'),
 
     # ── Internship Offers CRUD (company_manager + hiring_manager) ────────────
     # List all offers for the user's company / create a new one
@@ -67,6 +66,9 @@ urlpatterns = [
     path('student/generate-cv/', views.generate_cv, name='generate-cv'),
     path('company/applications/', views.company_applications, name='company-applications'),
     path('company/applications/<str:application_id>/respond/', views.respond_to_application, name='respond-application'),
+    path('company/applications/<str:application_id>/cv/', views.download_application_cv, name='download-cv'),
     path('companies/list/', views.list_companies, name='list-companies'),
+		# ______notif____
+	path('student/notifications/', views.get_notifications, name='get-notifications'),
+    path('student/notifications/read/', views.mark_notifications_read, name='mark-read'),
     ]
-

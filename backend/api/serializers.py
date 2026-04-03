@@ -214,33 +214,85 @@ class ApplicationSerializer(serializers.Serializer):
     )
     applied_at = serializers.DateTimeField(read_only=True)
     company_response_date = serializers.DateTimeField(allow_null=True, required=False)
+    # company_notes stores the rejection reason when status is 'rejected'
     company_notes = serializers.CharField(allow_blank=True, required=False)
     admin_validation_date = serializers.DateTimeField(allow_null=True, required=False)
     admin_notes = serializers.CharField(allow_blank=True, required=False)
+    cover_letter = serializers.CharField(allow_blank=True, required=False)
+
+    # Computed fields
     student_name = serializers.SerializerMethodField()
+    student_email = serializers.SerializerMethodField()
+    student_wilaya = serializers.SerializerMethodField()
+    student_university = serializers.SerializerMethodField()
+    student_major = serializers.SerializerMethodField()
+    student_education_level = serializers.SerializerMethodField()
+    student_graduation_year = serializers.SerializerMethodField()
     student_skills = serializers.SerializerMethodField()
+    student_github = serializers.SerializerMethodField()
+    student_portfolio = serializers.SerializerMethodField()
+    cv_file_url = serializers.SerializerMethodField()
     offer_title = serializers.SerializerMethodField()
+    offer_type = serializers.SerializerMethodField()
+    offer_wilaya = serializers.SerializerMethodField()
+    offer_duration = serializers.SerializerMethodField()
     company_name = serializers.SerializerMethodField()
 
     def get_student_name(self, obj):
-        if hasattr(obj, 'student') and obj.student:
-            return obj.student.full_name
-        return None
+        return obj.student.full_name if obj.student else None
+
+    def get_student_email(self, obj):
+        try: return obj.student.user.email
+        except Exception: return None
+
+    def get_student_wilaya(self, obj):
+        return obj.student.wilaya if obj.student else None
+
+    def get_student_university(self, obj):
+        return obj.student.university if obj.student else None
+
+    def get_student_major(self, obj):
+        return obj.student.major if obj.student else None
+
+    def get_student_education_level(self, obj):
+        return obj.student.education_level if obj.student else None
+
+    def get_student_graduation_year(self, obj):
+        return obj.student.graduation_year if obj.student else None
 
     def get_student_skills(self, obj):
-        if hasattr(obj, 'student') and obj.student:
-            return obj.student.skills
-        return []
+        return obj.student.skills if obj.student else []
+
+    def get_student_github(self, obj):
+        return obj.student.github if obj.student else None
+
+    def get_student_portfolio(self, obj):
+        return obj.student.portfolio if obj.student else None
+
+    def get_cv_file_url(self, obj):
+        # Returns the CV download URL if a CV file is attached to the application
+        try:
+            if obj.cv_file:
+                return f"/api/company/applications/{str(obj.id)}/cv/"
+        except Exception:
+            pass
+        return None
 
     def get_offer_title(self, obj):
-        if hasattr(obj, 'offer') and obj.offer:
-            return obj.offer.title
-        return None
+        return obj.offer.title if obj.offer else None
+
+    def get_offer_type(self, obj):
+        return obj.offer.internship_type if obj.offer else None
+
+    def get_offer_wilaya(self, obj):
+        return obj.offer.wilaya if obj.offer else None
+
+    def get_offer_duration(self, obj):
+        return obj.offer.duration if obj.offer else None
 
     def get_company_name(self, obj):
-        if hasattr(obj, 'offer') and obj.offer and hasattr(obj.offer, 'company') and obj.offer.company:
-            return obj.offer.company.company_name
-        return None
+        try: return obj.offer.company.company_name
+        except Exception: return None
 
     def create(self, validated_data):
         from .models import Application

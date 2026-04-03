@@ -7,9 +7,10 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.http import HttpResponse
 from datetime import datetime
 import traceback
+from django.conf import settings
 
 
-from .models import User, Student, Company, Admin, InternshipOffer, Application, OTPVerification, PendingApproval
+from .models import User, Student, Company, Admin, InternshipOffer, Application, OTPVerification, PendingApproval, Notification
 from .serializers import (
     StudentRegistrationSerializer,
     CompanyRegistrationSerializer,
@@ -1350,18 +1351,82 @@ def respond_to_application(request, application_id):
 
         new_status = request.data.get('status')
         if new_status not in ['accepted', 'rejected']:
-            return Response({'error': 'Invalid status'}, status=400)
+            return Response({'error': 'Status must be "accepted" or "rejected"'}, status=400)
+
+        # For rejections, a reason is required
+        if new_status == 'rejected':
+            reason = request.data.get('rejection_reason', '').strip()
+            if not reason:
+                return Response({'error': 'A rejection reason is required.'}, status=400)
+            app.company_notes = reason
+        else:
+            app.company_notes = request.data.get('notes', '')
 
         app.status = new_status
         app.company_response_date = datetime.now()
-        app.company_notes = request.data.get('notes', '')
         app.save()
 
         send_company_response_email(app.student.user.email, app.offer.title, new_status)
-        return Response({'success': True, 'message': f'Application {new_status}'})
+        try:
+            from .models import Notification
+            Notification(
+                recipient=app.student.user,
+                message=f"Your application for '{app.offer.title}' has been {new_status}.",
+                application_id=str(app.id)
+            ).save()
+        except Exception as notif_err:
+            print(f"Notification failed but application was saved: {notif_err}")
+
+        
+        return Response({'success': True, 'message': f'Application {new_status} successfully.'})
+
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+       
 
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['student'])
+def get_notifications(request):
+    notifications = Notification.objects(recipient=request.user).order_by('-created_at')
+    data = [{
+        'id': str(n.id),
+        'message': n.message,
+        'is_read': n.is_read,
+        'created_at': n.created_at.strftime("%Y-%m-%d %H:%M")
+    } for n in notifications]
+    return Response({'success': True, 'notifications': data})
+
+@api_view(['POST'])
+@jwt_authenticated
+def mark_notifications_read(request):
+    Notification.objects(recipient=request.user, is_read=False).update(set__is_read=True)
+    return Response({'success': True})
+
+
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['company'])
+def download_application_cv(request, application_id):
+    """Serve the CV file attached to an application."""
+    company = _get_user_company(request.user)
+    if not company:
+        return Response({'error': 'Company not found'}, status=404)
+    try:
+        app = Application.objects(id=application_id).first()
+        if not app:
+            return Response({'error': 'Application not found'}, status=404)
+        if str(app.offer.company.id) != str(company.id):
+            return Response({'error': 'Unauthorized'}, status=403)
+        if not app.cv_file:
+            return Response({'error': 'No CV file attached'}, status=404)
+        from django.http import HttpResponse
+        response = HttpResponse(app.cv_file.read(), content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="cv_{application_id}.pdf"'
+        return response
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
 
 @api_view(['GET'])
 def list_companies(request):
@@ -1410,7 +1475,7 @@ def generate_custom_cv(request):
 
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{full_name}_CV.pdf"'
-
+    
     # Import reportlab components
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
@@ -1624,4 +1689,3 @@ def student_profile(request):
             'graduation_year': student.graduation_year,
         }
     })
-    

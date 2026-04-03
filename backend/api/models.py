@@ -209,3 +209,18 @@ class PendingApproval(Document):
     
     def __str__(self):
         return f"{self.username} - {self.role}/{self.sub_role} - {self.verification_status}"
+    
+
+ 
+class Notification(Document):
+    meta = {'collection': 'notifications'}
+    
+    recipient = ReferenceField(User, required=True)
+    message = StringField(required=True)
+    is_read = BooleanField(default=False)
+    created_at = DateTimeField(default=datetime.now)
+    # Optional: link to the application or offer
+    related_id = StringField() 
+
+    def __str__(self):
+        return f"Notification for {self.recipient.email}: {self.message[:20]}"
