@@ -114,7 +114,7 @@ body {
   color: rgba(255,255,255,0.75);
   display: flex;
   align-items: center;
-  padding: 250px;
+  padding: 220px;
   transition: color 0.2s;
 }
 .navbar-search-btn:hover { color: #fff; }
@@ -162,7 +162,7 @@ body {
 }
 
 .btn-contact {
-  background: linear-gradient(135deg, #B556D7 29%, #8E2FFB 50%, #5D77D4 85%);
+  background: linear-gradient(135deg, #B556D7 29%, #8E2FFB 49%, #5D77D4 85%);
   color: #fff;
   border: none;
   padding: 9px 22px;
@@ -172,7 +172,7 @@ body {
   cursor: pointer;
   font-family: 'Poppins', sans-serif;
   transition: opacity 0.2s, transform 0.2s;
-  box-shadow: 0 3px 18px rgba(142, 47, 251, 0.50);
+  
 }
 .btn-contact:hover { opacity: 0.88; transform: translateY(-1px); }
 
@@ -289,7 +289,7 @@ section { padding: 100px 5% 80px; }
   backdrop-filter: none;
 }
 
-/* Get started — نصف أبيض يسار */
+
 .btn-primary {
   background: #ffffff;
   color: #1a0535;
@@ -305,7 +305,7 @@ section { padding: 100px 5% 80px; }
 }
 .btn-primary:hover { background: #f0f0f0; }
 
-/* About us — نصف بنفسجي يمين */
+
 .btn-outline {
   background: linear-gradient(135deg, #B556D7 0%, #8E2FFB 55%, #5D77D4 100%);
   color: #fff;
@@ -324,10 +324,10 @@ section { padding: 100px 5% 80px; }
 /* Hero image placeholder */
 .hero-image-box {
   flex: 1.1;
-  max-width: 520px;
-  min-height: 420px;
-  border-radius: 24px;
-  border: 2px dashed rgba(247,90,250,0.35);
+  max-width: 550px;
+  min-height: 500px;
+  border-radius: 20px;
+  
   background: rgba(141,35,212,0.06);
   display: flex;
   flex-direction: column;
@@ -512,10 +512,10 @@ section { padding: 100px 5% 80px; }
   gap: 2rem;
   max-width: 1050px;
   margin: 0 auto 3rem;
-  align-items: center;   /* محاذاة عمودية للكاردات */
+  align-items: center;   
 }
  
-/* الكارد الوسطى — أكبر وأبرز */
+
 .services-grid .service-card:nth-child(2) {
   transform: scale(1.08) translateY(-10px);
   box-shadow: 0 24px 55px rgba(93, 2, 146, 0.65);
@@ -527,16 +527,7 @@ section { padding: 100px 5% 80px; }
   box-shadow: 0 32px 65px rgba(93, 2, 146, 0.75);
 }
  
-/*
- * Service card:
- * fond = #5D0292 (violet profond)
- * bordure = légère teinte #DFC0FF
- * image en haut occupe ~45% de la carte
- * titre jaune-doré #FFD600
- * sous-titre underline jaune
- * texte blanc
- * LEARN MORE SOUS les cartes, pas dedans
- */
+
 .service-card {
   background: linear-gradient(160deg, #5D0292 0%, #c27bec 60%, #68099f 100%);
   border: 1px solid rgba(223,192,255,0.30);
@@ -893,3 +884,27 @@ section { padding: 100px 5% 80px; }
   transition: color 0.2s, transform 0.25s cubic-bezier(0.22,1,0.36,1);
 }
 .footer-socials a:hover { transform: translateY(-4px) scale(1.15); }
+
+
+/* Logo image dans la navbar */
+.navbar-logo-img {
+  height: 36px;
+  width: auto;
+  display: block;
+}
+
+/* Image hero */
+.hero-image {
+  width: 100%;
+  height: 100%;
+  object-fit:contain;
+  border-radius: 24px;
+}
+
+/* Images des services */
+.service-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 24px 24px 0 0;
+}

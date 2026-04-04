@@ -1003,3 +1003,295 @@ body {
 @media (max-width: 480px) {
   .sd-section { padding: 60px 4% 50px; }
 }
+/* ===== NOTIFICATION DROPDOWN ===== */
+.sd-notif-wrapper {
+  position: relative;
+}
+
+/* Badge with count */
+.sd-badge-count {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  min-width: 17px;
+  height: 17px;
+  background: linear-gradient(135deg, #F75AFA, #8E2FFB);
+  border-radius: 50px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  pointer-events: none;
+}
+
+/* Dropdown panel */
+.sd-notif-dropdown {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 340px;
+  background: linear-gradient(145deg, #1a0840, #0e0c27);
+  border: 1px solid rgba(141,35,212,0.40);
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.60);
+  z-index: 2000;
+  overflow: hidden;
+  animation: fadeSlideUp 0.22s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+.sd-notif-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.sd-notif-clear {
+  background: transparent;
+  border: none;
+  color: rgba(247,90,250,0.80);
+  font-size: 0.72rem;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  transition: color 0.2s;
+}
+.sd-notif-clear:hover { color: #F75AFA; }
+
+.sd-notif-list {
+  max-height: 320px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(141,35,212,0.5) transparent;
+}
+.sd-notif-list::-webkit-scrollbar { width: 4px; }
+.sd-notif-list::-webkit-scrollbar-thumb {
+  background: rgba(141,35,212,0.5);
+  border-radius: 4px;
+}
+
+.sd-notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.2s;
+  cursor: default;
+}
+.sd-notif-item:hover { background: rgba(255,255,255,0.04); }
+.sd-notif-item.unread { background: rgba(141,35,212,0.08); }
+
+.sd-notif-dot {
+  flex-shrink: 0;
+  margin-top: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.20);
+}
+.sd-notif-item.unread .sd-notif-dot {
+  background: #F75AFA;
+  box-shadow: 0 0 6px rgba(247,90,250,0.6);
+}
+
+.sd-notif-body p {
+  font-size: 0.80rem;
+  color: rgba(255,255,255,0.88);
+  line-height: 1.45;
+  margin-bottom: 3px;
+}
+.sd-notif-body span {
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.38);
+}
+
+.sd-notif-empty {
+  text-align: center;
+  padding: 28px 16px;
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.35);
+}
+
+.sd-notif-footer {
+  padding: 10px 18px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  text-align: center;
+}
+.sd-notif-footer button {
+  background: transparent;
+  border: none;
+  color: rgba(247,90,250,0.75);
+  font-size: 0.78rem;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  transition: color 0.2s;
+}
+.sd-notif-footer button:hover { color: #F75AFA; }
+
+/* ===== APPLICATION DETAIL MODAL (StudentApplications) ===== */
+.app-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+.app-modal {
+  background: linear-gradient(145deg, #1a0840, #0f0d28);
+  border: 1px solid rgba(141,35,212,0.40);
+  border-radius: 22px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 32px;
+  position: relative;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.65);
+  animation: fadeSlideUp 0.3s cubic-bezier(0.22,1,0.36,1) both;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(141,35,212,0.4) transparent;
+}
+
+.app-modal-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.50);
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+.app-modal-close:hover { color: #fff; }
+
+.app-modal h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.app-modal-sub {
+  font-size: 0.80rem;
+  color: rgba(255,255,255,0.50);
+  margin-bottom: 20px;
+}
+
+/* Info grid inside modal */
+.app-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.app-modal-field {
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.app-modal-field label {
+  display: block;
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.40);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+.app-modal-field span {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.88);
+  font-weight: 500;
+}
+
+/* Status badge */
+.app-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.app-status-badge.pending   { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.30); }
+.app-status-badge.accepted  { background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.30); }
+.app-status-badge.rejected  { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.30); }
+.app-status-badge.validated { background: rgba(96,165,250,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.30); }
+.app-status-badge.completed { background: rgba(167,139,250,0.15); color: #a78bfa; border: 1px solid rgba(167,139,250,0.30); }
+
+/* Cover letter box */
+.app-modal-letter {
+  background: rgba(255,255,255,0.04);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+.app-modal-letter label {
+  display: block;
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.40);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+.app-modal-letter p {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.78);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* CV button */
+.app-modal-cv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--grad-btn);
+  color: #fff;
+  border: none;
+  padding: 11px 24px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  text-decoration: none;
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 4px 16px rgba(142,47,251,0.40);
+}
+.app-modal-cv-btn:hover { opacity: 0.88; transform: translateY(-2px); }
+
+/* Company notes */
+.app-modal-notes {
+  background: rgba(248,113,113,0.08);
+  border: 1px solid rgba(248,113,113,0.25);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-top: 14px;
+}
+.app-modal-notes label {
+  display: block;
+  font-size: 0.65rem;
+  color: rgba(248,113,113,0.70);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.app-modal-notes p {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.78);
+}

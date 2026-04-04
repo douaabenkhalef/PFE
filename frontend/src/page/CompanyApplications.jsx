@@ -16,7 +16,7 @@ const authJson = () => ({
   'Content-Type': 'application/json',
 });
 
-// ── Inline message ────────────────────────────────────────────────────────────
+// ── Message ──────────────────────────────────────────────────────────────
 function Msg({ msg, onClose }) {
   if (!msg) return null;
   const ok = msg.type === 'success';
@@ -33,7 +33,7 @@ function Msg({ msg, onClose }) {
   );
 }
 
-// ── Status badge ──────────────────────────────────────────────────────────────
+// ── Status badge ──
 function StatusBadge({ status }) {
   const map = {
     pending:   'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
@@ -49,16 +49,44 @@ function StatusBadge({ status }) {
   );
 }
 
-// ── Detail Modal ──────────────────────────────────────────────────────────────
+// ── Application Modal avec chargement PDF sécurisé ──
 function ApplicationModal({ app, onClose, onAccept, onReject }) {
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [showAcceptConfirm, setShowAcceptConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [cvBlobUrl, setCvBlobUrl] = useState(null);
+  const [loadingCv, setLoadingCv] = useState(false);
 
   if (!app) return null;
 
   const alreadyResponded = app.status !== 'pending';
+
+  // Nettoyage de l'URL blob
+  useEffect(() => {
+    return () => {
+      if (cvBlobUrl) URL.revokeObjectURL(cvBlobUrl);
+    };
+  }, [cvBlobUrl]);
+
+  const loadPdf = async (url) => {
+    setLoadingCv(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch PDF');
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      setCvBlobUrl(blobUrl);
+    } catch (err) {
+      console.error(err);
+      setCvBlobUrl(null);
+    } finally {
+      setLoadingCv(false);
+    }
+  };
 
   const handleAccept = async () => {
     setSubmitting(true);
@@ -104,7 +132,6 @@ function ApplicationModal({ app, onClose, onAccept, onReject }) {
         </div>
 
         <div className="p-6 space-y-6">
-
           {/* Offer info strip */}
           <div className="grid grid-cols-3 gap-3">
             {[
@@ -184,19 +211,38 @@ function ApplicationModal({ app, onClose, onAccept, onReject }) {
             </div>
           )}
 
-          {/* CV */}
+          {/* CV / Resume avec chargement sécurisé */}
           {app.cv_file_url && (
             <div className="bg-slate-800/60 rounded-xl p-5">
               <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
                 <FileText size={15} /> CV / Resume
               </h3>
+
+              {!cvBlobUrl && !loadingCv && (
+                <button
+                  onClick={() => loadPdf(`http://localhost:8000${app.cv_file_url}`)}
+                  className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-4 py-2 rounded-lg transition"
+                >
+                  Load CV
+                </button>
+              )}
+              {loadingCv && <p className="text-slate-300 text-sm">Loading PDF...</p>}
+              {cvBlobUrl && (
+                <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(99,102,241,0.3)', marginBottom: 10 }}>
+                  <iframe
+                    src={cvBlobUrl}
+                    title="CV PDF"
+                    style={{ width: '100%', height: 420, border: 'none', background: '#fff' }}
+                  />
+                </div>
+              )}
               <a
-                href={`${API}${app.cv_file_url}`}
+                href={`http://localhost:8000${app.cv_file_url}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-4 py-2 rounded-lg transition"
+                className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-4 py-2 rounded-lg transition mt-2"
               >
-                <FileText size={15} /> View / Download CV
+                <FileText size={15} /> Open / Download CV (direct)
               </a>
             </div>
           )}
@@ -209,10 +255,9 @@ function ApplicationModal({ app, onClose, onAccept, onReject }) {
             </div>
           )}
 
-          {/* Action buttons — only for pending applications */}
+          {/* Action buttons */}
           {!alreadyResponded && (
             <div className="border-t border-slate-700 pt-5">
-              {/* Accept confirmation */}
               {showAcceptConfirm ? (
                 <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
                   <p className="text-green-300 text-sm font-medium mb-3">
@@ -236,7 +281,6 @@ function ApplicationModal({ app, onClose, onAccept, onReject }) {
                   </div>
                 </div>
               ) : showRejectForm ? (
-                /* Reject form */
                 <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
                   <p className="text-red-300 text-sm font-medium mb-3">Reason for rejection <span className="text-red-400">*</span></p>
                   <textarea
@@ -263,7 +307,6 @@ function ApplicationModal({ app, onClose, onAccept, onReject }) {
                   </div>
                 </div>
               ) : (
-                /* Default action bar */
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowAcceptConfirm(true)}
@@ -287,14 +330,14 @@ function ApplicationModal({ app, onClose, onAccept, onReject }) {
   );
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
+// ── Main CompanyApplications ──
 export default function CompanyApplications() {
   const { user } = useAuth();
   const [applications, setApplications] = useState([]);
   const [loading, setLoading]           = useState(true);
   const [msg, setMsg]                   = useState(null);
-  const [selected, setSelected]         = useState(null); // open in modal
-  const [filter, setFilter]             = useState('all'); // all | pending | accepted | rejected
+  const [selected, setSelected]         = useState(null);
+  const [filter, setFilter]             = useState('all');
 
   const showMsg = (type, text) => {
     setMsg({ type, text });
@@ -368,7 +411,6 @@ export default function CompanyApplications() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 to-indigo-900">
-      {/* Navbar */}
       <nav className="bg-white/10 backdrop-blur-lg border-b border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-14 gap-4">
@@ -387,7 +429,6 @@ export default function CompanyApplications() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Msg msg={msg} onClose={() => setMsg(null)} />
 
-        {/* Filter tabs */}
         <div className="flex gap-2 mb-6 flex-wrap">
           {['all', 'pending', 'accepted', 'rejected'].map((f) => (
             <button
@@ -405,7 +446,6 @@ export default function CompanyApplications() {
           ))}
         </div>
 
-        {/* Table */}
         {loading ? (
           <div className="flex items-center justify-center py-24 text-white/50">
             <Loader2 size={24} className="animate-spin mr-3" /> Loading applications...
@@ -460,7 +500,6 @@ export default function CompanyApplications() {
         )}
       </main>
 
-      {/* Detail modal */}
       {selected && (
         <ApplicationModal
           app={selected}

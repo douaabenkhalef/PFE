@@ -1366,23 +1366,24 @@ def respond_to_application(request, application_id):
         app.company_response_date = datetime.now()
         app.save()
 
+        # Envoi de l'email
         send_company_response_email(app.student.user.email, app.offer.title, new_status)
+
+        # Création de la notification (champ correct = related_id)
         try:
             from .models import Notification
-            Notification(
+            Notification.objects.create(
                 recipient=app.student.user,
                 message=f"Your application for '{app.offer.title}' has been {new_status}.",
-                application_id=str(app.id)
-            ).save()
+                related_id=str(app.id)   # ✅ champ utilisé dans le modèle Notification
+            )
         except Exception as notif_err:
             print(f"Notification failed but application was saved: {notif_err}")
 
-        
         return Response({'success': True, 'message': f'Application {new_status} successfully.'})
 
     except Exception as e:
         return Response({'error': str(e)}, status=500)
-       
 
 @api_view(['GET'])
 @jwt_authenticated
@@ -1427,6 +1428,27 @@ def download_application_cv(request, application_id):
         return response
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['student'])
+def download_application_cv_student(request, application_id):
+    """Serve the CV file attached to an application for the student who owns it."""
+    student = Student.objects(user=request.user).first()
+    if not student:
+        return Response({'error': 'Student profile not found'}, status=404)
+    try:
+        app = Application.objects(id=application_id).first()
+        if not app:
+            return Response({'error': 'Application not found'}, status=404)
+        if str(app.student.id) != str(student.id):
+            return Response({'error': 'Unauthorized'}, status=403)
+        if not app.cv_file:
+            return Response({'error': 'No CV file attached'}, status=404)
+        response = HttpResponse(app.cv_file.read(), content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="cv_{application_id}.pdf"'
+        return response
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
 
 @api_view(['GET'])
 def list_companies(request):
@@ -1443,6 +1465,16 @@ def list_companies(request):
                 'students_applied': sum(Application.objects(offer__company=company).count())
             })
     return Response(companies)
+
+
+
+@api_view(['GET'])
+def public_offers(request):
+    """Endpoint public pour récupérer les offres de stage actives (page d'accueil)"""
+    today_start = timezone.make_aware(datetime.combine(timezone.now().date(), datetime.min.time()))
+    offers = InternshipOffer.objects(is_active=True, deadline__gte=today_start).order_by('-created_at')[:6]
+    serializer = InternshipOfferSerializer(offers, many=True)
+    return Response({'success': True, 'offers': serializer.data})
 
 
 # api/views.py (within the existing file, replace the generate_custom_cv function)
@@ -1663,7 +1695,17 @@ def student_applications(request):
 
     applications = Application.objects(student=student).order_by('-applied_at')
     serializer = ApplicationSerializer(applications, many=True)
-    return Response({'success': True, 'applications': serializer.data})
+    data = serializer.data
+
+    # Remplacer l'URL du CV par une URL relative sans /api
+    for app_data, app_obj in zip(data, applications):
+        if app_obj.cv_file:
+            app_data['cv_file_url'] = f'/student/applications/{str(app_obj.id)}/cv/'
+        else:
+            app_data['cv_file_url'] = None
+
+    return Response({'success': True, 'applications': data})
+
 
 
 

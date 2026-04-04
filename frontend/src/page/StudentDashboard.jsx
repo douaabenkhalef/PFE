@@ -410,6 +410,11 @@ export default function StudentDashboard() {
   const [applyOffer, setApplyOffer] = useState(null);
   const [toast, setToast] = useState(null);
 
+  // ── Notifications ──
+  const [notifications, setNotifications] = useState([]);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef(null);
+
   const homeRef = useRef(null);
   const companiesRef = useRef(null);
   const internshipsRef = useRef(null);
@@ -486,6 +491,44 @@ export default function StudentDashboard() {
 
   const handleLogout = () => { logout(); navigate("/login"); };
 
+  // ── Fetch notifications ──
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await fetch(`${API}/student/notifications/`, { headers: authHeaders() });
+        const data = await res.json();
+        if (data.success) setNotifications(data.notifications || []);
+      } catch { /* silent */ }
+    };
+    fetchNotifications();
+    // Poll every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ── Close notification dropdown on outside click ──
+  useEffect(() => {
+    const handler = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const markAllRead = async () => {
+    try {
+      await fetch(`${API}/student/notifications/read/`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch { /* silent */ }
+  };
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
   const scrollTo = (id, ref) => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     setActiveSection(id);
@@ -536,10 +579,58 @@ export default function StudentDashboard() {
           ))}
         </ul>
         <div className="sd-navbar-right">
-          <button className="sd-icon-btn" aria-label="Notifications">
-            <BellIcon />
-            <span className="sd-badge" />
-          </button>
+          {/* ── Notification Bell ── */}
+          <div className="sd-notif-wrapper" ref={notifRef}>
+            <button
+              className="sd-icon-btn"
+              aria-label="Notifications"
+              onClick={() => {
+                setNotifOpen(prev => !prev);
+                if (!notifOpen && unreadCount > 0) markAllRead();
+              }}
+            >
+              <BellIcon />
+              {unreadCount > 0 && (
+                <span className="sd-badge-count">{unreadCount > 9 ? "9+" : unreadCount}</span>
+              )}
+            </button>
+
+            {notifOpen && (
+              <div className="sd-notif-dropdown">
+                <div className="sd-notif-header">
+                  <span>Notifications</span>
+                  {notifications.length > 0 && (
+                    <button className="sd-notif-clear" onClick={markAllRead}>
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+                <div className="sd-notif-list">
+                  {notifications.length === 0 ? (
+                    <div className="sd-notif-empty">No notifications yet</div>
+                  ) : (
+                    notifications.slice(0, 10).map(n => (
+                      <div
+                        key={n.id}
+                        className={`sd-notif-item${n.is_read ? "" : " unread"}`}
+                      >
+                        <span className="sd-notif-dot" />
+                        <div className="sd-notif-body">
+                          <p>{n.message}</p>
+                          <span>{n.created_at}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="sd-notif-footer">
+                  <button onClick={() => { navigate("/student/applications"); setNotifOpen(false); }}>
+                    View all applications →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
           <button className="sd-icon-btn" aria-label="Dark mode">
             <MoonIcon />
           </button>

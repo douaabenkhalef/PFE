@@ -3,6 +3,12 @@ import { useNavigate } from "react-router-dom";
 import "./Home.css";
 
 /* ========== SVG ICONS ========== */
+const MoonIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
 const SearchIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -42,7 +48,6 @@ const ArrowRight = () => (
   </svg>
 );
 
-/* ========== STAR RATING ========== */
 function Stars({ n = 5, max = 5 }) {
   return (
     <div className="stars">
@@ -53,41 +58,74 @@ function Stars({ n = 5, max = 5 }) {
   );
 }
 
-/* ========== DATA ========== */
-const companies = [
-  { id: 1, name: "Sonatrach",  rep: "Labdi Nouha", count: "100+", stars: 5 },
-  { id: 2, name: "Sonelgaz",   rep: "Labdi Nouha", count: "100+", stars: 5 },
-  { id: 3, name: "Djezzy",     rep: "Labdi Nouha", count: "100+", stars: 5 },
-];
-
 const services = [
-  { id: 1, title: "Explore offers",           desc: "Students can view company offers, search using filters, and apply for internships." },
-  { id: 2, title: "Student Applications",     desc: "Students can easily submit their applications and upload their CVs through our intuitive platform." },
-  { id: 3, title: "Administration Validation",desc: "Administrators review and validate student applications with powerful management tools." },
+  { id: 1, title: "Explore offers", desc: "Students can view company offers, search using filters, and apply for internships.", image: "/images/service1.png" },
+  { id: 2, title: "Student Applications", desc: "Students can easily submit their applications and upload their CVs through our intuitive platform.", image: "/images/service2.png" },
+  { id: 3, title: "Administration Validation", desc: "Administrators review and validate student applications with powerful management tools.", image: "/images/service3.png" },
 ];
 
-/* ========== SEARCH OVERLAY ========== */
 function SearchOverlay({ onClose }) {
   return (
     <div className="search-overlay" onClick={onClose}>
       <div className="search-overlay-inner" onClick={e => e.stopPropagation()}>
-        <input autoFocus className="search-overlay-input"
-          placeholder="Rechercher des entreprises, offres, services…" type="text" />
+        <input autoFocus className="search-overlay-input" placeholder="Rechercher..." type="text" />
         <button className="search-overlay-close" onClick={onClose}><CloseIcon /></button>
       </div>
     </div>
   );
 }
 
-/* ========== MAIN ========== */
+function CompaniesModal({ companies, onClose }) {
+  if (!companies.length) return null;
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}><CloseIcon /></button>
+        <h2 className="modal-title">Toutes les entreprises</h2>
+        <div className="modal-grid">
+          {companies.map(company => (
+            <div className="modal-company-card" key={company.id}>
+              <div className="modal-company-img">
+                {company.logo ? <img src={company.logo} alt={company.company_name} /> : <ImgIcon />}
+              </div>
+              <div className="modal-company-info">
+                <h3>{company.company_name}</h3>
+                <p>{company.sector || "Secteur"}</p>
+                <span>{company.students_applied ?? 0} candidatures</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
+  const [showCompaniesModal, setShowCompaniesModal] = useState(false);
   const navigate = useNavigate();
 
-  const homeRef      = useRef(null);
+  const [companies, setCompanies] = useState([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(true);
+
+  const homeRef = useRef(null);
   const companiesRef = useRef(null);
-  const servicesRef  = useRef(null);
+  const servicesRef = useRef(null);
+
+  useEffect(() => {
+    fetch("http://localhost:8000/api/companies/list/")
+      .then(res => res.json())
+      .then(data => {
+        setCompanies(Array.isArray(data) ? data : []);
+        setLoadingCompanies(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoadingCompanies(false);
+      });
+  }, []);
 
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -98,25 +136,15 @@ export default function Home() {
     return () => obs.disconnect();
   }, []);
 
-  /* ── Scroll animations: add .is-visible when element enters viewport ── */
   useEffect(() => {
-    const targets = document.querySelectorAll(
-      ".company-card, .service-card, .section-title"
-    );
+    const targets = document.querySelectorAll(".company-card, .service-card, .section-title");
     const revealObs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-visible");
-            revealObs.unobserve(entry.target);
-          }
-        });
-      },
+      entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add("is-visible"); revealObs.unobserve(e.target); } }),
       { threshold: 0.15 }
     );
-    targets.forEach((el) => revealObs.observe(el));
+    targets.forEach(el => revealObs.observe(el));
     return () => revealObs.disconnect();
-  }, []);
+  }, [companies]);
 
   const scrollTo = (id, ref) => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -126,165 +154,94 @@ export default function Home() {
   return (
     <>
       {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}
+      {showCompaniesModal && <CompaniesModal companies={companies} onClose={() => setShowCompaniesModal(false)} />}
 
-      {/* NAVBAR */}
       <nav className="navbar">
         <div className="navbar-left">
-          <div className="navbar-logo">UnivStage</div>
-          <button className="navbar-search-btn" onClick={() => setSearchOpen(true)} aria-label="Search">
-            <SearchIcon />
-          </button>
+          <img src="/images/logo.png" alt="UnivStage Logo" className="navbar-logo-img" />
+          <button className="navbar-search-btn" onClick={() => setSearchOpen(true)}><SearchIcon /></button>
         </div>
-
         <ul className="navbar-links">
-          {[
-            { id: "home",      label: "Home",          ref: homeRef },
-            { id: "companies", label: "Top companies", ref: companiesRef },
-            { id: "services",  label: "Our services",  ref: servicesRef },
-          ].map(({ id, label, ref }) => (
-            <li key={id}>
-              <a
-                href={`#${id}`}
-                className={activeSection === id ? "active" : ""}
-                onClick={e => { e.preventDefault(); scrollTo(id, ref); }}
-              >{label}</a>
-            </li>
-          ))}
+          <li><a href="#home" className={activeSection === "home" ? "active" : ""} onClick={e => { e.preventDefault(); scrollTo("home", homeRef); }}>Home</a></li>
+          <li><a href="#companies" className={activeSection === "companies" ? "active" : ""} onClick={e => { e.preventDefault(); scrollTo("companies", companiesRef); }}>Top companies</a></li>
+          <li><a href="#services" className={activeSection === "services" ? "active" : ""} onClick={e => { e.preventDefault(); scrollTo("services", servicesRef); }}>Our services</a></li>
         </ul>
-
         <div className="navbar-right">
           <button className="btn-contact">Contact Us</button>
-          <button className="navbar-moon-btn" aria-label="Toggle theme">🌙</button>
+          <button className="navbar-moon-btn"><MoonIcon /></button>
         </div>
       </nav>
 
-      {/* HERO */}
+      {/* Hero */}
       <section className="hero-section" id="home" ref={homeRef} data-section="home">
         <div className="hero-container">
           <div className="hero-content">
             <h1>University<br /><span>Stage</span></h1>
-            <p>
-              facilitates the organization of offers into categorized lists based on student
-              search criteria, while also allowing for the immediate review of attached CVs.
-            </p>
+            <p>facilitates the organization of offers into categorized lists based on student search criteria, while also allowing for the immediate review of attached CVs.</p>
             <div className="hero-buttons">
               <button className="btn-primary" onClick={() => navigate("/login")}>Get started</button>
               <button className="btn-outline">About us</button>
             </div>
           </div>
-
           <div className="hero-image-box">
-            <ImgIcon />
-            <img src="images/home.png" alt="image"/>
+            <img src="/images/home.png" alt="Hero illustration" className="hero-image" />
           </div>
         </div>
       </section>
 
-      {/* TOP COMPANIES */}
+      {/* Top Companies */}
       <section className="companies-section" id="companies" ref={companiesRef} data-section="companies">
-        <h2 className="section-title">
-          <span className="word-top">Top </span>
-          <span className="word-grad">Companies</span>
-        </h2>
-
+        <h2 className="section-title"><span className="word-top">Top </span><span className="word-grad">Companies</span></h2>
         <div className="companies-grid">
-          {companies.map(c => (
-            <div className="company-card" key={c.id}>
-              <div className="company-img-box">
-                <ImgIcon />
-                <span>Logo / Photo</span>
-              </div>
-
-              <div className="company-info-zone">
-                <div className="company-name">{c.name}</div>
-
-                <div className="company-meta-row">
-                  <div className="rep-block">
-                    <span className="rep-icon">👤</span>
-                    <div>
-                      <span className="rep-name">{c.rep}</span>
-                      <span className="rep-label">Student</span>
-                    </div>
-                  </div>
-                  <div className="internship-info">
-                    <strong>{c.count}</strong> Internship
-                  </div>
+          {loadingCompanies ? (
+            <div className="loading-placeholder">Chargement des entreprises...</div>
+          ) : companies.length === 0 ? (
+            <div className="empty-placeholder">Aucune entreprise pour le moment.</div>
+          ) : (
+            companies.slice(0, 3).map(company => (
+              <div className="company-card" key={company.id}>
+                <div className="company-img-box">
+                  {company.logo ? <img src={company.logo} alt={company.company_name} style={{ width: "80px", height: "80px", objectFit: "contain" }} /> : <ImgIcon />}
+                  <span>{company.sector || "Entreprise"}</span>
                 </div>
-
-                <div className="stars-row">
-                  <Stars n={c.stars} />
-                  <button className="see-details-btn">
-                    See Details <ArrowRight />
-                  </button>
+                <div className="company-info-zone">
+                  <div className="company-name">{company.company_name}</div>
+                  <div className="company-meta-row">
+                    <div className="rep-block"><span className="rep-icon">👤</span><div><span className="rep-name">Recruteur</span><span className="rep-label">Contact</span></div></div>
+                    <div className="internship-info"><strong>{company.students_applied ?? 0}</strong> Candidatures</div>
+                  </div>
+                  <div className="stars-row"><Stars n={4} /><button className="see-details-btn">See Details <ArrowRight /></button></div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
-
         <div className="see-all-btn-wrap">
-          <button className="btn-see-all">See All <ArrowRight /></button>
+          <button className="btn-see-all" onClick={() => setShowCompaniesModal(true)}>See All <ArrowRight /></button>
         </div>
       </section>
 
-      {/* OUR SERVICES */}
+      {/* Our Services */}
       <section className="services-section" id="services" ref={servicesRef} data-section="services">
-        <h2 className="section-title">
-          <span className="word-white">Our </span>
-          <span className="word-grad">services</span>
-        </h2>
-
+        <h2 className="section-title"><span className="word-white">Our </span><span className="word-grad">services</span></h2>
         <div className="services-grid">
           {services.map(s => (
             <div className="service-card" key={s.id}>
-              <div className="service-img-box">
-                <ImgIcon />
-                <span>Image</span>
-              </div>
-              <div className="service-card-body">
-                <h3>{s.title}</h3>
-                <p>{s.desc}</p>
-              </div>
+              <div className="service-img-box"><img src={s.image} alt={s.title} className="service-image" /></div>
+              <div className="service-card-body"><h3>{s.title}</h3><p>{s.desc}</p></div>
             </div>
           ))}
         </div>
-
-        <div className="learn-more-wrap">
-          <button className="btn-learn-more">LEARN MORE</button>
-        </div>
+        <div className="learn-more-wrap"><button className="btn-learn-more">LEARN MORE</button></div>
       </section>
 
-      {/* FOOTER */}
+      {/* Footer */}
       <footer className="footer">
         <div className="footer-grid">
-          <div className="footer-brand">
-            <div className="footer-brand-logo">🎓 UnivStage</div>
-            <p>Connecting students with professional opportunities and empowering the next generation of innovators.</p>
-          </div>
-          <div className="footer-contact">
-            <h4>Contact Us</h4>
-            <ul>
-              <li><MapPinIcon />123 University Ave, Campus Center, CA 94000</li>
-              <li><PhoneIcon />+1 (555) 123-4567</li>
-              <li><MailIcon />internships@university.edu</li>
-            </ul>
-          </div>
+          <div className="footer-brand"><div className="footer-brand-logo">🎓 UnivStage</div><p>Connecting students with professional opportunities and empowering the next generation of innovators.</p></div>
+          <div className="footer-contact"><h4>Contact Us</h4><ul><li><MapPinIcon />123 University Ave, Campus Center, CA 94000</li><li><PhoneIcon />+1 (555) 123-4567</li><li><MailIcon />internships@university.edu</li></ul></div>
         </div>
-
-        <div className="footer-bottom">
-          <p>© 2026 UnivStage. All rights reserved.</p>
-          <div className="footer-socials">
-            <a href="#!" aria-label="Facebook">f</a>
-            <a href="#!" aria-label="Twitter">𝕏</a>
-            <a href="#!" aria-label="LinkedIn">in</a>
-            <a href="#!" aria-label="Instagram">◎</a>
-          </div>
-          <div className="footer-bottom-links">
-            <a href="#!">Privacy Policy</a>
-            <span>|</span>
-            <a href="#!">Terms of Service</a>
-          </div>
-        </div>
+        <div className="footer-bottom"><p>© 2026 UnivStage. All rights reserved.</p><div className="footer-socials"><a href="#!">f</a><a href="#!">𝕏</a><a href="#!">in</a><a href="#!">◎</a></div><div className="footer-bottom-links"><a href="#!">Privacy Policy</a><span>|</span><a href="#!">Terms of Service</a></div></div>
       </footer>
     </>
   );
