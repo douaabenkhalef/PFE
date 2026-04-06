@@ -65,6 +65,10 @@ urlpatterns = [
     path('student/notifications/<str:notification_id>/read/',          views.mark_notification_read, name='mark-notification-read'),
     path('student/notifications/read-all/',                            views.mark_all_notifications_read, name='mark-all-read'),
 
+
+   path('company/notifications/', views.get_notifications, name='company-notifications'),
+   path('company/notifications/<str:notification_id>/read/', views.mark_notification_read, name='company-mark-read'),
+   path('company/notifications/read-all/', views.mark_all_notifications_read, name='company-mark-all-read'),
     
     path('utils/skills/',    views.get_skills_tags, name='skills-tags'),
     path('student/generate-cv/', views.generate_cv, name='generate-cv'),

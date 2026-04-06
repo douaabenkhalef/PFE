@@ -1370,7 +1370,7 @@ def respond_to_application(request, application_id):
             student = app.student
             student_university = student.university
             
-            print(f"🔍 Recherche d'admin pour l'université: {student_university}")
+            print(f" Recherche d'admin pour l'université: {student_university}")
             
             dept_head_admins = Admin.objects(university=student_university)
             admin_list = []
@@ -1378,13 +1378,13 @@ def respond_to_application(request, application_id):
             for admin in dept_head_admins:
                 if admin.user and admin.user.role == 'admin' and admin.user.sub_role == 'admin' and admin.user.status:
                     admin_list.append(admin)
-                    print(f"✅ Department Head trouvé: {admin.full_name} ({admin.user.email})")
+                    print(f" Department Head trouvé: {admin.full_name} ({admin.user.email})")
             
             if not admin_list:
                 for admin in dept_head_admins:
                     if admin.user and admin.user.role == 'admin' and admin.user.sub_role == 'co_dept_head' and admin.user.status:
                         admin_list.append(admin)
-                        print(f"✅ Co Department Head trouvé: {admin.full_name} ({admin.user.email})")
+                        print(f" Co Department Head trouvé: {admin.full_name} ({admin.user.email})")
             
             for admin in admin_list:
                 admin_user = admin.user
@@ -2361,10 +2361,7 @@ def generate_internship_agreement_pdf(application, admin_user):
 @jwt_authenticated
 @role_required(allowed_roles=['admin', 'company'])
 def generate_convention_from_template(request, application_id):
-    """
-    Génère une convention de stage en utilisant le template fourni
-    avec les informations de l'étudiant, l'entreprise et l'université
-    """
+    
     try:
         application = Application.objects(id=application_id).first()
         if not application:
@@ -2407,9 +2404,7 @@ def generate_convention_from_template(request, application_id):
 
 
 def generate_convention_pdf_template(application):
-    """
-    Génère une convention de stage selon le template fourni
-    """
+    
     from reportlab.lib.pagesizes import A4
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle

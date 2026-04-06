@@ -1,14 +1,12 @@
-
+import base64
 import requests
 from decouple import config
 
-def send_email(recipient, subject, html_content, text_content=None):
-    """
-    Envoie un email via SendGrid
-    """
+def send_email(recipient, subject, html_content, text_content=None, attachments=None):
+
     try:
         import sendgrid
-        from sendgrid.helpers.mail import Mail, Email, To
+        from sendgrid.helpers.mail import Mail, Email, To, Attachment, FileContent, FileName, FileType, Disposition
         
         api_key = config('SENDGRID_API_KEY')
         from_email = config('FROM_EMAIL')
@@ -25,8 +23,20 @@ def send_email(recipient, subject, html_content, text_content=None):
         
         mail = Mail(from_address, to_address, subject, html_content=html_content)
         
+    
+        if attachments:
+            for filename, file_content, mime_type in attachments:
+                encoded_content = base64.b64encode(file_content).decode()
+                attachment = Attachment(
+                    FileContent(encoded_content),
+                    FileName(filename),
+                    FileType(mime_type),
+                    Disposition('attachment')
+                )
+                mail.add_attachment(attachment)
+        
         response = sg.send(mail)
-        print(f" Email envoyé à {recipient} depuis {from_email}")
+        print(f" Email envoyé à {recipient} avec {len(attachments or [])} pièce(s) jointe(s)")
         return response.status_code in [200, 201, 202]
         
     except Exception as e:
@@ -35,9 +45,7 @@ def send_email(recipient, subject, html_content, text_content=None):
 
 
 def send_approval_email(recipient, name, role, approver):
-    """
-    Envoie un email de confirmation d'approbation
-    """
+   
     subject = f" Votre compte {role} a été approuvé"
     html_content = f"""
     <html>
@@ -76,7 +84,6 @@ def send_approval_email(recipient, name, role, approver):
                 <p>Ceci est un email automatique, merci de ne pas y répondre.</p>
             </div>
         </div>
-    </body>
     </html>
     """
     
@@ -128,7 +135,6 @@ def send_rejection_email(recipient, name, role, approver):
                 <p>Ceci est un email automatique, merci de ne pas y répondre.</p>
             </div>
         </div>
-    </body>
     </html>
     """
     
@@ -147,10 +153,7 @@ def send_rejection_email(recipient, name, role, approver):
 
 
 def send_proof_request_email(recipient, name, role, admin_email):
-    """
-    Envoie un email demandant des preuves d'identité et de poste
-    L'utilisateur doit répondre à cet email avec ses documents
-    """
+   
     subject = " IMPORTANT : Demande de justificatifs - Validation de votre compte"
     
     html_content = f"""
@@ -202,7 +205,6 @@ def send_proof_request_email(recipient, name, role, admin_email):
                 <p>Ceci est un email automatique. Merci de ne pas modifier l'objet de l'email pour faciliter le traitement.</p>
             </div>
         </div>
-    </body>
     </html>
     """
     
@@ -238,9 +240,7 @@ def send_proof_request_email(recipient, name, role, admin_email):
 
 
 def send_proof_received_confirmation(recipient, name):
-    """
-    Envoie un email confirmant la réception des documents
-    """
+   
     subject = " Confirmation de réception de vos justificatifs"
     
     html_content = f"""
@@ -271,11 +271,10 @@ def send_proof_received_confirmation(recipient, name):
                 <p>Ceci est un email automatique, merci de ne pas y répondre.</p>
             </div>
         </div>
-    </body>
     </html>
     """
     
-    return send_email(recipient, subject, html_content, text_content)
+    return send_email(recipient, subject, html_content)
     
 
 def send_application_confirmation_student(recipient, student_name, offer_title):
@@ -314,7 +313,7 @@ def send_company_response_email(recipient, offer_title, status):
 
 
 def send_validation_pending_to_co_dept(co_dept_email, co_dept_name, student_name, company_name, offer_title, application_id):
-    """Email au Co Dept Head pour l'informer d'une candidature à valider"""
+    
     subject = " Nouvelle convention de stage en attente de validation"
     
     html_content = f"""
@@ -359,11 +358,25 @@ def send_validation_pending_to_co_dept(co_dept_email, co_dept_name, student_name
 
 
 def send_convention_validated_email(application, co_dept):
-    """Email quand la convention est validée avec PDF en pièce jointe"""
+    """Email quand la convention est validée avec PDF en pièce jointe pour étudiant et entreprise"""
     
-    subject = f" Votre convention de stage '{application.offer.title}' a été validée"
     
-    html_content = f"""
+    attachments = []
+    if hasattr(application, 'convention_pdf') and application.convention_pdf:
+        try:
+           
+            application.convention_pdf.seek(0)
+            pdf_content = application.convention_pdf.read()
+            filename = f"convention_{application.student.full_name}_{application.offer.company.company_name}.pdf"
+            attachments.append((filename, pdf_content, 'application/pdf'))
+        except Exception as e:
+            print(f" Erreur lecture PDF: {e}")
+    
+   
+
+
+    student_subject = f" Votre convention de stage '{application.offer.title}' a été validée"
+    student_html = f"""
     <html>
     <head>
         <style>
@@ -391,7 +404,7 @@ def send_convention_validated_email(application, co_dept):
                     • Durée : {application.offer.duration}<br/>
                     • Date de début : {application.offer.start_date.strftime('%d/%m/%Y') if application.offer.start_date else 'À déterminer'}
                 </div>
-                <p>Connectez-vous à votre espace étudiant pour télécharger votre convention.</p>
+                <p>Vous trouverez ci-joint votre convention de stage en format PDF.</p>
                 <a href="http://localhost:5173/student/applications" class="button"> Voir mes candidatures</a>
                 <p style="margin-top: 20px;">Cordialement,<br>L'équipe de la plateforme de stages</p>
             </div>
@@ -402,24 +415,54 @@ def send_convention_validated_email(application, co_dept):
     </html>
     """
     
-    send_email(application.student.user.email, subject, html_content)
+    send_email(application.student.user.email, student_subject, student_html, attachments=attachments)
     
     
     company_subject = f" Convention validée pour {application.student.full_name}"
     company_html = f"""
     <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ text-align: center; padding: 20px; background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 10px 10px 0 0; }}
+            .header h1 {{ color: white; margin: 0; }}
+            .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+            .info {{ background: #e8f4fd; border-left: 4px solid #2196f3; padding: 15px; margin: 20px 0; }}
+            .footer {{ text-align: center; margin-top: 20px; font-size: 12px; color: #666; }}
+        </style>
+    </head>
     <body>
-        <h2>Convention de stage validée</h2>
-        <p>La convention de stage pour <strong>{application.student.full_name}</strong> a été validée par l'université.</p>
-        <p>Cordialement.</p>
-    </body>
+        <div class="container">
+            <div class="header">
+                <h1> Convention de stage validée</h1>
+            </div>
+            <div class="content">
+                <p>Bonjour <strong>{application.offer.company.company_name}</strong>,</p>
+                <p>La convention de stage pour <strong>{application.student.full_name}</strong> a été validée par l'université.</p>
+                <div class="info">
+                    <strong> Récapitulatif :</strong><br/>
+                    • Étudiant : {application.student.full_name}<br/>
+                    • Stage : {application.offer.title}<br/>
+                    • Durée : {application.offer.duration}<br/>
+                    • Date de début : {application.offer.start_date.strftime('%d/%m/%Y') if application.offer.start_date else 'À déterminer'}
+                </div>
+                <p>Vous trouverez ci-joint la convention de stage en format PDF.</p>
+                <a href="http://localhost:5173/company/applications" class="button"> Voir les candidatures</a>
+                <p style="margin-top: 20px;">Cordialement,<br>L'équipe de la plateforme de stages</p>
+            </div>
+            <div class="footer">
+                <p>Ceci est un email automatique, merci de ne pas y répondre.</p>
+            </div>
+        </div>
     </html>
     """
-    send_email(application.offer.company.user.email, company_subject, company_html)
+    
+    send_email(application.offer.company.user.email, company_subject, company_html, attachments=attachments)
 
 
 def send_convention_rejected_email(application, co_dept, rejection_reason):
-    """Email quand la convention est refusée"""
+    
     
     subject = f" Votre demande de stage '{application.offer.title}' a été refusée"
     
@@ -459,7 +502,6 @@ def send_convention_rejected_email(application, co_dept, rejection_reason):
     
     send_email(application.student.user.email, subject, html_content)
     
-   
     company_subject = f" Candidature refusée pour {application.student.full_name}"
     company_html = f"""
     <html>
