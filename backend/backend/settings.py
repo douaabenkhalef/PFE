@@ -1,4 +1,3 @@
-
 from pathlib import Path
 from decouple import config
 import os
@@ -61,6 +60,12 @@ mongoengine.connect(
     host=config('MONGO_URI'),
     alias='default'
 )
+
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+
 
 
 LANGUAGE_CODE = 'fr-fr'
