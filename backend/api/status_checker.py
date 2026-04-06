@@ -1,4 +1,4 @@
-# api/status_checker.py
+
 import time
 import threading
 from datetime import datetime, timedelta
@@ -30,7 +30,7 @@ class StatusChecker:
         self.running = True
         self.thread = threading.Thread(target=self._check_loop, daemon=True)
         self.thread.start()
-        print(f"✅ Status checker démarré - Vérification toutes les {self.check_interval} secondes")
+        print(f" Status checker démarré - Vérification toutes les {self.check_interval} secondes")
     
     def stop(self):
         """Arrête la vérification"""
@@ -45,7 +45,7 @@ class StatusChecker:
                 self._check_pending_approvals()
                 self._check_pending_approvals_status()
             except Exception as e:
-                print(f"❌ Erreur dans le status checker: {e}")
+                print(f" Erreur dans le status checker: {e}")
             time.sleep(self.check_interval)
     
     def _check_newly_approved_users(self):
@@ -80,7 +80,7 @@ class StatusChecker:
                     )
                     
                     self.processed_approvals.add(user_id)
-                    print(f"✅ Email d'approbation envoyé à {user.email} ({role_display})")
+                    print(f" Email d'approbation envoyé à {user.email} ({role_display})")
         
         self.last_check_time = datetime.now()
     
@@ -118,10 +118,10 @@ class StatusChecker:
                     )
                     
                     self.processed_rejections.add(user_id)
-                    print(f"❌ Email de refus envoyé à {user_email} ({role_display})")
+                    print(f" Email de refus envoyé à {user_email} ({role_display})")
                     
                     user.delete()
-                    print(f"🗑️ Utilisateur {user_email} supprimé")
+                    print(f" Utilisateur {user_email} supprimé")
     
     def _check_pending_approvals(self):
         """
@@ -153,16 +153,16 @@ class StatusChecker:
             if result:
                 pending.email_sent = True
                 pending.save()
-                print(f"📧 Email de demande de preuves envoyé à {pending.email} ({role_display})")
+                print(f" Email de demande de preuves envoyé à {pending.email} ({role_display})")
             else:
-                print(f"❌ Erreur d'envoi pour {pending.email}")
+                print(f" Erreur d'envoi pour {pending.email}")
     
     def _check_pending_approvals_status(self):
         """
         Vérifie les demandes qui sont marquées 'approved' ou 'rejected'
         et met à jour l'utilisateur correspondant
         """
-        # Approuvés
+       
         approved_list = PendingApproval.objects(
             verification_status='approved',
             email_sent=False
@@ -174,11 +174,11 @@ class StatusChecker:
             role_display = "Company Manager" if pending.sub_role == 'company_manager' else "Department Head"
             
             if user:
-                # Approuver l'utilisateur
+                
                 user.status = True
                 user.save()
                 
-                # Envoyer l'email d'approbation
+               
                 send_approval_email(
                     recipient=pending.email,
                     name=pending.username,
@@ -188,14 +188,14 @@ class StatusChecker:
                 
                 pending.email_sent = True
                 pending.save()
-                print(f"✅ Compte approuvé et email envoyé à {pending.email} ({role_display})")
+                print(f" Compte approuvé et email envoyé à {pending.email} ({role_display})")
             else:
-                # Si l'utilisateur n'existe pas, juste marquer comme envoyé
+                
                 pending.email_sent = True
                 pending.save()
-                print(f"⚠️ Utilisateur {pending.email} non trouvé, demande marquée comme traitée")
+                print(f" Utilisateur {pending.email} non trouvé, demande marquée comme traitée")
         
-        # Refusés
+        
         rejected_list = PendingApproval.objects(
             verification_status='rejected',
             email_sent=False
@@ -207,7 +207,7 @@ class StatusChecker:
             role_display = "Company Manager" if pending.sub_role == 'company_manager' else "Department Head"
             
             if user:
-                # Envoyer l'email de refus
+                
                 send_rejection_email(
                     recipient=pending.email,
                     name=pending.username,
@@ -215,7 +215,7 @@ class StatusChecker:
                     approver="Administrateur (via base de données)"
                 )
                 
-                # Supprimer l'utilisateur et ses profils
+                
                 if pending.sub_role == 'company_manager':
                     company = Company.objects(user=user).first()
                     if company:
@@ -228,14 +228,14 @@ class StatusChecker:
                 
                 pending.email_sent = True
                 pending.save()
-                print(f"❌ Compte refusé et email envoyé à {pending.email} ({role_display})")
+                print(f" Compte refusé et email envoyé à {pending.email} ({role_display})")
             else:
-                # Si l'utilisateur n'existe pas, juste marquer comme envoyé
+                
                 pending.email_sent = True
                 pending.save()
-                print(f"⚠️ Utilisateur {pending.email} non trouvé, demande marquée comme traitée")
+                print(f" Utilisateur {pending.email} non trouvé, demande marquée comme traitée")
 
-# Instance globale
+
 status_checker = StatusChecker(check_interval=30)
 
 def start_status_checker():

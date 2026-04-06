@@ -1,9 +1,9 @@
-// frontend/src/page/StudentDashboard.jsx
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Link } from 'react-router-dom';
-import { FileText } from 'lucide-react';
+import { Bell, CheckCheck, X, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
 import "./StudentDashboard.css";
 
 const API = "http://localhost:8000/api";
@@ -13,6 +13,16 @@ const authHeaders = () => ({
   "Content-Type": "application/json",
   Authorization: `Bearer ${token()}`,
 });
+
+// Types de notifications avec icônes
+const NOTIFICATION_ICONS = {
+    'application_accepted': { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10' },
+    'application_rejected': { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
+    'convention_validated': { icon: FileText, color: 'text-green-400', bg: 'bg-green-500/10' },
+    'convention_rejected': { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
+    'pending_validation': { icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
+    'default': { icon: Bell, color: 'text-purple-400', bg: 'bg-purple-500/10' }
+};
 
 // SVG Icons (unchanged)
 const MenuIcon = () => (
@@ -107,7 +117,7 @@ const CloseIcon = () => (
   </svg>
 );
 
-// Star component
+
 function Stars({ n = 5, max = 5 }) {
   return (
     <div className="sd-stars">
@@ -118,16 +128,118 @@ function Stars({ n = 5, max = 5 }) {
   );
 }
 
-// Apply Modal
+
+const NotificationItem = ({ notification, onMarkRead, onNavigate }) => {
+    const [isHovered, setIsHovered] = useState(false);
+    const config = NOTIFICATION_ICONS[notification.type] || NOTIFICATION_ICONS.default;
+    const IconComponent = config.icon;
+    
+    
+    const isSuccess = notification.message.includes('✅') || notification.message.includes('Félicitations');
+    const isError = notification.message.includes('❌');
+    
+    return (
+        <div 
+            className={`sd-notif-item ${!notification.is_read ? 'unread' : ''}`}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            onClick={() => {
+                if (!notification.is_read) onMarkRead(notification.id);
+                if (notification.related_id) onNavigate(notification.related_id);
+            }}
+            style={{ cursor: notification.related_id ? 'pointer' : 'default' }}
+        >
+            <div className={`sd-notif-icon ${config.bg}`}>
+                <IconComponent size={14} className={config.color} />
+            </div>
+            <div className="sd-notif-body">
+                <p className={isSuccess ? 'text-green-300' : isError ? 'text-red-300' : 'text-white/90'}>
+                    {notification.message}
+                </p>
+                <span className="sd-notif-time">{notification.created_at}</span>
+            </div>
+            {!notification.is_read && (
+                <div className="sd-notif-unread-dot" />
+            )}
+            {isHovered && !notification.is_read && (
+                <button 
+                    className="sd-notif-mark-read"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onMarkRead(notification.id);
+                    }}
+                >
+                    <CheckCheck size={14} />
+                </button>
+            )}
+        </div>
+    );
+};
+
+
+const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRead, onNavigate }) => {
+    const unreadCount = notifications.filter(n => !n.is_read).length;
+    
+    return (
+        <div className="sd-notif-dropdown">
+            <div className="sd-notif-header">
+                <div className="flex items-center gap-2">
+                    <Bell size={14} className="text-purple-400" />
+                    <span>Notifications</span>
+                    {unreadCount > 0 && (
+                        <span className="sd-notif-unread-badge">{unreadCount}</span>
+                    )}
+                </div>
+                {unreadCount > 0 && (
+                    <button 
+                        className="sd-notif-clear"
+                        onClick={onMarkAllRead}
+                    >
+                        Tout marquer comme lu
+                    </button>
+                )}
+            </div>
+            
+            <div className="sd-notif-list">
+                {notifications.length === 0 ? (
+                    <div className="sd-notif-empty">
+                        <Bell size={32} className="mx-auto mb-2 opacity-30" />
+                        <p>Aucune notification</p>
+                        <span className="text-xs">Les notifications apparaîtront ici</span>
+                    </div>
+                ) : (
+                    notifications.slice(0, 15).map(notif => (
+                        <NotificationItem 
+                            key={notif.id}
+                            notification={notif}
+                            onMarkRead={onMarkRead}
+                            onNavigate={onNavigate}
+                        />
+                    ))
+                )}
+            </div>
+            
+            {notifications.length > 0 && (
+                <div className="sd-notif-footer">
+                    <button onClick={onClose}>
+                        Fermer
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+};
+
+
 const ApplyModal = ({ offer, onClose, onSuccess }) => {
-  const [step, setStep] = useState('check'); // check, cv, confirm
+  const [step, setStep] = useState('check'); 
   const [loading, setLoading] = useState(false);
   const [cvFile, setCvFile] = useState(null);
   const [formData, setFormData] = useState({});
   const [missing, setMissing] = useState([]);
   const [profileError, setProfileError] = useState(false);
 
-  // CV form fields
+  
   const [cvFields, setCvFields] = useState({
     full_name: '',
     email: '',
@@ -380,7 +492,7 @@ const ApplyModal = ({ offer, onClose, onSuccess }) => {
   return null;
 };
 
-// Toast
+
 function Toast({ msg, type, onHide }) {
   useEffect(() => {
     const t = setTimeout(onHide, 3500);
@@ -389,7 +501,7 @@ function Toast({ msg, type, onHide }) {
   return <div className={`sd-toast ${type}`}>{type === "success" ? "✅" : "❌"} {msg}</div>;
 }
 
-// Main Component
+
 export default function StudentDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -410,16 +522,17 @@ export default function StudentDashboard() {
   const [applyOffer, setApplyOffer] = useState(null);
   const [toast, setToast] = useState(null);
 
-  // ── Notifications ──
+  
   const [notifications, setNotifications] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [notifLoading, setNotifLoading] = useState(false);
   const notifRef = useRef(null);
 
   const homeRef = useRef(null);
   const companiesRef = useRef(null);
   const internshipsRef = useRef(null);
 
-  // Scroll spy
+  
   useEffect(() => {
     const obs = new IntersectionObserver(
       entries => entries.forEach(e => {
@@ -431,7 +544,7 @@ export default function StudentDashboard() {
     return () => obs.disconnect();
   }, []);
 
-  // Reveal animations
+  
   useEffect(() => {
     const els = document.querySelectorAll(".sd-company-card, .sd-internship-card");
     const revealObs = new IntersectionObserver(entries => {
@@ -446,7 +559,7 @@ export default function StudentDashboard() {
     return () => revealObs.disconnect();
   }, [companies, internships]);
 
-  // Fetch companies
+  
   useEffect(() => {
     (async () => {
       setLoadingComp(true);
@@ -459,7 +572,7 @@ export default function StudentDashboard() {
     })();
   }, []);
 
-  // Fetch internship offers
+
   const fetchInternships = useCallback(async () => {
     setLoadingInter(true);
     const params = new URLSearchParams();
@@ -491,41 +604,72 @@ export default function StudentDashboard() {
 
   const handleLogout = () => { logout(); navigate("/login"); };
 
-  // ── Fetch notifications ──
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const res = await fetch(`${API}/student/notifications/`, { headers: authHeaders() });
+   
+  const fetchNotifications = useCallback(async () => {
+    try {
+        const res = await fetch(`${API}/student/notifications/`, { 
+            headers: { 
+                'Authorization': `Bearer ${token()}`,
+                'Content-Type': 'application/json'
+            } 
+        });
         const data = await res.json();
-        if (data.success) setNotifications(data.notifications || []);
-      } catch { /* silent */ }
-    };
+        if (data.success) {
+            setNotifications(data.notifications || []);
+        }
+    } catch (err) {
+        console.error("Erreur lors du chargement des notifications:", err);
+    }
+  }, []);
+
+  const markNotificationRead = async (notificationId) => {
+    try {
+        await fetch(`${API}/student/notifications/${notificationId}/read/`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token()}` }
+        });
+        setNotifications(prev => 
+            prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
+        );
+    } catch (err) {
+        console.error("Erreur:", err);
+    }
+  };
+
+  const markAllNotificationsRead = async () => {
+    try {
+        await fetch(`${API}/student/notifications/read-all/`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token()}` }
+        });
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch (err) {
+        console.error("Erreur:", err);
+    }
+  };
+
+  const navigateToApplication = (applicationId) => {
+    navigate(`/student/applications?app=${applicationId}`);
+    setNotifOpen(false);
+  };
+
+  // Charger les notifications au montage
+  useEffect(() => {
     fetchNotifications();
-    // Poll every 30 seconds
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchNotifications]);
 
-  // ── Close notification dropdown on outside click ──
+  // Fermer le dropdown au clic en dehors
   useEffect(() => {
-    const handler = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) {
-        setNotifOpen(false);
-      }
+    const handleClickOutside = (event) => {
+        if (notifRef.current && !notifRef.current.contains(event.target)) {
+            setNotifOpen(false);
+        }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const markAllRead = async () => {
-    try {
-      await fetch(`${API}/student/notifications/read/`, {
-        method: "POST",
-        headers: authHeaders(),
-      });
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-    } catch { /* silent */ }
-  };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
@@ -579,56 +723,29 @@ export default function StudentDashboard() {
           ))}
         </ul>
         <div className="sd-navbar-right">
-          {/* ── Notification Bell ── */}
+          {/* ── Notification Bell Améliorée ── */}
           <div className="sd-notif-wrapper" ref={notifRef}>
-            <button
-              className="sd-icon-btn"
+            <button 
+              className="sd-icon-btn relative" 
+              onClick={() => setNotifOpen(!notifOpen)}
               aria-label="Notifications"
-              onClick={() => {
-                setNotifOpen(prev => !prev);
-                if (!notifOpen && unreadCount > 0) markAllRead();
-              }}
             >
               <BellIcon />
               {unreadCount > 0 && (
-                <span className="sd-badge-count">{unreadCount > 9 ? "9+" : unreadCount}</span>
+                <span className="sd-badge-count">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
               )}
             </button>
-
+            
             {notifOpen && (
-              <div className="sd-notif-dropdown">
-                <div className="sd-notif-header">
-                  <span>Notifications</span>
-                  {notifications.length > 0 && (
-                    <button className="sd-notif-clear" onClick={markAllRead}>
-                      Mark all read
-                    </button>
-                  )}
-                </div>
-                <div className="sd-notif-list">
-                  {notifications.length === 0 ? (
-                    <div className="sd-notif-empty">No notifications yet</div>
-                  ) : (
-                    notifications.slice(0, 10).map(n => (
-                      <div
-                        key={n.id}
-                        className={`sd-notif-item${n.is_read ? "" : " unread"}`}
-                      >
-                        <span className="sd-notif-dot" />
-                        <div className="sd-notif-body">
-                          <p>{n.message}</p>
-                          <span>{n.created_at}</span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className="sd-notif-footer">
-                  <button onClick={() => { navigate("/student/applications"); setNotifOpen(false); }}>
-                    View all applications →
-                  </button>
-                </div>
-              </div>
+              <NotificationsDropdown 
+                notifications={notifications}
+                onClose={() => setNotifOpen(false)}
+                onMarkRead={markNotificationRead}
+                onMarkAllRead={markAllNotificationsRead}
+                onNavigate={navigateToApplication}
+              />
             )}
           </div>
           <button className="sd-icon-btn" aria-label="Dark mode">
@@ -663,7 +780,7 @@ export default function StudentDashboard() {
                 ))}
               </div>
 
-              {/* Responsive search bar */}
+              {}
               <div className="sd-search-container" style={{ marginTop: "2rem", width: "100%" }}>
                 <div style={{
                   display: "grid",

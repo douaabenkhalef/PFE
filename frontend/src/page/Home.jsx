@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Home.css";
 
-/* ========== SVG ICONS ========== */
+
 const MoonIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -172,7 +172,7 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero */}
+      {}
       <section className="hero-section" id="home" ref={homeRef} data-section="home">
         <div className="hero-container">
           <div className="hero-content">
@@ -189,7 +189,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Top Companies */}
+      {}
       <section className="companies-section" id="companies" ref={companiesRef} data-section="companies">
         <h2 className="section-title"><span className="word-top">Top </span><span className="word-grad">Companies</span></h2>
         <div className="companies-grid">
@@ -221,7 +221,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Our Services */}
+      {}
       <section className="services-section" id="services" ref={servicesRef} data-section="services">
         <h2 className="section-title"><span className="word-white">Our </span><span className="word-grad">services</span></h2>
         <div className="services-grid">
@@ -235,7 +235,7 @@ export default function Home() {
         <div className="learn-more-wrap"><button className="btn-learn-more">LEARN MORE</button></div>
       </section>
 
-      {/* Footer */}
+      {}
       <footer className="footer">
         <div className="footer-grid">
           <div className="footer-brand"><div className="footer-brand-logo">🎓 UnivStage</div><p>Connecting students with professional opportunities and empowering the next generation of innovators.</p></div>

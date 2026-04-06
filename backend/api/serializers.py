@@ -1,16 +1,16 @@
-# api/serializers.py
+
 from rest_framework import serializers
 from .models import User
 
 
 class StudentRegistrationSerializer(serializers.Serializer):
-    # Authentication
+    
     email = serializers.EmailField()
     username = serializers.CharField(min_length=3, max_length=50)
     password = serializers.CharField(write_only=True, min_length=8)
     confirm_password = serializers.CharField(write_only=True)
 
-    # Digital CV fields
+    
     full_name = serializers.CharField(max_length=100)
     wilaya = serializers.CharField(max_length=50)
     skills = serializers.ListField(child=serializers.CharField(), required=True)
@@ -48,23 +48,23 @@ class StudentRegistrationSerializer(serializers.Serializer):
 
 
 class CompanyRegistrationSerializer(serializers.Serializer):
-    # Authentication
+    
     email = serializers.EmailField()
     username = serializers.CharField(min_length=3, max_length=50)
     password = serializers.CharField(write_only=True, min_length=8)
     confirm_password = serializers.CharField(write_only=True)
 
-    # Sub-role
+    
     sub_role = serializers.ChoiceField(choices=['company_manager', 'hiring_manager'])
 
-    # Company profile fields (obligatoires pour company_manager, optionnels pour hiring_manager)
+    
     company_name = serializers.CharField(max_length=200, required=False, allow_blank=True)
     description = serializers.CharField(required=False, allow_blank=True)
     location = serializers.CharField(max_length=100, required=False, allow_blank=True)
     website = serializers.URLField(required=False, allow_blank=True)
     industry = serializers.CharField(max_length=100, required=False, allow_blank=True)
 
-    # Uniquement pour hiring_manager
+    
     company_manager_email = serializers.EmailField(required=False, allow_blank=True)
     company_name_for_hiring = serializers.CharField(required=False, allow_blank=True)
 
@@ -82,9 +82,9 @@ class CompanyRegistrationSerializer(serializers.Serializer):
         if data['password'] != data['confirm_password']:
             raise serializers.ValidationError({'confirm_password': ['Passwords do not match.']})
         
-        # Validation spécifique selon le sous-rôle
+        
         if data.get('sub_role') == 'company_manager':
-            # Pour company manager, tous les champs sont requis
+            
             required_fields = ['company_name', 'description', 'location', 'industry']
             missing = [f for f in required_fields if not data.get(f)]
             if missing:
@@ -93,7 +93,7 @@ class CompanyRegistrationSerializer(serializers.Serializer):
                 )
         
         elif data.get('sub_role') == 'hiring_manager':
-            # Pour hiring manager, on vérifie les champs spécifiques
+            
             if not data.get('company_manager_email'):
                 raise serializers.ValidationError(
                     {'company_manager_email': ['L\'email du gestionnaire d\'entreprise est requis pour les recruteurs.']}
@@ -102,7 +102,7 @@ class CompanyRegistrationSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     {'company_name_for_hiring': ['Le nom de l\'entreprise est requis pour les recruteurs.']}
                 )
-            # Pour hiring manager, on ignore les champs company_name, description, etc.
+            
             data['company_name'] = ''
             data['description'] = ''
             data['location'] = ''
@@ -111,24 +111,24 @@ class CompanyRegistrationSerializer(serializers.Serializer):
         return data
 
 
-# api/serializers.py - modifier AdminRegistrationSerializer
+
 
 class AdminRegistrationSerializer(serializers.Serializer):
-    # Authentication
+    
     email = serializers.EmailField()
     username = serializers.CharField(min_length=3, max_length=50)
     password = serializers.CharField(write_only=True, min_length=8)
     confirm_password = serializers.CharField(write_only=True)
 
-    # Sub-role
+    
     sub_role = serializers.ChoiceField(choices=['admin', 'co_dept_head'])
 
-    # Admin profile (obligatoire pour admin, optionnel pour co_dept_head)
+    
     full_name = serializers.CharField(max_length=100, required=False, allow_blank=True)
     wilaya = serializers.CharField(max_length=50, required=False, allow_blank=True)
     university = serializers.CharField(max_length=200, required=False, allow_blank=True)
 
-    # Uniquement pour co_dept_head
+    
     dept_head_email = serializers.EmailField(required=False, allow_blank=True)
     university_for_verification = serializers.CharField(required=False, allow_blank=True)
 
@@ -146,9 +146,9 @@ class AdminRegistrationSerializer(serializers.Serializer):
         if data['password'] != data['confirm_password']:
             raise serializers.ValidationError({'confirm_password': ['Passwords do not match.']})
         
-        # Validation spécifique selon le sous-rôle
+        
         if data.get('sub_role') == 'admin':
-            # Pour admin (Department Head), tous les champs sont requis
+            
             required_fields = ['full_name', 'wilaya', 'university']
             missing = [f for f in required_fields if not data.get(f)]
             if missing:
@@ -157,7 +157,7 @@ class AdminRegistrationSerializer(serializers.Serializer):
                 )
         
         elif data.get('sub_role') == 'co_dept_head':
-            # Pour co_dept_head, on vérifie les champs spécifiques
+            
             if not data.get('dept_head_email'):
                 raise serializers.ValidationError(
                     {'dept_head_email': ['L\'email du Department Head est requis pour les co-department heads.']}
@@ -166,7 +166,7 @@ class AdminRegistrationSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     {'university_for_verification': ['Le nom de l\'université est requis pour la vérification.']}
                 )
-            # Pour co_dept_head, on ignore les champs full_name, wilaya, university
+            
             data['full_name'] = ''
             data['wilaya'] = ''
             data['university'] = ''
@@ -174,7 +174,7 @@ class AdminRegistrationSerializer(serializers.Serializer):
         return data
 
 
-# ── The remaining serializers are unchanged ──────────────────────────────────
+
 
 class InternshipOfferSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
@@ -214,13 +214,13 @@ class ApplicationSerializer(serializers.Serializer):
     )
     applied_at = serializers.DateTimeField(read_only=True)
     company_response_date = serializers.DateTimeField(allow_null=True, required=False)
-    # company_notes stores the rejection reason when status is 'rejected'
+    
     company_notes = serializers.CharField(allow_blank=True, required=False)
     admin_validation_date = serializers.DateTimeField(allow_null=True, required=False)
     admin_notes = serializers.CharField(allow_blank=True, required=False)
     cover_letter = serializers.CharField(allow_blank=True, required=False)
 
-    # Computed fields
+    
     student_name = serializers.SerializerMethodField()
     student_email = serializers.SerializerMethodField()
     student_wilaya = serializers.SerializerMethodField()
@@ -270,7 +270,7 @@ class ApplicationSerializer(serializers.Serializer):
         return obj.student.portfolio if obj.student else None
 
     def get_cv_file_url(self, obj):
-        # Returns the CV download URL if a CV file is attached to the application
+        
         try:
             if obj.cv_file:
                 return f"/api/company/applications/{str(obj.id)}/cv/"

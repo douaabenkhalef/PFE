@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const response = await authAPI.login(email, password);
-      console.log("🔵 Login response:", response);
+      console.log(" Login response:", response);
       
       if (response.success) {
         localStorage.setItem("access_token", response.token);
@@ -94,7 +94,7 @@ export const AuthProvider = ({ children }) => {
         errorMessage = response.errors.non_field_errors[0];
       }
       
-      console.log("🔵 Error message:", errorMessage);
+      console.log(" Error message:", errorMessage);
       
       return {
         success: false,
@@ -102,7 +102,7 @@ export const AuthProvider = ({ children }) => {
         message: errorMessage,
       };
     } catch (error) {
-      console.error("🔵 Unexpected error:", error);
+      console.error(" Error:", error);
       return {
         success: false,
         errors: { non_field_errors: [ERROR_MESSAGES.SERVER_ERROR] },

@@ -1,9 +1,9 @@
-# api/models.py
+
 from mongoengine import Document, StringField, EmailField, ListField, URLField, IntField, BooleanField, DateTimeField, ReferenceField, FileField, DictField
 from datetime import datetime
 import bcrypt
 
-# api/models.py - ajouter ce champ dans la classe User
+
 
 class User(Document):
     meta = {'collection': 'users'}
@@ -19,9 +19,9 @@ class User(Document):
     created_at = DateTimeField(default=datetime.now)
     updated_at = DateTimeField(default=datetime.now)
     
-    # Champ pour stocker l'ID de l'entreprise parente pour les hiring managers
+    
     pending_company_id = StringField(default='')
-    # Champ pour stocker l'ID de l'admin parent pour les co_dept_heads
+   
     pending_admin_id = StringField(default='')
     
     def set_password(self, password):
@@ -95,12 +95,24 @@ class InternshipOffer(Document):
         return f"{self.title} - {self.company.company_name}"
 
 
+
+
 class Application(Document):
     meta = {'collection': 'applications'}
     
     student = ReferenceField(Student, required=True, reverse_delete_rule=2)
     offer = ReferenceField(InternshipOffer, required=True, reverse_delete_rule=2)
-    status = StringField(required=True, choices=['pending', 'accepted', 'rejected', 'validated', 'completed'], default='pending')
+    
+    # NOUVEAUX STATUTS
+    status = StringField(required=True, choices=[
+        'pending',                    
+        'accepted_by_company',        
+        'rejected_by_company',        
+        'validated_by_co_dept',       
+        'rejected_by_co_dept',        
+        'completed'                   
+    ], default='pending')
+    
     applied_at = DateTimeField(default=datetime.now)
     company_response_date = DateTimeField(null=True)
     company_notes = StringField(blank=True)
@@ -110,8 +122,29 @@ class Application(Document):
     cv_file = FileField(blank=True)
     cover_letter = StringField(blank=True)
     
+    
+    co_dept_validation_date = DateTimeField(null=True)
+    co_dept_notes = StringField(blank=True)      
+    convention_pdf = FileField(blank=True)       
+    co_dept_id = StringField(blank=True)         
+    
     def __str__(self):
         return f"{self.student.full_name} - {self.offer.title}"
+
+
+
+
+class Notification(Document):
+    meta = {'collection': 'notifications'}
+    
+    recipient = ReferenceField(User, required=True)
+    message = StringField(required=True)
+    is_read = BooleanField(default=False)
+    created_at = DateTimeField(default=datetime.now)
+    related_id = StringField(blank=True, null=True)  
+    
+    def __str__(self):
+        return f"Notification for {self.recipient.email}: {self.message[:20]}"
 
 
 class InternshipAgreement(Document):
@@ -149,7 +182,7 @@ class OTPVerification(Document):
     
     email = StringField(required=True)
     code = StringField(required=True)
-    data = DictField()  # Stocke les données temporaires de l'utilisateur
+    data = DictField()  
     created_at = DateTimeField(default=datetime.now)
     expires_at = DateTimeField(required=True)
     used = BooleanField(default=False)
@@ -159,17 +192,7 @@ class OTPVerification(Document):
     
     def __str__(self):
         return f"{self.email} - {self.code} - Valid: {self.is_valid()}"
-    # api/models.py - ajouter à la fin du fichier
-
-# api/models.py - ajouter à la fin du fichier
-
-# api/models.py - modifier la classe PendingApproval
-
-# api/models.py - modifier la classe PendingApproval
-
-# api/models.py - modifier la classe PendingApproval à la fin du fichier
-
-# api/models.py - classe PendingApproval
+    
 
 class PendingApproval(Document):
     """
@@ -183,7 +206,7 @@ class PendingApproval(Document):
     role = StringField(required=True, choices=['company', 'admin'])
     sub_role = StringField(required=True)
     
-    # Données spécifiques
+    
     full_name = StringField()
     company_name = StringField()
     description = StringField()
@@ -193,7 +216,7 @@ class PendingApproval(Document):
     university = StringField()
     wilaya = StringField()
     
-    # Statut de vérification
+    
     verification_status = StringField(
         default='pending', 
         choices=['pending', 'proof_requested', 'proof_received', 'approved', 'rejected']
@@ -203,7 +226,7 @@ class PendingApproval(Document):
     proof_received_at = DateTimeField(null=True)
     email_sent = BooleanField(default=False)
     
-    # Métadonnées
+    
     created_at = DateTimeField(default=datetime.now)
     updated_at = DateTimeField(default=datetime.now)
     
@@ -212,15 +235,3 @@ class PendingApproval(Document):
     
 
  
-class Notification(Document):
-    meta = {'collection': 'notifications'}
-    
-    recipient = ReferenceField(User, required=True)
-    message = StringField(required=True)
-    is_read = BooleanField(default=False)
-    created_at = DateTimeField(default=datetime.now)
-    # Optional: link to the application or offer
-    related_id = StringField() 
-
-    def __str__(self):
-        return f"Notification for {self.recipient.email}: {self.message[:20]}"

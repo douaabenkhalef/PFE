@@ -1,4 +1,4 @@
-# api/decorators.py
+
 from functools import wraps
 from rest_framework.response import Response
 from rest_framework import status
@@ -7,8 +7,7 @@ def jwt_authenticated(view_func):
     """Décorateur pour vérifier que l'utilisateur est authentifié"""
     @wraps(view_func)
     def wrapped_view(request, *args, **kwargs):
-        # Vérifier si l'utilisateur est authentifié
-        # DRF met l'utilisateur dans request.user
+        
         if not hasattr(request, 'user') or request.user is None:
             return Response({
                 'error': 'Authentication required',

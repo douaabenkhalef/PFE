@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Clock, BookOpen, Users, FileCheck, Clock as ClockIcon } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { GraduationCap, Clock, BookOpen, Users, FileCheck, Clock as ClockIcon, FileText } from 'lucide-react';
 
 const CoDeptHeadDashboard = () => {
   const { user, logout } = useAuth();
@@ -12,7 +12,6 @@ const CoDeptHeadDashboard = () => {
     navigate('/login');
   };
 
-  // Vérifier si le compte est approuvé
   const isApproved = user?.status !== false;
 
   return (
@@ -57,7 +56,6 @@ const CoDeptHeadDashboard = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Carte Étudiants */}
             <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:border-purple-500 transition-all">
               <div className="flex items-center justify-between">
                 <div>
@@ -71,7 +69,6 @@ const CoDeptHeadDashboard = () => {
               </div>
             </div>
 
-            {/* Carte Stages validés */}
             <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:border-purple-500 transition-all">
               <div className="flex items-center justify-between">
                 <div>
@@ -85,7 +82,6 @@ const CoDeptHeadDashboard = () => {
               </div>
             </div>
 
-            {/* Carte En attente */}
             <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:border-purple-500 transition-all">
               <div className="flex items-center justify-between">
                 <div>
@@ -99,7 +95,7 @@ const CoDeptHeadDashboard = () => {
               </div>
             </div>
 
-            {/* Informations université - Pleine largeur */}
+            {}
             <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:border-purple-500 transition-all col-span-full">
               <div className="flex items-center gap-3 mb-4">
                 <BookOpen className="w-6 h-6 text-purple-400" />
@@ -117,21 +113,23 @@ const CoDeptHeadDashboard = () => {
               </div>
             </div>
 
-            {/* Actions rapides */}
             <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 col-span-full">
               <h3 className="text-lg font-semibold text-white mb-4">Actions rapides</h3>
               <div className="flex flex-wrap gap-4">
-                <button className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-lg transition flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  Voir les étudiants
-                </button>
+                <Link
+                  to="/co-dept-head/validations"
+                  className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 rounded-lg transition flex items-center gap-2"
+                >
+                  <FileText className="w-4 h-4" />
+                  Conventions à valider
+                </Link>
                 <button className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg transition flex items-center gap-2">
                   <FileCheck className="w-4 h-4" />
-                  Stages à valider
+                  Stages validés
                 </button>
                 <button className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg transition flex items-center gap-2">
                   <GraduationCap className="w-4 h-4" />
-                  Générer conventions
+                  Générer rapports
                 </button>
               </div>
             </div>

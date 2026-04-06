@@ -25,7 +25,7 @@ import { useAuth } from "../context/AuthContext";
 import { VALIDATION_MESSAGES, extractErrors } from "../utils/messages";
 import "./AuthPage.css";
 
-// Red error banner shown inside the form
+
 const FormError = ({ messages }) => {
   if (!messages || messages.length === 0) return null;
   return (
@@ -59,7 +59,7 @@ const FormError = ({ messages }) => {
   );
 };
 
-// Purple pending banner shown after successful company/admin signup
+
 const PendingBanner = ({ message }) => (
   <div
     style={{
@@ -80,7 +80,7 @@ const PendingBanner = ({ message }) => (
   </div>
 );
 
-// OTP Verification Component
+
 const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) => {
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [localError, setLocalError] = useState('');
@@ -118,7 +118,7 @@ const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) 
     try {
       await onVerify(email, fullCode);
     } catch (err) {
-      // L'erreur est déjà gérée dans onVerify
+      
     } finally {
       setIsLoading(false);
     }

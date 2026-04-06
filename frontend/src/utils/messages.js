@@ -17,12 +17,12 @@ export const SUCCESS_MESSAGES = {
 
 export const OTP_MESSAGES = {
   CODE_REQUIRED: "Le code de vérification doit contenir exactement 6 chiffres.",
-  CODE_INVALID: "❌ Code invalide. Vérifiez le code reçu par email.",
-  CODE_EXPIRED: "❌ Le code a expiré (valable 15 minutes). Veuillez demander un nouveau code.",
-  CODE_ALREADY_USED: "❌ Ce code a déjà été utilisé. Veuillez demander un nouveau code.",
-  CODE_TOO_MANY_ATTEMPTS: "❌ Trop de tentatives. Veuillez demander un nouveau code.",
-  RESEND_SUCCESS: "✅ Un nouveau code a été envoyé par email.",
-  RESEND_ERROR: "❌ Erreur lors du renvoi du code. Veuillez réessayer.",
+  CODE_INVALID: " Code invalide. Vérifiez le code reçu par email.",
+  CODE_EXPIRED: " Le code a expiré (valable 15 minutes). Veuillez demander un nouveau code.",
+  CODE_ALREADY_USED: " Ce code a déjà été utilisé. Veuillez demander un nouveau code.",
+  CODE_TOO_MANY_ATTEMPTS: " Trop de tentatives. Veuillez demander un nouveau code.",
+  RESEND_SUCCESS: " Un nouveau code a été envoyé par email.",
+  RESEND_ERROR: " Erreur lors du renvoi du code. Veuillez réessayer.",
 };
 
 export const ERROR_MESSAGES = {

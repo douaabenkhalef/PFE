@@ -1,4 +1,4 @@
-// frontend/src/services/auth.js
+
 import api from './api';
 
 export const authAPI = {
@@ -7,7 +7,7 @@ export const authAPI = {
       const response = await api.post('/auth/initiate-signup/', { role, ...userData });
       return response.data;
     } catch (error) {
-      console.error("❌ initiateSignup error:", error);
+      console.error(" initiateSignup error:", error);
       if (error.response && error.response.data) {
         return error.response.data;
       }
@@ -75,8 +75,8 @@ export const authAPI = {
       const response = await api.post('/auth/login/', { email, password });
       return response.data;
     } catch (error) {
-      // Important: capturer l'erreur et retourner les données d'erreur du backend
-      console.error("❌ Login API error:", error);
+     
+      console.error(" Login API error:", error);
       if (error.response && error.response.data) {
         return error.response.data;
       }

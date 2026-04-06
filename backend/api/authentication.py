@@ -1,4 +1,4 @@
-# api/authentication.py
+
 import jwt
 from django.conf import settings
 from rest_framework import authentication
@@ -30,7 +30,7 @@ class JWTAuthentication(authentication.BaseAuthentication):
             if not user.status:
                 raise exceptions.AuthenticationFailed('Compte inactif')
             
-            print(f"✅ DRF Auth - Utilisateur authentifié: {user.email}")
+            print(f" DRF Auth - Utilisateur authentifié: {user.email}")
             return (user, token)
             
         except jwt.ExpiredSignatureError:
@@ -38,5 +38,5 @@ class JWTAuthentication(authentication.BaseAuthentication):
         except jwt.InvalidTokenError:
             raise exceptions.AuthenticationFailed('Token invalide')
         except Exception as e:
-            print(f"❌ Erreur authentication: {e}")
+            print(f" Erreur authentication: {e}")
             raise exceptions.AuthenticationFailed(f'Erreur: {str(e)}')

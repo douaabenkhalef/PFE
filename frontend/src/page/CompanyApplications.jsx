@@ -5,7 +5,9 @@ import {
   ArrowLeft, Eye, CheckCircle, XCircle, Clock,
   User, Mail, MapPin, BookOpen, Award, Code, Github,
   Globe, FileText, Loader2, AlertCircle, CheckCircle2, X,
+  Download, Building2, Calendar
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const API = 'http://localhost:8000/api';
 const auth = () => ({
@@ -16,7 +18,6 @@ const authJson = () => ({
   'Content-Type': 'application/json',
 });
 
-// ── Message ──────────────────────────────────────────────────────────────
 function Msg({ msg, onClose }) {
   if (!msg) return null;
   const ok = msg.type === 'success';
@@ -33,41 +34,52 @@ function Msg({ msg, onClose }) {
   );
 }
 
-// ── Status badge ──
 function StatusBadge({ status }) {
   const map = {
     pending:   'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
-    accepted:  'bg-green-500/20  text-green-300  border-green-500/30',
-    rejected:  'bg-red-500/20    text-red-300    border-red-500/30',
-    validated: 'bg-blue-500/20   text-blue-300   border-blue-500/30',
+    accepted_by_company:  'bg-blue-500/20  text-blue-300  border-blue-500/30',
+    rejected_by_company:  'bg-red-500/20    text-red-300    border-red-500/30',
+    validated_by_co_dept: 'bg-green-500/20   text-green-300   border-green-500/30',
+    rejected_by_co_dept: 'bg-red-500/20 text-red-300 border-red-500/30',
     completed: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+  };
+  const labels = {
+    pending: 'En attente',
+    accepted_by_company: 'Accepté (en attente validation)',
+    rejected_by_company: 'Refusé',
+    validated_by_co_dept: 'Validé',
+    rejected_by_co_dept: 'Refusé par université',
+    completed: 'Terminé',
   };
   return (
     <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${map[status] || 'bg-slate-500/20 text-slate-300'}`}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {labels[status] || status}
     </span>
   );
 }
 
-// ── Application Modal avec chargement PDF sécurisé ──
-function ApplicationModal({ app, onClose, onAccept, onReject }) {
+function ApplicationModal({ app, onClose, onAccept, onReject, onGenerateConvention }) {
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [showAcceptConfirm, setShowAcceptConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [cvBlobUrl, setCvBlobUrl] = useState(null);
   const [loadingCv, setLoadingCv] = useState(false);
+  const [conventionUrl, setConventionUrl] = useState(null);
 
   if (!app) return null;
 
-  const alreadyResponded = app.status !== 'pending';
+  const alreadyResponded = app.status !== 'pending' && app.status !== 'accepted_by_company';
 
-  // Nettoyage de l'URL blob
   useEffect(() => {
+    if (app.convention_pdf_url) {
+      setConventionUrl(app.convention_pdf_url);
+    }
     return () => {
       if (cvBlobUrl) URL.revokeObjectURL(cvBlobUrl);
     };
-  }, [cvBlobUrl]);
+  }, [cvBlobUrl, app.convention_pdf_url]);
 
   const loadPdf = async (url) => {
     setLoadingCv(true);
@@ -82,6 +94,7 @@ function ApplicationModal({ app, onClose, onAccept, onReject }) {
       setCvBlobUrl(blobUrl);
     } catch (err) {
       console.error(err);
+      toast.error('Erreur lors du chargement du CV');
       setCvBlobUrl(null);
     } finally {
       setLoadingCv(false);
@@ -96,7 +109,10 @@ function ApplicationModal({ app, onClose, onAccept, onReject }) {
   };
 
   const handleReject = async () => {
-    if (!rejectReason.trim()) return;
+    if (!rejectReason.trim()) {
+      toast.error('Veuillez entrer une raison de refus');
+      return;
+    }
     setSubmitting(true);
     await onReject(app.id, rejectReason.trim());
     setSubmitting(false);
@@ -104,21 +120,71 @@ function ApplicationModal({ app, onClose, onAccept, onReject }) {
     setRejectReason('');
   };
 
+  const handleGenerateConvention = async () => {
+    setGenerating(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${API}/generate-convention/${app.id}/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `convention_${app.student_name}_${app.company_name}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success('Convention générée avec succès !');
+        if (onGenerateConvention) onGenerateConvention();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Erreur lors de la génération de la convention');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      toast.error('Erreur de connexion');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleDownloadConvention = async () => {
+    if (!conventionUrl) return;
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(conventionUrl, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `convention_${app.student_name}_${app.company_name}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Convention téléchargée');
+    } catch (error) {
+      toast.error('Erreur lors du téléchargement');
+    }
+  };
+
   return (
-    <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-      onClick={onClose}
-    >
-      <div
-        className="bg-[#1e293b] border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
+      <div className="bg-[#1e293b] border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between p-6 border-b border-slate-700">
           <div>
             <h2 className="text-xl font-bold text-white">{app.offer_title}</h2>
             <p className="text-slate-400 text-sm mt-1">
-              Application by <span className="text-white font-medium">{app.student_name}</span>
+              Candidature de <span className="text-white font-medium">{app.student_name}</span>
               {' · '}
               {app.applied_at ? new Date(app.applied_at).toLocaleDateString() : ''}
             </p>
@@ -132,12 +198,11 @@ function ApplicationModal({ app, onClose, onAccept, onReject }) {
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Offer info strip */}
           <div className="grid grid-cols-3 gap-3">
             {[
               ['Type', app.offer_type],
               ['Wilaya', app.offer_wilaya],
-              ['Duration', app.offer_duration],
+              ['Durée', app.offer_duration],
             ].map(([label, val]) => (
               <div key={label} className="bg-slate-800 rounded-lg p-3">
                 <p className="text-xs text-slate-500 mb-1">{label}</p>
@@ -146,52 +211,26 @@ function ApplicationModal({ app, onClose, onAccept, onReject }) {
             ))}
           </div>
 
-          {/* Student profile */}
           <div className="bg-slate-800/60 rounded-xl p-5">
             <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <User size={15} /> Student Profile
+              <User size={15} /> Profil étudiant
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              <div className="flex items-center gap-2 text-slate-300">
-                <Mail size={14} className="text-slate-500 shrink-0" />
-                <span>{app.student_email || '—'}</span>
-              </div>
-              <div className="flex items-center gap-2 text-slate-300">
-                <MapPin size={14} className="text-slate-500 shrink-0" />
-                <span>{app.student_wilaya || '—'}</span>
-              </div>
-              <div className="flex items-center gap-2 text-slate-300">
-                <BookOpen size={14} className="text-slate-500 shrink-0" />
-                <span>{app.student_university || '—'}</span>
-              </div>
-              <div className="flex items-center gap-2 text-slate-300">
-                <Award size={14} className="text-slate-500 shrink-0" />
-                <span>{app.student_major || '—'} · {app.student_education_level || '—'}</span>
-              </div>
-              <div className="flex items-center gap-2 text-slate-300">
-                <Award size={14} className="text-slate-500 shrink-0" />
-                <span>Graduation: {app.student_graduation_year || '—'}</span>
-              </div>
+              <div className="flex items-center gap-2 text-slate-300"><Mail size={14} className="text-slate-500" />{app.student_email || '—'}</div>
+              <div className="flex items-center gap-2 text-slate-300"><MapPin size={14} className="text-slate-500" />{app.student_wilaya || '—'}</div>
+              <div className="flex items-center gap-2 text-slate-300"><BookOpen size={14} className="text-slate-500" />{app.student_university || '—'}</div>
+              <div className="flex items-center gap-2 text-slate-300"><Award size={14} className="text-slate-500" />{app.student_major || '—'} · {app.student_education_level || '—'}</div>
+              <div className="flex items-center gap-2 text-slate-300"><Calendar size={14} className="text-slate-500" />Promotion: {app.student_graduation_year || '—'}</div>
               {app.student_github && (
-                <div className="flex items-center gap-2 text-slate-300">
-                  <Github size={14} className="text-slate-500 shrink-0" />
-                  <a href={app.student_github} target="_blank" rel="noreferrer"
-                    className="text-indigo-400 hover:underline truncate">{app.student_github}</a>
-                </div>
+                <div className="flex items-center gap-2 text-slate-300"><Github size={14} className="text-slate-500" /><a href={app.student_github} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline truncate">{app.student_github}</a></div>
               )}
               {app.student_portfolio && (
-                <div className="flex items-center gap-2 text-slate-300">
-                  <Globe size={14} className="text-slate-500 shrink-0" />
-                  <a href={app.student_portfolio} target="_blank" rel="noreferrer"
-                    className="text-indigo-400 hover:underline truncate">{app.student_portfolio}</a>
-                </div>
+                <div className="flex items-center gap-2 text-slate-300"><Globe size={14} className="text-slate-500" /><a href={app.student_portfolio} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline truncate">{app.student_portfolio}</a></div>
               )}
             </div>
-
-            {/* Skills */}
             {app.student_skills?.length > 0 && (
               <div className="mt-4">
-                <p className="text-xs text-slate-500 mb-2 flex items-center gap-1"><Code size={13} /> Skills</p>
+                <p className="text-xs text-slate-500 mb-2 flex items-center gap-1"><Code size={13} /> Compétences</p>
                 <div className="flex flex-wrap gap-2">
                   {app.student_skills.map((s) => (
                     <span key={s} className="bg-indigo-900/60 text-indigo-300 text-xs px-2.5 py-1 rounded-full">{s}</span>
@@ -201,124 +240,110 @@ function ApplicationModal({ app, onClose, onAccept, onReject }) {
             )}
           </div>
 
-          {/* Cover letter */}
           {app.cover_letter && (
             <div className="bg-slate-800/60 rounded-xl p-5">
               <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <FileText size={15} /> Cover Letter
+                <FileText size={15} /> Lettre de motivation
               </h3>
               <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{app.cover_letter}</p>
             </div>
           )}
 
-          {/* CV / Resume avec chargement sécurisé */}
           {app.cv_file_url && (
             <div className="bg-slate-800/60 rounded-xl p-5">
               <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <FileText size={15} /> CV / Resume
+                <FileText size={15} /> CV
               </h3>
-
               {!cvBlobUrl && !loadingCv && (
-                <button
-                  onClick={() => loadPdf(`http://localhost:8000${app.cv_file_url}`)}
-                  className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-4 py-2 rounded-lg transition"
-                >
-                  Load CV
+                <button onClick={() => loadPdf(`http://localhost:8000${app.cv_file_url}`)} className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-4 py-2 rounded-lg transition">
+                  Charger le CV
                 </button>
               )}
-              {loadingCv && <p className="text-slate-300 text-sm">Loading PDF...</p>}
+              {loadingCv && <p className="text-slate-300 text-sm">Chargement...</p>}
               {cvBlobUrl && (
                 <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(99,102,241,0.3)', marginBottom: 10 }}>
-                  <iframe
-                    src={cvBlobUrl}
-                    title="CV PDF"
-                    style={{ width: '100%', height: 420, border: 'none', background: '#fff' }}
-                  />
+                  <iframe src={cvBlobUrl} title="CV PDF" style={{ width: '100%', height: 420, border: 'none', background: '#fff' }} />
                 </div>
               )}
-              <a
-                href={`http://localhost:8000${app.cv_file_url}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-4 py-2 rounded-lg transition mt-2"
-              >
-                <FileText size={15} /> Open / Download CV (direct)
-              </a>
             </div>
           )}
 
-          {/* Rejection reason display */}
-          {app.status === 'rejected' && app.company_notes && (
+          {/* Bouton Générer Convention */}
+          {app.status === 'accepted_by_company' && (
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+              <p className="text-blue-300 text-sm font-medium mb-3 flex items-center gap-2">
+                <FileText size={16} />
+                Générer la convention de stage
+              </p>
+              <button
+                onClick={handleGenerateConvention}
+                disabled={generating}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
+              >
+                {generating ? <Loader2 size={16} className="animate-spin" /> : <FileText size={14} />}
+                Générer la convention
+              </button>
+            </div>
+          )}
+
+          {/* Convention déjà générée */}
+          {conventionUrl && (
+            <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
+              <p className="text-green-300 text-sm font-medium mb-3 flex items-center gap-2">
+                <FileText size={16} />
+                Convention disponible
+              </p>
+              <button
+                onClick={handleDownloadConvention}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
+              >
+                <Download size={14} />
+                Télécharger la convention
+              </button>
+            </div>
+          )}
+
+          {app.status === 'rejected_by_company' && app.company_notes && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-              <p className="text-xs text-red-400 font-semibold mb-1">Rejection Reason</p>
+              <p className="text-xs text-red-400 font-semibold mb-1">Motif du refus</p>
               <p className="text-sm text-red-300">{app.company_notes}</p>
             </div>
           )}
 
-          {/* Action buttons */}
-          {!alreadyResponded && (
+          {!alreadyResponded && app.status === 'pending' && (
             <div className="border-t border-slate-700 pt-5">
               {showAcceptConfirm ? (
                 <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
                   <p className="text-green-300 text-sm font-medium mb-3">
-                    Confirm acceptance of <strong>{app.student_name}</strong>'s application?
+                    Confirmer l'acceptation de <strong>{app.student_name}</strong> ?
                   </p>
                   <div className="flex gap-3">
-                    <button
-                      onClick={handleAccept}
-                      disabled={submitting}
-                      className="flex items-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-60 text-white px-5 py-2 rounded-lg text-sm font-semibold transition"
-                    >
+                    <button onClick={handleAccept} disabled={submitting} className="flex items-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-60 text-white px-5 py-2 rounded-lg text-sm font-semibold transition">
                       {submitting ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />}
-                      Yes, Accept
+                      Oui, accepter
                     </button>
-                    <button
-                      onClick={() => setShowAcceptConfirm(false)}
-                      className="px-5 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition"
-                    >
-                      Cancel
-                    </button>
+                    <button onClick={() => setShowAcceptConfirm(false)} className="px-5 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition">Annuler</button>
                   </div>
                 </div>
               ) : showRejectForm ? (
                 <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-                  <p className="text-red-300 text-sm font-medium mb-3">Reason for rejection <span className="text-red-400">*</span></p>
-                  <textarea
-                    className="w-full bg-slate-800 border border-slate-600 focus:border-red-500 rounded-lg px-3 py-2 text-sm text-white outline-none resize-none min-h-[80px] mb-3"
-                    placeholder="Explain why this application is being rejected..."
-                    value={rejectReason}
-                    onChange={(e) => setRejectReason(e.target.value)}
-                  />
+                  <p className="text-red-300 text-sm font-medium mb-3">Motif du refus <span className="text-red-400">*</span></p>
+                  <textarea className="w-full bg-slate-800 border border-slate-600 focus:border-red-500 rounded-lg px-3 py-2 text-sm text-white outline-none resize-none min-h-[80px] mb-3" placeholder="Expliquez pourquoi cette candidature est refusée..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
                   <div className="flex gap-3">
-                    <button
-                      onClick={handleReject}
-                      disabled={submitting || !rejectReason.trim()}
-                      className="flex items-center gap-2 bg-red-600 hover:bg-red-500 disabled:opacity-60 text-white px-5 py-2 rounded-lg text-sm font-semibold transition"
-                    >
+                    <button onClick={handleReject} disabled={submitting || !rejectReason.trim()} className="flex items-center gap-2 bg-red-600 hover:bg-red-500 disabled:opacity-60 text-white px-5 py-2 rounded-lg text-sm font-semibold transition">
                       {submitting ? <Loader2 size={15} className="animate-spin" /> : <XCircle size={15} />}
-                      Confirm Rejection
+                      Confirmer le refus
                     </button>
-                    <button
-                      onClick={() => { setShowRejectForm(false); setRejectReason(''); }}
-                      className="px-5 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition"
-                    >
-                      Cancel
-                    </button>
+                    <button onClick={() => { setShowRejectForm(false); setRejectReason(''); }} className="px-5 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition">Annuler</button>
                   </div>
                 </div>
               ) : (
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowAcceptConfirm(true)}
-                    className="flex items-center gap-2 bg-green-600/20 hover:bg-green-600/30 text-green-300 border border-green-600/30 px-5 py-2.5 rounded-lg text-sm font-semibold transition"
-                  >
-                    <CheckCircle size={16} /> Accept Application
+                  <button onClick={() => setShowAcceptConfirm(true)} className="flex items-center gap-2 bg-green-600/20 hover:bg-green-600/30 text-green-300 border border-green-600/30 px-5 py-2.5 rounded-lg text-sm font-semibold transition">
+                    <CheckCircle size={16} /> Accepter
                   </button>
-                  <button
-                    onClick={() => setShowRejectForm(true)}
-                    className="flex items-center gap-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-600/30 px-5 py-2.5 rounded-lg text-sm font-semibold transition"
-                  >
-                    <XCircle size={16} /> Reject Application
+                  <button onClick={() => setShowRejectForm(true)} className="flex items-center gap-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-600/30 px-5 py-2.5 rounded-lg text-sm font-semibold transition">
+                    <XCircle size={16} /> Refuser
                   </button>
                 </div>
               )}
@@ -330,14 +355,13 @@ function ApplicationModal({ app, onClose, onAccept, onReject }) {
   );
 }
 
-// ── Main CompanyApplications ──
 export default function CompanyApplications() {
   const { user } = useAuth();
   const [applications, setApplications] = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [msg, setMsg]                   = useState(null);
-  const [selected, setSelected]         = useState(null);
-  const [filter, setFilter]             = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [filter, setFilter] = useState('all');
 
   const showMsg = (type, text) => {
     setMsg({ type, text });
@@ -347,12 +371,12 @@ export default function CompanyApplications() {
   const fetchApplications = async () => {
     setLoading(true);
     try {
-      const res  = await fetch(`${API}/company/applications/`, { headers: auth() });
+      const res = await fetch(`${API}/company/applications/`, { headers: auth() });
       const data = await res.json();
       if (data.success) setApplications(data.applications || []);
-      else showMsg('error', data.error || 'Failed to load applications.');
+      else showMsg('error', data.error || 'Erreur lors du chargement');
     } catch (e) {
-      showMsg('error', `Network error: ${e.message}`);
+      showMsg('error', `Erreur réseau: ${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -362,51 +386,49 @@ export default function CompanyApplications() {
 
   const handleAccept = async (appId) => {
     try {
-      const res  = await fetch(`${API}/company/applications/${appId}/respond/`, {
+      const res = await fetch(`${API}/company/applications/${appId}/respond/`, {
         method: 'POST', headers: authJson(),
         body: JSON.stringify({ status: 'accepted' }),
       });
       const data = await res.json();
       if (data.success) {
-        showMsg('success', 'Application accepted. The student has been notified.');
+        showMsg('success', 'Candidature acceptée. En attente de validation par l\'université.');
         setSelected(null);
         fetchApplications();
       } else {
-        showMsg('error', data.error || 'Failed to accept application.');
+        showMsg('error', data.error || 'Erreur lors de l\'acceptation');
       }
     } catch (e) {
-      showMsg('error', `Network error: ${e.message}`);
+      showMsg('error', `Erreur réseau: ${e.message}`);
     }
   };
 
   const handleReject = async (appId, reason) => {
     try {
-      const res  = await fetch(`${API}/company/applications/${appId}/respond/`, {
+      const res = await fetch(`${API}/company/applications/${appId}/respond/`, {
         method: 'POST', headers: authJson(),
         body: JSON.stringify({ status: 'rejected', rejection_reason: reason }),
       });
       const data = await res.json();
       if (data.success) {
-        showMsg('success', 'Application rejected. The student has been notified.');
+        showMsg('success', 'Candidature refusée.');
         setSelected(null);
         fetchApplications();
       } else {
-        showMsg('error', data.error || 'Failed to reject application.');
+        showMsg('error', data.error || 'Erreur lors du refus');
       }
     } catch (e) {
-      showMsg('error', `Network error: ${e.message}`);
+      showMsg('error', `Erreur réseau: ${e.message}`);
     }
   };
 
-  const filtered = filter === 'all'
-    ? applications
-    : applications.filter((a) => a.status === filter);
-
+  const filtered = filter === 'all' ? applications : applications.filter((a) => a.status === filter);
   const counts = {
-    all:      applications.length,
-    pending:  applications.filter((a) => a.status === 'pending').length,
-    accepted: applications.filter((a) => a.status === 'accepted').length,
-    rejected: applications.filter((a) => a.status === 'rejected').length,
+    all: applications.length,
+    pending: applications.filter((a) => a.status === 'pending').length,
+    accepted_by_company: applications.filter((a) => a.status === 'accepted_by_company').length,
+    rejected_by_company: applications.filter((a) => a.status === 'rejected_by_company').length,
+    validated_by_co_dept: applications.filter((a) => a.status === 'validated_by_co_dept').length,
   };
 
   return (
@@ -414,14 +436,11 @@ export default function CompanyApplications() {
       <nav className="bg-white/10 backdrop-blur-lg border-b border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-14 gap-4">
-            <Link
-              to={user?.sub_role === 'company_manager' ? '/company-manager/dashboard' : '/company/dashboard'}
-              className="flex items-center gap-2 text-white/70 hover:text-white transition text-sm"
-            >
-              <ArrowLeft size={16} /> Back
+            <Link to={user?.sub_role === 'company_manager' ? '/company-manager/dashboard' : '/company/dashboard'} className="flex items-center gap-2 text-white/70 hover:text-white transition text-sm">
+              <ArrowLeft size={16} /> Retour
             </Link>
             <span className="text-white/30">|</span>
-            <h1 className="text-lg font-bold text-white">Applications Received</h1>
+            <h1 className="text-lg font-bold text-white">Candidatures reçues</h1>
           </div>
         </div>
       </nav>
@@ -430,68 +449,31 @@ export default function CompanyApplications() {
         <Msg msg={msg} onClose={() => setMsg(null)} />
 
         <div className="flex gap-2 mb-6 flex-wrap">
-          {['all', 'pending', 'accepted', 'rejected'].map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                filter === f
-                  ? 'bg-white/20 text-white'
-                  : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-              <span className="ml-2 text-xs opacity-70">({counts[f]})</span>
-            </button>
-          ))}
+          <button onClick={() => setFilter('all')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'all' ? 'bg-white/20 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>Toutes ({counts.all})</button>
+          <button onClick={() => setFilter('pending')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'pending' ? 'bg-yellow-600 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>En attente ({counts.pending})</button>
+          <button onClick={() => setFilter('accepted_by_company')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'accepted_by_company' ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>Acceptées ({counts.accepted_by_company})</button>
+          <button onClick={() => setFilter('validated_by_co_dept')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'validated_by_co_dept' ? 'bg-green-600 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>Validées ({counts.validated_by_co_dept})</button>
+          <button onClick={() => setFilter('rejected_by_company')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'rejected_by_company' ? 'bg-red-600 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>Refusées ({counts.rejected_by_company})</button>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-24 text-white/50">
-            <Loader2 size={24} className="animate-spin mr-3" /> Loading applications...
-          </div>
+          <div className="flex items-center justify-center py-24 text-white/50"><Loader2 size={24} className="animate-spin mr-3" /> Chargement...</div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white/5 rounded-xl p-16 text-center border border-white/10">
-            <Clock size={40} className="mx-auto mb-3 text-white/20" />
-            <p className="text-white/50">No applications found.</p>
-          </div>
+          <div className="bg-white/5 rounded-xl p-16 text-center border border-white/10"><Clock size={40} className="mx-auto mb-3 text-white/20" /><p className="text-white/50">Aucune candidature trouvée.</p></div>
         ) : (
           <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-white/10 text-white/50 text-xs uppercase">
-                <tr>
-                  <th className="px-4 py-3 text-left">Student</th>
-                  <th className="px-4 py-3 text-left">Offer</th>
-                  <th className="px-4 py-3 text-left">Applied</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Actions</th>
-                </tr>
+                <tr><th className="px-4 py-3 text-left">Étudiant</th><th className="px-4 py-3 text-left">Offre</th><th className="px-4 py-3 text-left">Date</th><th className="px-4 py-3 text-left">Statut</th><th className="px-4 py-3 text-left">Actions</th></tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {filtered.map((app) => (
                   <tr key={app.id} className="hover:bg-white/5 transition">
-                    <td className="px-4 py-3">
-                      <p className="font-semibold text-white">{app.student_name}</p>
-                      <p className="text-white/40 text-xs">{app.student_email}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="text-white">{app.offer_title}</p>
-                      <p className="text-white/40 text-xs">{app.offer_type}</p>
-                    </td>
-                    <td className="px-4 py-3 text-white/60">
-                      {app.applied_at ? new Date(app.applied_at).toLocaleDateString() : '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={app.status} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => setSelected(app)}
-                        className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 text-xs font-medium transition"
-                      >
-                        <Eye size={14} /> View Details
-                      </button>
-                    </td>
+                    <td className="px-4 py-3"><p className="font-semibold text-white">{app.student_name}</p><p className="text-white/40 text-xs">{app.student_email}</p></td>
+                    <td className="px-4 py-3"><p className="text-white">{app.offer_title}</p><p className="text-white/40 text-xs">{app.offer_type}</p></td>
+                    <td className="px-4 py-3 text-white/60">{app.applied_at ? new Date(app.applied_at).toLocaleDateString() : '—'}</td>
+                    <td className="px-4 py-3"><StatusBadge status={app.status} /></td>
+                    <td className="px-4 py-3"><button onClick={() => setSelected(app)} className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 text-xs font-medium transition"><Eye size={14} /> Détails</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -506,6 +488,7 @@ export default function CompanyApplications() {
           onClose={() => setSelected(null)}
           onAccept={handleAccept}
           onReject={handleReject}
+          onGenerateConvention={fetchApplications}
         />
       )}
     </div>

@@ -1,7 +1,7 @@
-/* ===== GOOGLE FONTS ===== */
+
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
 
-/* ===== VARIABLES (same as Home.css) ===== */
+
 :root {
   --pink:       #F75AFA;
   --purple:     #8D23D4;
@@ -15,7 +15,7 @@
   --grad-pink-purple: linear-gradient(90deg, #F75AFA 0%, #8D23D4 60%);
 }
 
-/* ===== RESET ===== */
+
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 html {
@@ -58,7 +58,7 @@ body {
   overflow-x: hidden;
 }
 
-/* ===== NAVBAR ===== */
+
 .sd-navbar {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -84,7 +84,7 @@ body {
   gap: 1rem;
 }
 
-/* Hamburger */
+
 .sd-hamburger {
   background: transparent;
   border: none;
@@ -112,7 +112,7 @@ body {
   text-decoration: none;
 }
 
-/* Nav links — centered */
+
 .sd-nav-links {
   display: flex;
   align-items: center;
@@ -178,7 +178,7 @@ body {
 }
 .sd-icon-btn:hover { color: #fff; }
 
-/* Notification badge */
+
 .sd-badge {
   position: absolute;
   top: 2px; right: 2px;
@@ -187,7 +187,7 @@ body {
   border-radius: 50%;
 }
 
-/* Avatar */
+
 .sd-avatar {
   width: 34px; height: 34px;
   border-radius: 50%;
@@ -204,12 +204,12 @@ body {
 }
 .sd-avatar:hover { border-color: rgba(255,255,255,0.6); }
 
-/* ===== MAIN CONTENT ===== */
+
 .sd-main {
   padding-top: 64px;
 }
 
-/* ===== HERO SECTION ===== */
+
 .sd-hero {
   min-height: 100vh;
   display: flex;
@@ -256,7 +256,7 @@ body {
   animation: fadeSlideUp 0.8s cubic-bezier(0.22,1,0.36,1) 0.38s both;
 }
 
-/* Stars row */
+
 .sd-hero-stars {
   display: flex;
   align-items: center;
@@ -266,7 +266,7 @@ body {
 }
 .sd-hero-stars .star { color: var(--gold); font-size: 1.1rem; }
 
-/* Search bar */
+
 .sd-search-bar {
   display: flex;
   align-items: center;
@@ -313,7 +313,7 @@ body {
 }
 .sd-filter-btn:hover { color: #fff; }
 
-/* Hero image area */
+
 .sd-hero-image {
   flex: 1.1;
   max-width: 520px;
@@ -339,7 +339,7 @@ body {
   stroke: rgba(247,90,250,0.35);
 }
 
-/* ===== KEYFRAMES ===== */
+
 @keyframes fadeSlideUp {
   from { opacity: 0; transform: translateY(35px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -357,7 +357,7 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ===== SECTION COMMON ===== */
+
 .sd-section {
   padding: 80px 5% 70px;
 }
@@ -391,7 +391,7 @@ body {
   margin-top: 6px;
 }
 
-/* See All button */
+
 .sd-see-all-btn {
   display: flex;
   align-items: center;
@@ -417,7 +417,7 @@ body {
 .sd-see-all-btn svg { transition: transform 0.2s; }
 .sd-see-all-btn:hover svg { transform: translateX(3px); }
 
-/* ===== POPULAR COMPANIES ===== */
+
 .sd-companies-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -453,7 +453,7 @@ body {
   transform: translateY(-5px);
 }
 
-/* Company image placeholder */
+
 .sd-company-img {
   width: 100%;
   height: 140px;
@@ -475,7 +475,7 @@ body {
   stroke: rgba(247,90,250,0.35);
 }
 
-/* Category badge on image */
+
 .sd-company-badge {
   position: absolute;
   top: 10px; right: 10px;
@@ -532,7 +532,7 @@ body {
 }
 .sd-learn-btn:hover { opacity: 0.88; transform: translateY(-2px); }
 
-/* ===== JOIN BANNER ===== */
+
 .sd-join-banner {
   margin: 2.5rem auto 0;
   max-width: 700px;
@@ -564,7 +564,7 @@ body {
 }
 .sd-join-btn:hover { opacity: 0.88; transform: translateY(-2px); }
 
-/* ===== POPULAR INTERNSHIPS ===== */
+
 .sd-internships-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -599,7 +599,7 @@ body {
   transform: translateY(-6px);
 }
 
-/* Internship image */
+
 .sd-intern-img {
   width: 100%;
   height: 160px;
@@ -619,7 +619,7 @@ body {
   stroke: rgba(247,90,250,0.35);
 }
 
-/* Top badges on internship image */
+
 .sd-intern-top-badges {
   position: absolute;
   top: 10px; left: 10px; right: 10px;
@@ -827,7 +827,7 @@ body {
 }
 .sd-modal-cancel:hover { background: rgba(255,255,255,0.12); }
 
-/* Success state */
+
 .sd-modal-success {
   text-align: center;
   padding: 12px 0;
@@ -847,7 +847,7 @@ body {
   color: rgba(255,255,255,0.55);
 }
 
-/* ===== FOOTER (same as Home) ===== */
+
 .footer {
   background:
     radial-gradient(ellipse 80% 120% at 60% 50%,
@@ -938,7 +938,7 @@ body {
 .footer-bottom-links a:hover { color: #fff; }
 .footer-bottom-links span { color: rgba(255,255,255,0.30); font-size: 0.78rem; }
 
-/* ===== LOADING SPINNER ===== */
+
 .sd-loading {
   display: flex;
   flex-direction: column;
@@ -957,7 +957,7 @@ body {
 @keyframes spin { to { transform: rotate(360deg); } }
 .sd-loading p { color: rgba(255,255,255,0.50); font-size: 0.85rem; }
 
-/* ===== EMPTY STATE ===== */
+
 .sd-empty {
   text-align: center;
   padding: 50px 20px;
@@ -966,7 +966,7 @@ body {
 .sd-empty svg { margin-bottom: 14px; stroke: rgba(247,90,250,0.30); }
 .sd-empty p { font-size: 0.9rem; }
 
-/* ===== TOAST ===== */
+
 .sd-toast {
   position: fixed;
   bottom: 28px; right: 28px;
@@ -987,7 +987,7 @@ body {
 .sd-toast.success { border-color: rgba(74,222,128,0.50); }
 .sd-toast.error   { border-color: rgba(239,68,68,0.50); }
 
-/* ===== RESPONSIVE ===== */
+
 @media (max-width: 1024px) {
   .sd-companies-grid { grid-template-columns: repeat(2, 1fr); }
 }
@@ -1003,12 +1003,12 @@ body {
 @media (max-width: 480px) {
   .sd-section { padding: 60px 4% 50px; }
 }
-/* ===== NOTIFICATION DROPDOWN ===== */
+
 .sd-notif-wrapper {
   position: relative;
 }
 
-/* Badge with count */
+
 .sd-badge-count {
   position: absolute;
   top: 0px;
@@ -1027,7 +1027,7 @@ body {
   pointer-events: none;
 }
 
-/* Dropdown panel */
+
 .sd-notif-dropdown {
   position: absolute;
   top: calc(100% + 12px);
@@ -1135,7 +1135,7 @@ body {
 }
 .sd-notif-footer button:hover { color: #F75AFA; }
 
-/* ===== APPLICATION DETAIL MODAL (StudentApplications) ===== */
+
 .app-modal-overlay {
   position: fixed;
   inset: 0;
@@ -1217,7 +1217,7 @@ body {
   font-weight: 500;
 }
 
-/* Status badge */
+
 .app-status-badge {
   display: inline-flex;
   align-items: center;
@@ -1255,7 +1255,7 @@ body {
   white-space: pre-wrap;
 }
 
-/* CV button */
+
 .app-modal-cv-btn {
   display: inline-flex;
   align-items: center;
@@ -1294,4 +1294,223 @@ body {
 .app-modal-notes p {
   font-size: 0.82rem;
   color: rgba(255,255,255,0.78);
+}
+
+.sd-notif-wrapper {
+    position: relative;
+}
+
+.sd-notif-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: -80px;
+    width: 360px;
+    max-width: calc(100vw - 20px);
+    background: linear-gradient(145deg, #1a0840, #0e0c27);
+    border: 1px solid rgba(141,35,212,0.40);
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.60);
+    z-index: 2000;
+    overflow: hidden;
+    animation: fadeSlideUp 0.22s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+@media (max-width: 480px) {
+    .sd-notif-dropdown {
+        right: -40px;
+        width: 320px;
+    }
+}
+
+.sd-notif-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.sd-notif-unread-badge {
+    background: linear-gradient(135deg, #F75AFA, #8E2FFB);
+    border-radius: 20px;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: white;
+}
+
+.sd-notif-clear {
+    background: transparent;
+    border: none;
+    color: rgba(247,90,250,0.80);
+    font-size: 0.72rem;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    transition: color 0.2s;
+}
+
+.sd-notif-clear:hover {
+    color: #F75AFA;
+}
+
+.sd-notif-list {
+    max-height: 400px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(141,35,212,0.5) transparent;
+}
+
+.sd-notif-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sd-notif-list::-webkit-scrollbar-thumb {
+    background: rgba(141,35,212,0.5);
+    border-radius: 4px;
+}
+
+.sd-notif-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: background 0.2s;
+    position: relative;
+}
+
+.sd-notif-item:hover {
+    background: rgba(255,255,255,0.04);
+}
+
+.sd-notif-item.unread {
+    background: rgba(141,35,212,0.08);
+}
+
+.sd-notif-icon {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sd-notif-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.sd-notif-body p {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.88);
+    line-height: 1.45;
+    margin-bottom: 4px;
+    word-break: break-word;
+}
+
+.sd-notif-time {
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.35);
+    display: block;
+}
+
+.sd-notif-unread-dot {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    background: #F75AFA;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(247,90,250,0.6);
+}
+
+.sd-notif-mark-read {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.1);
+    border: none;
+    border-radius: 6px;
+    padding: 4px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.6);
+    transition: all 0.2s;
+}
+
+.sd-notif-mark-read:hover {
+    background: rgba(247,90,250,0.2);
+    color: #F75AFA;
+}
+
+.sd-notif-empty {
+    text-align: center;
+    padding: 32px 20px;
+}
+
+.sd-notif-empty p {
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 4px;
+}
+
+.sd-notif-empty span {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.25);
+}
+
+.sd-notif-footer {
+    padding: 10px 18px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    text-align: center;
+}
+
+.sd-notif-footer button {
+    background: transparent;
+    border: none;
+    color: rgba(247,90,250,0.75);
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    transition: color 0.2s;
+}
+
+.sd-notif-footer button:hover {
+    color: #F75AFA;
+}
+
+
+.sd-badge-count {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    min-width: 18px;
+    height: 18px;
+    background: linear-gradient(135deg, #F75AFA, #8E2FFB);
+    border-radius: 50px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    pointer-events: none;
+}
+
+
+@keyframes notifPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.sd-badge-count:not(:empty) {
+    animation: notifPulse 0.5s ease-in-out;
 }

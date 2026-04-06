@@ -1,4 +1,4 @@
-# api/change_streams.py
+
 import threading
 import time
 from pymongo import MongoClient
@@ -7,7 +7,7 @@ from decouple import config
 import os
 import django
 
-# Configuration Django pour pouvoir utiliser les modèles
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 django.setup()
 
@@ -30,25 +30,25 @@ class UserChangeStream:
     def start(self):
         """Démarre l'écoute des changements"""
         if self.running:
-            print("⚠️ Le change stream est déjà en cours d'exécution")
+            print(" Le change stream est déjà en cours d'exécution")
             return
         
         self.running = True
         self.thread = threading.Thread(target=self._listen)
         self.thread.daemon = True
         self.thread.start()
-        print("✅ Change stream démarré - Les emails seront envoyés automatiquement")
+        print(" Change stream démarré - Les emails seront envoyés automatiquement")
     
     def stop(self):
         """Arrête l'écoute des changements"""
         self.running = False
         if self.thread:
             self.thread.join(timeout=5)
-        print("⏹️ Change stream arrêté")
+        print(" Change stream arrêté")
     
     def _listen(self):
         """Écoute les changements dans la collection"""
-        # Filtrer uniquement les opérations update
+        
         pipeline = [
             {
                 '$match': {
@@ -60,13 +60,13 @@ class UserChangeStream:
         
         try:
             with self.collection.watch(pipeline) as stream:
-                print("👂 En attente de changements sur la collection users...")
+                print("  En attente de changements sur la collection users...")
                 for change in stream:
                     self._handle_change(change)
         except Exception as e:
-            print(f"❌ Erreur dans le change stream: {e}")
+            print(f" Erreur dans le change stream: {e}")
             if self.running:
-                # Réessayer après 5 secondes
+                
                 time.sleep(5)
                 self._listen()
     
@@ -77,13 +77,13 @@ class UserChangeStream:
             user_id = document_key.get('_id')
             
             if user_id:
-                # Récupérer l'utilisateur depuis Django
+              
                 user = User.objects(id=str(user_id)).first()
                 
                 if user and user.status:
-                    print(f"📧 Détection: Utilisateur {user.email} a été approuvé")
+                    print(f" Détection: Utilisateur {user.email} a été approuvé")
                     
-                    # Déterminer le rôle pour l'email
+                    
                     role = user.sub_role or user.role
                     if role == 'company_manager':
                         role_display = "Company Manager"
@@ -96,19 +96,19 @@ class UserChangeStream:
                     else:
                         role_display = role
                     
-                    # Envoyer l'email
+                   
                     send_approval_email(
                         recipient=user.email,
                         name=user.username,
                         role=role_display,
                         approver="Administrateur (via base de données)"
                     )
-                    print(f"✅ Email envoyé à {user.email}")
+                    print(f"  Email envoyé à {user.email}")
                     
         except Exception as e:
-            print(f"❌ Erreur lors du traitement du changement: {e}")
+            print(f"  Erreur lors du traitement du changement: {e}")
 
-# Instance globale
+
 user_change_stream = UserChangeStream()
 
 def start_change_stream():

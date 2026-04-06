@@ -34,9 +34,7 @@ function Msg({ msg, onClose }) {
   );
 }
 
-// OfferForm has its OWN local state — this fixes the "lose focus on each keystroke" bug.
-// The bug happened because form state lived in the parent: every keystroke re-rendered the
-// parent which remounted inputs and reset focus. Now only this subtree re-renders per keystroke.
+
 function OfferForm({ initial, onSubmit, submitLabel, submitting }) {
   const [f, setF] = useState({ ...EMPTY, ...initial });
   const prevKey = useRef(null);
@@ -112,7 +110,7 @@ function OfferForm({ initial, onSubmit, submitLabel, submitting }) {
 export default function InternshipOfferManager() {
   const { user } = useAuth();
 
-  // Always read token fresh — never stale from a closure
+ 
   const auth = () => ({
     'Content-Type': 'application/json',
     Authorization: `Bearer ${localStorage.getItem('access_token')}`,
@@ -149,7 +147,7 @@ export default function InternshipOfferManager() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { if (section === 'list') loadOffers(); }, [section]); // eslint-disable-line
+  useEffect(() => { if (section === 'list') loadOffers(); }, [section]); 
 
   const handleCreate = async (f) => {
     setSubmitting(true); setMsg(null);

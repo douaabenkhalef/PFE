@@ -1,7 +1,7 @@
-/* ===== GOOGLE FONTS ===== */
+
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
 
-/* ===== VARIABLES ===== */
+
 :root {
   --pink:        #F75AFA;
   --purple:      #8D23D4;
@@ -16,7 +16,7 @@
   --nav-bg:      rgba(8, 6, 20, 0.82);
 }
 
-/* ===== RESET ===== */
+
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
 html {
@@ -78,7 +78,7 @@ body {
   overflow-x: hidden;
 }
 
-/* ===== NAVBAR ===== */
+
 .navbar {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -141,7 +141,7 @@ body {
 }
 .navbar-links a:hover { color: #fff; }
 
-/* active link — underline gradient */
+
 .navbar-links a.active {
   color: #fff;
   font-weight: 600;
@@ -231,10 +231,10 @@ body {
 }
 .search-overlay-close:hover { color: #fff; }
 
-/* ===== SECTIONS COMMON ===== */
+
 section { padding: 100px 5% 80px; }
 
-/* ===== HERO ===== */
+
 .hero-section {
   min-height: 100vh;
   display: flex;
@@ -321,7 +321,7 @@ section { padding: 100px 5% 80px; }
 }
 .btn-outline:hover { opacity: 0.88; }
 
-/* Hero image placeholder */
+
 .hero-image-box {
   flex: 1.1;
   max-width: 550px;
@@ -340,7 +340,7 @@ section { padding: 100px 5% 80px; }
 .hero-image-box svg { width: 60px; height: 60px; opacity: 0.4; stroke: #F75AFA; }
 .hero-image-box > p { font-size: 0.82rem; color: rgba(247,90,250,0.45); margin:0; }
 
-/* ===== TOP COMPANIES ===== */
+
 .companies-section {
   background: transparent;
 }
@@ -561,7 +561,7 @@ section { padding: 100px 5% 80px; }
 .service-img-box svg { width: 42px; height: 42px; stroke: rgba(223,192,255,0.55); opacity: 0.8; }
 .service-img-box > span { font-size: 0.65rem; color: rgba(223,192,255,0.50); }
 
-/* Zone texte */
+
 .service-card-body {
   padding: 20px 20px 24px;
   display: flex;
@@ -571,11 +571,11 @@ section { padding: 100px 5% 80px; }
   flex: 1;
 }
 
-/* Titre jaune + underline jaune */
+
 .service-card h3 {
   font-size: 1.05rem;
   font-weight: 800;
-  color: var(--yellow);         /* #FFD600 */
+  color: var(--yellow);        
   margin-bottom: 8px;
   position: relative;
   display: inline-block;
@@ -623,7 +623,7 @@ section { padding: 100px 5% 80px; }
   transform: translateY(-2px);
 }
 
-/* ===== FOOTER ===== */
+
 .footer {
   background:
     radial-gradient(ellipse 80% 120% at 60% 50%,
@@ -723,11 +723,7 @@ section { padding: 100px 5% 80px; }
   section { padding: 80px 4% 60px; }
 }
 
-/* ============================================================
-   ANIMATIONS
-   ============================================================ */
 
-/* ── 1. Keyframes ─────────────────────────────────────── */
 
 @keyframes fadeSlideUp {
   from { opacity: 0; transform: translateY(40px); }
@@ -765,12 +761,12 @@ section { padding: 100px 5% 80px; }
   100% { background-position: 0% 50%; }
 }
 
-/* ── 2. Navbar — slide down on load ──────────────────── */
+
 .navbar {
   animation: navbarDrop 0.6s cubic-bezier(0.22,1,0.36,1) both;
 }
 
-/* ── 3. Hero — staggered fade + slide up ─────────────── */
+
 .hero-content h1 {
   animation: fadeSlideUp 0.8s cubic-bezier(0.22,1,0.36,1) 0.2s both;
 }
@@ -781,14 +777,14 @@ section { padding: 100px 5% 80px; }
   animation: fadeSlideUp 0.8s cubic-bezier(0.22,1,0.36,1) 0.60s both;
 }
 
-/* Hero image — slide in from right + floating */
+
 .hero-image-box {
   animation:
     fadeSlideLeft 0.9s cubic-bezier(0.22,1,0.36,1) 0.35s both,
     float 5s ease-in-out 1.3s infinite;
 }
 
-/* ── 4. Section titles — fade up on scroll ───────────── */
+
 .section-title {
   animation: fadeSlideUp 0.7s cubic-bezier(0.22,1,0.36,1) both;
   animation-play-state: paused;
@@ -797,7 +793,7 @@ section { padding: 100px 5% 80px; }
   animation-play-state: running;
 }
 
-/* ── 5. Company cards — staggered fade up ────────────── */
+
 .company-card {
   opacity: 0;
   transform: translateY(35px);
@@ -815,7 +811,7 @@ section { padding: 100px 5% 80px; }
 .company-card:nth-child(2) { transition-delay: 0.18s; }
 .company-card:nth-child(3) { transition-delay: 0.31s; }
 
-/* ── 6. Service cards — staggered fade up ────────────── */
+
 .service-card {
   opacity: 0;
   transform: translateY(35px);
@@ -829,7 +825,7 @@ section { padding: 100px 5% 80px; }
   opacity: 1;
   transform: translateY(0);
 }
-/* middle card keeps its scale when visible */
+
 .services-grid .service-card:nth-child(2).is-visible {
   transform: scale(1.08) translateY(-10px);
 }
@@ -837,20 +833,20 @@ section { padding: 100px 5% 80px; }
 .service-card:nth-child(2) { transition-delay: 0.20s; }
 .service-card:nth-child(3) { transition-delay: 0.35s; }
 
-/* ── 7. Hover effects ────────────────────────────────── */
 
-/* Contact Us button — animated gradient */
+
+
 .btn-contact {
   background-size: 200% 200%;
   animation: gradientShift 4s ease infinite;
 }
 
-/* Cards hover glow pulse */
+
 .company-card:hover {
   animation: pulseGlow 1.8s ease-in-out infinite;
 }
 
-/* Navbar links — underline slide in */
+
 .navbar-links a::after {
   content: '';
   position: absolute;
@@ -865,7 +861,7 @@ section { padding: 100px 5% 80px; }
   width: 100%;
 }
 
-/* Buttons — scale on hover */
+
 .btn-primary,
 .btn-outline,
 .btn-see-all,
@@ -879,21 +875,21 @@ section { padding: 100px 5% 80px; }
 .btn-see-all:hover  { transform: translateY(-3px) scale(1.02); }
 .btn-learn-more:hover { transform: translateY(-3px); }
 
-/* Footer socials */
+
 .footer-socials a {
   transition: color 0.2s, transform 0.25s cubic-bezier(0.22,1,0.36,1);
 }
 .footer-socials a:hover { transform: translateY(-4px) scale(1.15); }
 
 
-/* Logo image dans la navbar */
+
 .navbar-logo-img {
   height: 36px;
   width: auto;
   display: block;
 }
 
-/* Image hero */
+
 .hero-image {
   width: 100%;
   height: 100%;
@@ -901,7 +897,7 @@ section { padding: 100px 5% 80px; }
   border-radius: 24px;
 }
 
-/* Images des services */
+
 .service-image {
   width: 100%;
   height: 100%;

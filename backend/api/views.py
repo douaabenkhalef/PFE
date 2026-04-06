@@ -1,16 +1,29 @@
-# api/views.py
+
 from rest_framework import status
 from django.utils import timezone
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.http import HttpResponse
-from datetime import datetime
+from datetime import datetime, timedelta
 import traceback
 from django.conf import settings
+import os
 
 
-from .models import User, Student, Company, Admin, InternshipOffer, Application, OTPVerification, PendingApproval, Notification
+from reportlab.lib.pagesizes import A4, letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm, inch
+from reportlab.lib import colors
+from reportlab.pdfgen import canvas
+from io import BytesIO
+from django.core.files.base import ContentFile
+
+from .models import (
+    User, Student, Company, Admin, InternshipOffer, Application, 
+    OTPVerification, PendingApproval, Notification
+)
 from .serializers import (
     StudentRegistrationSerializer,
     CompanyRegistrationSerializer,
@@ -24,12 +37,13 @@ from .email_utils import (
     send_email, send_approval_email, send_rejection_email,
     send_proof_request_email, send_proof_received_confirmation,
     send_application_confirmation_student, send_application_notification_company,
-    send_company_response_email
+    send_company_response_email, send_validation_pending_to_co_dept,
+    send_convention_validated_email, send_convention_rejected_email
 )
 from .decorators import jwt_authenticated, role_required
 
 
-# ============= UTILITY =============
+
 def cleanup_pending_approval(user_id):
     try:
         pending = PendingApproval.objects(user_id=user_id).first()
@@ -51,7 +65,7 @@ def _get_user_company(user):
     return Company.objects(user=user).first()
 
 
-# ============= AUTHENTICATION =============
+
 
 @api_view(['POST'])
 def register_student(request):
@@ -311,7 +325,7 @@ def login(request):
     })
 
 
-# ============= OTP FUNCTIONS =============
+
 
 @api_view(['POST'])
 def initiate_signup(request):
@@ -628,7 +642,7 @@ def complete_signup(request):
         return Response({'success': False, 'message': f'Error: {str(e)}'}, status=500)
 
 
-# ============= PASSWORD RESET =============
+
 
 @api_view(['POST'])
 def forgot_password(request):
@@ -663,7 +677,6 @@ def reset_password(request):
     if new_password != confirm_password:
         return Response({'success': False, 'message': 'Passwords do not match'}, status=400)
 
-    # Password strength (simplified)
     if len(new_password) < 8 or new_password.isdigit() or not any(c.isupper() for c in new_password) \
             or not any(c.islower() for c in new_password) or not any(c.isdigit() for c in new_password):
         return Response({'success': False, 'message': 'Password does not meet requirements'}, status=400)
@@ -684,7 +697,7 @@ def reset_password(request):
     return Response({'success': True, 'message': 'Password reset successfully'})
 
 
-# ============= STUDENT SPACE =============
+
 
 @api_view(['GET'])
 @jwt_authenticated
@@ -697,14 +710,6 @@ def student_dashboard(request):
 @jwt_authenticated
 @role_required(allowed_roles=['student'])
 def search_offers(request):
-    """
-    Returns active internship offers with filters:
-      - search (text in title, description, company_name)
-      - company_name (exact)
-      - wilaya
-      - internship_type
-      - skills (comma-separated)
-    """
     today_start = timezone.make_aware(datetime.combine(timezone.now().date(), datetime.min.time()))
     offers = InternshipOffer.objects(is_active=True, deadline__gte=today_start)
 
@@ -758,23 +763,19 @@ def apply_to_offer(request, offer_id):
     except Exception:
         return Response({'success': False, 'message': 'Invalid offer ID'}, status=400)
 
-    # Already applied?
     existing = Application.objects(student=student, offer=offer).first()
     if existing:
         return Response({'success': False, 'message': 'You have already applied to this offer'}, status=400)
 
-    # Check deadline & active
     if not offer.is_active or offer.deadline < datetime.now():
         return Response({'success': False, 'message': 'This internship is currently unavailable'}, status=400)
 
-    # Profile completeness
     required_fields = ['full_name', 'wilaya', 'skills', 'education_level', 'university', 'major', 'graduation_year']
     missing = [f for f in required_fields if not getattr(student, f, None)]
     if missing:
         return Response({'success': False, 'message': 'Please complete your profile before applying',
                          'missing_fields': missing}, status=400)
 
-    # CV file
     cv_file = request.FILES.get('cv_file')
     if not cv_file:
         return Response({'success': False, 'message': 'CV is required'}, status=400)
@@ -789,7 +790,6 @@ def apply_to_offer(request, offer_id):
     )
     application.save()
 
-    # Send notifications
     send_application_confirmation_student(student.user.email, student.full_name, offer.title)
     company = offer.company
     if company and company.user:
@@ -802,7 +802,7 @@ def apply_to_offer(request, offer_id):
     }, status=201)
 
 
-# ============= COMPANY SPACE =============
+
 
 @api_view(['GET'])
 @jwt_authenticated
@@ -818,7 +818,7 @@ def respond_to_candidate(request, application_id):
     return Response({'message': f'Respond to candidate {application_id}', 'success': True})
 
 
-# ============= INTERNSHIP OFFERS — COMPANY CRUD =============
+
 
 @api_view(['GET'])
 @jwt_authenticated
@@ -903,8 +903,8 @@ def create_offer(request):
         internship_type=internship_type,
         required_skills=skills,
         duration=request.data.get('duration'),
-        start_date = timezone.make_aware(start_date),
-        deadline = timezone.make_aware(deadline),
+        start_date=timezone.make_aware(start_date),
+        deadline=timezone.make_aware(deadline),
         is_active=request.data.get('is_active', True),
     )
     offer.save()
@@ -1002,7 +1002,6 @@ def update_offer(request, offer_id):
             skills = [s.strip() for s in skills.split(',') if s.strip()]
         offer.required_skills = skills
 
-    # Check duplicate title only if changed
     if 'title' in request.data:
         duplicate = InternshipOffer.objects(company=company, title=request.data['title']).first()
         if duplicate and str(duplicate.id) != offer_id:
@@ -1033,7 +1032,7 @@ def delete_offer(request, offer_id):
     return Response({'success': True, 'message': f'Offer "{title}" deleted successfully.'})
 
 
-# ============= COMPANY MANAGER — HIRING MANAGER MANAGEMENT =============
+
 
 @api_view(['GET'])
 @jwt_authenticated
@@ -1094,7 +1093,7 @@ def reject_hiring_manager(request, user_id):
     return Response({'success': True, 'message': f'Hiring manager {hiring_user.username} rejected.'})
 
 
-# ============= ADMIN SPACE — COMPANY MANAGERS =============
+
 
 @api_view(['GET'])
 @jwt_authenticated
@@ -1136,6 +1135,7 @@ def approve_company_manager(request, user_id):
     send_approval_email(manager.email, manager.username, "Company Manager", request.user.username)
     return Response({'success': True, 'message': f'Company manager {manager.username} approved.'})
 
+
 @api_view(['POST'])
 @jwt_authenticated
 @role_required(allowed_roles=['admin'])
@@ -1149,7 +1149,7 @@ def reject_company_manager(request, user_id):
     return Response({'success': True, 'message': f'Company manager {manager.username} rejected.'})
 
 
-# ============= ADMIN SPACE — CO DEPARTMENT HEADS =============
+
 
 @api_view(['GET'])
 @jwt_authenticated
@@ -1189,7 +1189,6 @@ def approve_co_dept_head(request, user_id):
     co_dept.status = True
     co_dept.save()
 
-    # Create Admin profile if missing
     if not Admin.objects(user=co_dept).first():
         Admin(user=co_dept, full_name=co_dept.username, wilaya=dept_head_admin.wilaya,
               university=dept_head_admin.university).save()
@@ -1215,8 +1214,6 @@ def reject_co_dept_head(request, user_id):
     return Response({'success': True, 'message': f'Co Department Head {co_dept.username} rejected.'})
 
 
-# ============= OTHER ADMIN ENDPOINTS =============
-
 @api_view(['GET'])
 @jwt_authenticated
 @role_required(allowed_roles=['admin'])
@@ -1238,7 +1235,7 @@ def generate_agreement(request, application_id):
     return Response({'message': f'Generate agreement {application_id}', 'success': True})
 
 
-# ============= PROOF MANAGEMENT =============
+
 
 @api_view(['POST'])
 def request_proof_from_admin(request, pending_id):
@@ -1269,7 +1266,7 @@ def mark_proof_received(request, pending_id):
     return Response({'success': True, 'message': 'Proof received marked'})
 
 
-# ============= UTILITIES =============
+
 
 @api_view(['GET'])
 def get_skills_tags(request):
@@ -1346,6 +1343,7 @@ def respond_to_application(request, application_id):
         app = Application.objects(id=application_id).first()
         if not app:
             return Response({'error': 'Application not found'}, status=404)
+        
         if str(app.offer.company.id) != str(company.id):
             return Response({'error': 'Unauthorized'}, status=403)
 
@@ -1353,64 +1351,88 @@ def respond_to_application(request, application_id):
         if new_status not in ['accepted', 'rejected']:
             return Response({'error': 'Status must be "accepted" or "rejected"'}, status=400)
 
-        # For rejections, a reason is required
         if new_status == 'rejected':
             reason = request.data.get('rejection_reason', '').strip()
             if not reason:
                 return Response({'error': 'A rejection reason is required.'}, status=400)
             app.company_notes = reason
+            app.status = 'rejected_by_company'
         else:
             app.company_notes = request.data.get('notes', '')
+            app.status = 'accepted_by_company'
+            app.company_response_date = datetime.now()
 
-        app.status = new_status
-        app.company_response_date = datetime.now()
         app.save()
 
-        # Envoi de l'email
         send_company_response_email(app.student.user.email, app.offer.title, new_status)
 
-        # Création de la notification (champ correct = related_id)
-        try:
-            from .models import Notification
+        if new_status == 'accepted':
+            student = app.student
+            student_university = student.university
+            
+            print(f"🔍 Recherche d'admin pour l'université: {student_university}")
+            
+            dept_head_admins = Admin.objects(university=student_university)
+            admin_list = []
+            
+            for admin in dept_head_admins:
+                if admin.user and admin.user.role == 'admin' and admin.user.sub_role == 'admin' and admin.user.status:
+                    admin_list.append(admin)
+                    print(f"✅ Department Head trouvé: {admin.full_name} ({admin.user.email})")
+            
+            if not admin_list:
+                for admin in dept_head_admins:
+                    if admin.user and admin.user.role == 'admin' and admin.user.sub_role == 'co_dept_head' and admin.user.status:
+                        admin_list.append(admin)
+                        print(f"✅ Co Department Head trouvé: {admin.full_name} ({admin.user.email})")
+            
+            for admin in admin_list:
+                admin_user = admin.user
+                if admin_user and admin_user.email:
+                    send_validation_pending_to_co_dept(
+                        co_dept_email=admin_user.email,
+                        co_dept_name=admin.full_name,
+                        student_name=student.full_name,
+                        company_name=company.company_name,
+                        offer_title=app.offer.title,
+                        application_id=str(app.id)
+                    )
+                    
+                    Notification.objects.create(
+                        recipient=admin_user,
+                        message=f" Nouvelle convention à valider : {student.full_name} - {app.offer.title}",
+                        related_id=str(app.id)
+                    )
+                    print(f" Notification envoyée à {admin_user.email}")
+            
+            if not admin_list:
+                print(f" AUCUN admin trouvé pour l'université: {student_university}")
+            
             Notification.objects.create(
                 recipient=app.student.user,
-                message=f"Your application for '{app.offer.title}' has been {new_status}.",
-                related_id=str(app.id)   # ✅ champ utilisé dans le modèle Notification
+                message=f" Votre candidature pour '{app.offer.title}' a été acceptée par {company.company_name}. En attente de validation par votre université.",
+                related_id=str(app.id)
             )
-        except Exception as notif_err:
-            print(f"Notification failed but application was saved: {notif_err}")
+        
+        else:
+            Notification.objects.create(
+                recipient=app.student.user,
+                message=f" Votre candidature pour '{app.offer.title}' a été refusée par {company.company_name}.",
+                related_id=str(app.id)
+            )
 
         return Response({'success': True, 'message': f'Application {new_status} successfully.'})
 
     except Exception as e:
+        print(f" Erreur: {str(e)}")
+        traceback.print_exc()
         return Response({'error': str(e)}, status=500)
-
-@api_view(['GET'])
-@jwt_authenticated
-@role_required(allowed_roles=['student'])
-def get_notifications(request):
-    notifications = Notification.objects(recipient=request.user).order_by('-created_at')
-    data = [{
-        'id': str(n.id),
-        'message': n.message,
-        'is_read': n.is_read,
-        'created_at': n.created_at.strftime("%Y-%m-%d %H:%M")
-    } for n in notifications]
-    return Response({'success': True, 'notifications': data})
-
-@api_view(['POST'])
-@jwt_authenticated
-def mark_notifications_read(request):
-    Notification.objects(recipient=request.user, is_read=False).update(set__is_read=True)
-    return Response({'success': True})
-
 
 
 @api_view(['GET'])
 @jwt_authenticated
 @role_required(allowed_roles=['company'])
 def download_application_cv(request, application_id):
-    """Serve the CV file attached to an application."""
     company = _get_user_company(request.user)
     if not company:
         return Response({'error': 'Company not found'}, status=404)
@@ -1422,17 +1444,17 @@ def download_application_cv(request, application_id):
             return Response({'error': 'Unauthorized'}, status=403)
         if not app.cv_file:
             return Response({'error': 'No CV file attached'}, status=404)
-        from django.http import HttpResponse
         response = HttpResponse(app.cv_file.read(), content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="cv_{application_id}.pdf"'
         return response
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+
+
 @api_view(['GET'])
 @jwt_authenticated
 @role_required(allowed_roles=['student'])
 def download_application_cv_student(request, application_id):
-    """Serve the CV file attached to an application for the student who owns it."""
     student = Student.objects(user=request.user).first()
     if not student:
         return Response({'error': 'Student profile not found'}, status=404)
@@ -1449,6 +1471,7 @@ def download_application_cv_student(request, application_id):
         return response
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+
 
 @api_view(['GET'])
 def list_companies(request):
@@ -1467,32 +1490,25 @@ def list_companies(request):
     return Response(companies)
 
 
-
 @api_view(['GET'])
 def public_offers(request):
-    """Endpoint public pour récupérer les offres de stage actives (page d'accueil)"""
     today_start = timezone.make_aware(datetime.combine(timezone.now().date(), datetime.min.time()))
     offers = InternshipOffer.objects(is_active=True, deadline__gte=today_start).order_by('-created_at')[:6]
     serializer = InternshipOfferSerializer(offers, many=True)
     return Response({'success': True, 'offers': serializer.data})
 
 
-# api/views.py (within the existing file, replace the generate_custom_cv function)
+
 
 @api_view(['POST'])
 @jwt_authenticated
 @role_required(allowed_roles=['student'])
 def generate_custom_cv(request):
-    """
-    Generate a professional CV PDF from the student's provided data.
-    Accepts a JSON body with CV fields.
-    """
     data = request.data
     student = Student.objects(user=request.user).first()
     if not student:
         return Response({'error': 'Student profile not found'}, status=404)
 
-    # Extract fields with defaults from student profile
     full_name = data.get('full_name', student.full_name)
     email = data.get('email', request.user.email)
     university = data.get('university', student.university)
@@ -1503,92 +1519,29 @@ def generate_custom_cv(request):
     objective = data.get('objective', '')
     experience = data.get('experience', [])
     languages = data.get('languages', [])
-    wilaya = student.wilaya  # from student profile, used for contact info
+    wilaya = student.wilaya
 
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{full_name}_CV.pdf"'
     
-    # Import reportlab components
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
     from reportlab.lib.units import cm
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-    from reportlab.lib.utils import ImageReader
-    import os
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
-    # ===== STYLES =====
     styles = getSampleStyleSheet()
     
-    # Title style (name)
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Title'],
-        fontName='Helvetica-Bold',
-        fontSize=24,
-        alignment=TA_CENTER,
-        textColor=colors.HexColor('#2c3e50'),      # dark blue-gray
-        spaceAfter=12,
-    )
+    title_style = ParagraphStyle('CustomTitle', parent=styles['Title'], fontName='Helvetica-Bold', fontSize=24, alignment=TA_CENTER, textColor=colors.HexColor('#2c3e50'), spaceAfter=12)
+    contact_style = ParagraphStyle('Contact', parent=styles['Normal'], fontName='Helvetica', fontSize=9, textColor=colors.HexColor('#7f8c8d'), alignment=TA_CENTER, spaceAfter=12)
+    heading_style = ParagraphStyle('CustomHeading', parent=styles['Heading2'], fontName='Helvetica-Bold', fontSize=14, textColor=colors.HexColor('#2980b9'), spaceBefore=12, spaceAfter=6)
+    body_style = ParagraphStyle('Body', parent=styles['Normal'], fontName='Helvetica', fontSize=10, leading=14, alignment=TA_LEFT, spaceAfter=4)
+    subheading_style = ParagraphStyle('Subheading', parent=body_style, fontName='Helvetica-Bold', fontSize=10, spaceAfter=2)
     
-    # Contact info style
-    contact_style = ParagraphStyle(
-        'Contact',
-        parent=styles['Normal'],
-        fontName='Helvetica',
-        fontSize=9,
-        textColor=colors.HexColor('#7f8c8d'),      # gray
-        alignment=TA_CENTER,
-        spaceAfter=12,
-    )
-    
-    # Section heading style
-    heading_style = ParagraphStyle(
-        'CustomHeading',
-        parent=styles['Heading2'],
-        fontName='Helvetica-Bold',
-        fontSize=14,
-        textColor=colors.HexColor('#2980b9'),      # blue
-        spaceBefore=12,
-        spaceAfter=6,
-        borderPadding=0,
-        backColor=None,
-    )
-    
-    # Body text style
-    body_style = ParagraphStyle(
-        'Body',
-        parent=styles['Normal'],
-        fontName='Helvetica',
-        fontSize=10,
-        leading=14,
-        alignment=TA_LEFT,
-        spaceAfter=4,
-    )
-    
-    # Subheading for experience titles
-    subheading_style = ParagraphStyle(
-        'Subheading',
-        parent=body_style,
-        fontName='Helvetica-Bold',
-        fontSize=10,
-        spaceAfter=2,
-    )
-    
-    # ===== DOCUMENT SETUP =====
-    # Margins: 2cm on left/right, 2cm top/bottom
-    doc = SimpleDocTemplate(
-        response,
-        pagesize=A4,
-        rightMargin=2*cm,
-        leftMargin=2*cm,
-        topMargin=2*cm,
-        bottomMargin=2*cm,
-    )
+    doc = SimpleDocTemplate(response, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
     story = []
 
-    # Optional: add a logo if file exists
     logo_path = os.path.join(settings.BASE_DIR, 'media', 'logo.png')
     if os.path.exists(logo_path):
         img = Image(logo_path, width=2*cm, height=2*cm)
@@ -1596,45 +1549,32 @@ def generate_custom_cv(request):
         story.append(img)
         story.append(Spacer(1, 0.2*cm))
 
-    # Name
     story.append(Paragraph(full_name, title_style))
     
-    # Contact line: email | phone (if available) | wilaya
-    phone = getattr(request.user, 'phone', '') if hasattr(request.user, 'phone') else ''
     contact_parts = [email]
-    if phone:
-        contact_parts.append(phone)
     if wilaya:
         contact_parts.append(wilaya)
     contact_text = " | ".join(contact_parts)
     story.append(Paragraph(contact_text, contact_style))
-    
     story.append(Spacer(1, 0.5*cm))
 
-    # ===== OBJECTIVE SECTION =====
     if objective:
         story.append(Paragraph("OBJECTIF", heading_style))
         story.append(Paragraph(objective, body_style))
         story.append(Spacer(1, 0.3*cm))
 
-    # ===== EDUCATION SECTION =====
     story.append(Paragraph("FORMATION", heading_style))
     edu_text = f"{education_level} en {major}<br/>{university} | Diplômé(e) en {graduation_year}"
     story.append(Paragraph(edu_text, body_style))
     story.append(Spacer(1, 0.3*cm))
 
-    # ===== SKILLS SECTION =====
     if skills:
         story.append(Paragraph("COMPÉTENCES", heading_style))
-        # Format skills as comma-separated string
-        skills_text = ", ".join(skills)
-        story.append(Paragraph(skills_text, body_style))
+        story.append(Paragraph(", ".join(skills), body_style))
         story.append(Spacer(1, 0.3*cm))
 
-    # ===== LANGUAGES SECTION (as a table) =====
     if languages:
         story.append(Paragraph("LANGUES", heading_style))
-        # Create a table with two columns: Language | Level
         lang_data = [['Langue', 'Niveau']] + [[lang.get('name', ''), lang.get('level', '')] for lang in languages]
         lang_table = Table(lang_data, colWidths=[6*cm, 6*cm])
         lang_table.setStyle(TableStyle([
@@ -1648,24 +1588,21 @@ def generate_custom_cv(request):
         story.append(lang_table)
         story.append(Spacer(1, 0.3*cm))
 
-    # ===== EXPERIENCE SECTION (as a table per experience) =====
     if experience:
         story.append(Paragraph("EXPÉRIENCES", heading_style))
         for exp in experience:
             title = exp.get('title', '')
-            company = exp.get('company', '')
+            company_name = exp.get('company', '')
             dates = exp.get('dates', '')
             desc = exp.get('description', '')
             
-            # Create a sub-table for each experience
             exp_data = [
                 [Paragraph(f"<b>{title}</b>", subheading_style), Paragraph(dates, body_style)],
-                [Paragraph(company, body_style), ''],
+                [Paragraph(company_name, body_style), ''],
                 [Paragraph(desc, body_style), ''],
             ]
             exp_table = Table(exp_data, colWidths=[9*cm, 3*cm])
             exp_table.setStyle(TableStyle([
-                ('SPAN', (0,0), (0,0)),   # title spans first row only
                 ('ALIGN', (1,0), (1,0), 'RIGHT'),
                 ('VALIGN', (0,0), (-1,-1), 'TOP'),
                 ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
@@ -1679,9 +1616,9 @@ def generate_custom_cv(request):
             story.append(Spacer(1, 0.2*cm))
         story.append(Spacer(1, 0.3*cm))
 
-    # Build the PDF
     doc.build(story)
     return response
+
 
 
 
@@ -1697,7 +1634,6 @@ def student_applications(request):
     serializer = ApplicationSerializer(applications, many=True)
     data = serializer.data
 
-    # Remplacer l'URL du CV par une URL relative sans /api
     for app_data, app_obj in zip(data, applications):
         if app_obj.cv_file:
             app_data['cv_file_url'] = f'/student/applications/{str(app_obj.id)}/cv/'
@@ -1705,10 +1641,6 @@ def student_applications(request):
             app_data['cv_file_url'] = None
 
     return Response({'success': True, 'applications': data})
-
-
-
-
 
 
 @api_view(['GET'])
@@ -1731,3 +1663,1125 @@ def student_profile(request):
             'graduation_year': student.graduation_year,
         }
     })
+
+
+
+
+@api_view(['GET'])
+@jwt_authenticated
+def get_notifications(request):
+    try:
+        notifications = Notification.objects(recipient=request.user).order_by('-created_at')
+        
+        result = []
+        for notif in notifications:
+            notif_type = 'default'
+            message = notif.message
+            if 'validé' in message or 'Félicitations' in message:
+                notif_type = 'convention_validated'
+            elif 'refusé' in message:
+                notif_type = 'convention_rejected'
+            elif 'acceptée' in message:
+                notif_type = 'application_accepted'
+            elif 'refusée' in message:
+                notif_type = 'application_rejected'
+            elif 'attente' in message:
+                notif_type = 'pending_validation'
+            
+            result.append({
+                'id': str(notif.id),
+                'message': notif.message,
+                'is_read': notif.is_read,
+                'created_at': notif.created_at.strftime("%d/%m/%Y %H:%M"),
+                'type': notif_type,
+                'related_id': notif.related_id
+            })
+        
+        return Response({'success': True, 'notifications': result})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+@jwt_authenticated
+def mark_notifications_read(request):
+    Notification.objects(recipient=request.user, is_read=False).update(set__is_read=True)
+    return Response({'success': True})
+
+
+@api_view(['PATCH'])
+@jwt_authenticated
+def mark_notification_read(request, notification_id):
+    try:
+        notification = Notification.objects(id=notification_id, recipient=request.user).first()
+        if not notification:
+            return Response({'success': False, 'error': 'Notification non trouvée'}, status=404)
+        
+        notification.is_read = True
+        notification.save()
+        return Response({'success': True})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+@jwt_authenticated
+def mark_all_notifications_read(request):
+    try:
+        Notification.objects(recipient=request.user, is_read=False).update(set__is_read=True)
+        return Response({'success': True})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['co_dept_head'])
+def co_dept_pending_validations(request):
+    try:
+        co_dept = Admin.objects(user=request.user).first()
+        if not co_dept:
+            return Response({'success': False, 'error': 'Profil Co Department Head non trouvé'}, status=404)
+        
+        students = Student.objects(university=co_dept.university)
+        student_ids = [str(s.id) for s in students]
+        
+        applications = Application.objects(
+            student__in=student_ids,
+            status='accepted_by_company'
+        ).order_by('-applied_at')
+        
+        result = []
+        for app in applications:
+            student = app.student
+            offer = app.offer
+            company = offer.company if offer else None
+            
+            result.append({
+                'id': str(app.id),
+                'status': app.status,
+                'applied_at': app.applied_at.strftime('%Y-%m-%d %H:%M') if app.applied_at else None,
+                'company_response_date': app.company_response_date.strftime('%Y-%m-%d %H:%M') if app.company_response_date else None,
+                'cover_letter': app.cover_letter,
+                'cv_file_url': f'/api/co-dept/application/{str(app.id)}/cv/' if app.cv_file else None,
+                'student': {
+                    'id': str(student.id),
+                    'full_name': student.full_name,
+                    'email': student.user.email if student.user else None,
+                    'wilaya': student.wilaya,
+                    'skills': student.skills,
+                    'github': student.github,
+                    'portfolio': student.portfolio,
+                    'education_level': student.education_level,
+                    'university': student.university,
+                    'major': student.major,
+                    'graduation_year': student.graduation_year,
+                },
+                'offer': {
+                    'id': str(offer.id),
+                    'title': offer.title,
+                    'description': offer.description,
+                    'wilaya': offer.wilaya,
+                    'internship_type': offer.internship_type,
+                    'required_skills': offer.required_skills,
+                    'duration': offer.duration,
+                    'start_date': offer.start_date.strftime('%Y-%m-%d') if offer.start_date else None,
+                    'deadline': offer.deadline.strftime('%Y-%m-%d') if offer.deadline else None,
+                },
+                'company': {
+                    'id': str(company.id) if company else None,
+                    'company_name': company.company_name if company else None,
+                    'description': company.description if company else None,
+                    'location': company.location if company else None,
+                    'industry': company.industry if company else None,
+                    'email': company.user.email if company and company.user else None,
+                }
+            })
+        
+        return Response({'success': True, 'count': len(result), 'applications': result})
+        
+    except Exception as e:
+        print(f"❌ Erreur: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['co_dept_head'])
+def co_dept_get_application_details(request, application_id):
+    try:
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'success': False, 'error': 'Candidature non trouvée'}, status=404)
+        
+        co_dept = Admin.objects(user=request.user).first()
+        if application.student.university != co_dept.university:
+            return Response({'success': False, 'error': 'Non autorisé'}, status=403)
+        
+        student = application.student
+        offer = application.offer
+        company = offer.company if offer else None
+        
+        result = {
+            'id': str(application.id),
+            'status': application.status,
+            'applied_at': application.applied_at.strftime('%Y-%m-%d %H:%M') if application.applied_at else None,
+            'company_response_date': application.company_response_date.strftime('%Y-%m-%d %H:%M') if application.company_response_date else None,
+            'company_notes': application.company_notes,
+            'cover_letter': application.cover_letter,
+            'student': {
+                'id': str(student.id),
+                'full_name': student.full_name,
+                'email': student.user.email if student.user else None,
+                'wilaya': student.wilaya,
+                'skills': student.skills,
+                'github': student.github,
+                'portfolio': student.portfolio,
+                'education_level': student.education_level,
+                'university': student.university,
+                'major': student.major,
+                'graduation_year': student.graduation_year,
+            },
+            'offer': {
+                'id': str(offer.id),
+                'title': offer.title,
+                'description': offer.description,
+                'wilaya': offer.wilaya,
+                'internship_type': offer.internship_type,
+                'required_skills': offer.required_skills,
+                'duration': offer.duration,
+                'start_date': offer.start_date.strftime('%Y-%m-%d') if offer.start_date else None,
+                'end_date': (offer.start_date + timedelta(days=90)).strftime('%Y-%m-%d') if offer.start_date else None,
+            },
+            'company': {
+                'id': str(company.id) if company else None,
+                'company_name': company.company_name if company else None,
+                'email': company.user.email if company and company.user else None,
+            }
+        }
+        
+        return Response({'success': True, 'application': result})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['co_dept_head'])
+def co_dept_download_cv(request, application_id):
+    try:
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'error': 'Application not found'}, status=404)
+        
+        co_dept = Admin.objects(user=request.user).first()
+        if application.student.university != co_dept.university:
+            return Response({'error': 'Unauthorized'}, status=403)
+        
+        if not application.cv_file:
+            return Response({'error': 'No CV file attached'}, status=404)
+        
+        response = HttpResponse(application.cv_file.read(), content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="cv_{application.student.full_name}.pdf"'
+        return response
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['co_dept_head'])
+def co_dept_validate_application(request, application_id):
+    try:
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'success': False, 'error': 'Candidature non trouvée'}, status=404)
+        
+        co_dept = Admin.objects(user=request.user).first()
+        if not co_dept:
+            return Response({'success': False, 'error': 'Profil non trouvé'}, status=404)
+        
+        if application.student.university != co_dept.university:
+            return Response({'success': False, 'error': 'Non autorisé'}, status=403)
+        
+        if application.status != 'accepted_by_company':
+            return Response({'success': False, 'error': f'Statut invalide: {application.status}'}, status=400)
+        
+        convention_pdf = generate_internship_agreement_pdf(application, co_dept)
+        
+        application.status = 'validated_by_co_dept'
+        application.co_dept_validation_date = datetime.now()
+        application.co_dept_notes = f"Validée par {co_dept.full_name} le {datetime.now().strftime('%d/%m/%Y')}"
+        application.convention_pdf = convention_pdf
+        application.co_dept_id = str(co_dept.id)
+        application.save()
+        
+        send_convention_validated_email(application, co_dept)
+        
+        Notification.objects.create(
+            recipient=application.student.user,
+            message=f" Félicitations ! Votre stage '{application.offer.title}' a été validé par {co_dept.full_name}. Votre convention de stage est disponible.",
+            related_id=str(application.id)
+        )
+        Notification.objects.create(
+            recipient=application.offer.company.user,
+            message=f" La candidature de {application.student.full_name} pour '{application.offer.title}' a été validée par l'université {co_dept.university}.",
+            related_id=str(application.id)
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'Candidature validée et convention générée',
+            'convention_url': f'/api/co-dept/download-convention/{application.id}/'
+        })
+        
+    except Exception as e:
+        print(f" Erreur: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['co_dept_head'])
+def co_dept_reject_application(request, application_id):
+    try:
+        rejection_reason = request.data.get('rejection_reason', '').strip()
+        if not rejection_reason:
+            return Response({'success': False, 'error': 'La raison du refus est obligatoire'}, status=400)
+        
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'success': False, 'error': 'Candidature non trouvée'}, status=404)
+        
+        co_dept = Admin.objects(user=request.user).first()
+        if not co_dept:
+            return Response({'success': False, 'error': 'Profil non trouvé'}, status=404)
+        
+        if application.student.university != co_dept.university:
+            return Response({'success': False, 'error': 'Non autorisé'}, status=403)
+        
+        if application.status != 'accepted_by_company':
+            return Response({'success': False, 'error': f'Statut invalide: {application.status}'}, status=400)
+        
+        application.status = 'rejected_by_co_dept'
+        application.co_dept_notes = rejection_reason
+        application.co_dept_validation_date = datetime.now()
+        application.co_dept_id = str(co_dept.id)
+        application.save()
+        
+        send_convention_rejected_email(application, co_dept, rejection_reason)
+        
+        Notification.objects.create(
+            recipient=application.student.user,
+            message=f" Votre stage '{application.offer.title}' a été refusé par {co_dept.full_name}. Motif: {rejection_reason[:100]}...",
+            related_id=str(application.id)
+        )
+        Notification.objects.create(
+            recipient=application.offer.company.user,
+            message=f" La candidature de {application.student.full_name} pour '{application.offer.title}' a été refusée par l'université.",
+            related_id=str(application.id)
+        )
+        
+        return Response({'success': True, 'message': 'Candidature refusée'})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['co_dept_head'])
+def co_dept_download_convention(request, application_id):
+    try:
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'error': 'Application not found'}, status=404)
+        
+        co_dept = Admin.objects(user=request.user).first()
+        if application.student.university != co_dept.university:
+            return Response({'error': 'Unauthorized'}, status=403)
+        
+        if not application.convention_pdf:
+            return Response({'error': 'Convention not generated yet'}, status=404)
+        
+        response = HttpResponse(application.convention_pdf.read(), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="convention_{application.student.full_name}_{application.offer.company.company_name}.pdf"'
+        return response
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+
+
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin'])
+def dept_head_pending_validations(request):
+    try:
+        dept_head = Admin.objects(user=request.user).first()
+        if not dept_head:
+            return Response({'success': False, 'error': 'Profil Department Head non trouvé'}, status=404)
+        
+        dept_head_university = dept_head.university
+        print(f" Department Head: {dept_head.full_name}")
+        print(f" Université: {dept_head_university}")
+        
+        students = Student.objects(university=dept_head_university)
+        student_ids = [str(s.id) for s in students]
+        
+        print(f" Étudiants trouvés: {len(student_ids)}")
+        
+        applications = Application.objects(
+            student__in=student_ids,
+            status='accepted_by_company'
+        ).order_by('-applied_at')
+        
+        print(f" Candidatures trouvées: {applications.count()}")
+        
+        result = []
+        for app in applications:
+            student = app.student
+            offer = app.offer
+            company = offer.company if offer else None
+            
+            result.append({
+                'id': str(app.id),
+                'status': app.status,
+                'applied_at': app.applied_at.strftime('%Y-%m-%d %H:%M') if app.applied_at else None,
+                'company_response_date': app.company_response_date.strftime('%Y-%m-%d %H:%M') if app.company_response_date else None,
+                'cover_letter': app.cover_letter,
+                'cv_file_url': f'/api/dept-head/application/{str(app.id)}/cv/' if app.cv_file else None,
+                'student': {
+                    'id': str(student.id),
+                    'full_name': student.full_name,
+                    'email': student.user.email if student.user else None,
+                    'wilaya': student.wilaya,
+                    'skills': student.skills,
+                    'github': student.github,
+                    'portfolio': student.portfolio,
+                    'education_level': student.education_level,
+                    'university': student.university,
+                    'major': student.major,
+                    'graduation_year': student.graduation_year,
+                },
+                'offer': {
+                    'id': str(offer.id),
+                    'title': offer.title,
+                    'description': offer.description,
+                    'wilaya': offer.wilaya,
+                    'internship_type': offer.internship_type,
+                    'required_skills': offer.required_skills,
+                    'duration': offer.duration,
+                    'start_date': offer.start_date.strftime('%Y-%m-%d') if offer.start_date else None,
+                    'deadline': offer.deadline.strftime('%Y-%m-%d') if offer.deadline else None,
+                },
+                'company': {
+                    'id': str(company.id) if company else None,
+                    'company_name': company.company_name if company else None,
+                    'description': company.description if company else None,
+                    'location': company.location if company else None,
+                    'industry': company.industry if company else None,
+                    'email': company.user.email if company and company.user else None,
+                }
+            })
+        
+        return Response({'success': True, 'count': len(result), 'applications': result})
+        
+    except Exception as e:
+        print(f" Erreur: {str(e)}")
+        traceback.print_exc()
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin'])
+def dept_head_download_cv(request, application_id):
+    try:
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'error': 'Application not found'}, status=404)
+        
+        dept_head = Admin.objects(user=request.user).first()
+        if application.student.university != dept_head.university:
+            return Response({'error': 'Unauthorized'}, status=403)
+        
+        if not application.cv_file:
+            return Response({'error': 'No CV file attached'}, status=404)
+        
+        response = HttpResponse(application.cv_file.read(), content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="cv_{application.student.full_name}.pdf"'
+        return response
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin'])
+def dept_head_validate_application(request, application_id):
+    try:
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'success': False, 'error': 'Candidature non trouvée'}, status=404)
+        
+        dept_head = Admin.objects(user=request.user).first()
+        if not dept_head:
+            return Response({'success': False, 'error': 'Profil non trouvé'}, status=404)
+        
+        if application.student.university != dept_head.university:
+            return Response({'success': False, 'error': 'Non autorisé'}, status=403)
+        
+        if application.status != 'accepted_by_company':
+            return Response({'success': False, 'error': f'Statut invalide: {application.status}'}, status=400)
+        
+        convention_pdf = generate_internship_agreement_pdf(application, dept_head)
+        
+        application.status = 'validated_by_co_dept'
+        application.co_dept_validation_date = datetime.now()
+        application.co_dept_notes = f"Validée par {dept_head.full_name} le {datetime.now().strftime('%d/%m/%Y')}"
+        application.convention_pdf = convention_pdf
+        application.co_dept_id = str(dept_head.id)
+        application.save()
+        
+        send_convention_validated_email(application, dept_head)
+        
+        Notification.objects.create(
+            recipient=application.student.user,
+            message=f" Félicitations ! Votre stage '{application.offer.title}' a été validé par {dept_head.full_name}. Votre convention de stage est disponible.",
+            related_id=str(application.id)
+        )
+        Notification.objects.create(
+            recipient=application.offer.company.user,
+            message=f" La candidature de {application.student.full_name} pour '{application.offer.title}' a été validée par l'université {dept_head.university}.",
+            related_id=str(application.id)
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'Candidature validée et convention générée',
+            'convention_url': f'/api/dept-head/download-convention/{application.id}/'
+        })
+        
+    except Exception as e:
+        print(f" Erreur: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin'])
+def dept_head_reject_application(request, application_id):
+    try:
+        rejection_reason = request.data.get('rejection_reason', '').strip()
+        if not rejection_reason:
+            return Response({'success': False, 'error': 'La raison du refus est obligatoire'}, status=400)
+        
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'success': False, 'error': 'Candidature non trouvée'}, status=404)
+        
+        dept_head = Admin.objects(user=request.user).first()
+        if not dept_head:
+            return Response({'success': False, 'error': 'Profil non trouvé'}, status=404)
+        
+        if application.student.university != dept_head.university:
+            return Response({'success': False, 'error': 'Non autorisé'}, status=403)
+        
+        if application.status != 'accepted_by_company':
+            return Response({'success': False, 'error': f'Statut invalide: {application.status}'}, status=400)
+        
+        application.status = 'rejected_by_co_dept'
+        application.co_dept_notes = rejection_reason
+        application.co_dept_validation_date = datetime.now()
+        application.co_dept_id = str(dept_head.id)
+        application.save()
+        
+        send_convention_rejected_email(application, dept_head, rejection_reason)
+        
+        Notification.objects.create(
+            recipient=application.student.user,
+            message=f" Votre stage '{application.offer.title}' a été refusé par {dept_head.full_name}. Motif: {rejection_reason[:100]}...",
+            related_id=str(application.id)
+        )
+        Notification.objects.create(
+            recipient=application.offer.company.user,
+            message=f" La candidature de {application.student.full_name} pour '{application.offer.title}' a été refusée par l'université.",
+            related_id=str(application.id)
+        )
+        
+        return Response({'success': True, 'message': 'Candidature refusée'})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin'])
+def dept_head_download_convention(request, application_id):
+    try:
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'error': 'Application not found'}, status=404)
+        
+        dept_head = Admin.objects(user=request.user).first()
+        if application.student.university != dept_head.university:
+            return Response({'error': 'Unauthorized'}, status=403)
+        
+        if not application.convention_pdf:
+            return Response({'error': 'Convention not generated yet'}, status=404)
+        
+        response = HttpResponse(application.convention_pdf.read(), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="convention_{application.student.full_name}_{application.offer.company.company_name}.pdf"'
+        return response
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+
+
+
+def generate_internship_agreement_pdf(application, admin_user):
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import cm
+    from reportlab.lib import colors
+    from django.core.files.base import ContentFile
+    from io import BytesIO
+    
+    buffer = BytesIO()
+    
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2.5*cm, bottomMargin=2.5*cm, leftMargin=2*cm, rightMargin=2*cm)
+    styles = getSampleStyleSheet()
+    
+    title_style = ParagraphStyle('CustomTitle', parent=styles['Title'], fontSize=18, alignment=1, spaceAfter=30, textColor=colors.HexColor('#2c3e50'))
+    heading_style = ParagraphStyle('CustomHeading', parent=styles['Heading2'], fontSize=12, alignment=0, spaceBefore=15, spaceAfter=8, textColor=colors.HexColor('#2980b9'))
+    normal_style = ParagraphStyle('CustomNormal', parent=styles['Normal'], fontSize=10, alignment=0, spaceAfter=6, leading=14)
+    
+    story = []
+    
+    today = datetime.now().strftime('%d/%m/%Y')
+    
+    story.append(Paragraph("REPUBLIQUE ALGERIENNE DEMOCRATIQUE ET POPULAIRE", title_style))
+    story.append(Paragraph("MINISTERE DE L'ENSEIGNEMENT SUPERIEUR ET DE LA RECHERCHE SCIENTIFIQUE", title_style))
+    story.append(Paragraph(f"<b>{application.student.university}</b>", title_style))
+    story.append(Spacer(1, 1*cm))
+    story.append(Paragraph("CONVENTION DE STAGE", title_style))
+    story.append(Spacer(1, 0.5*cm))
+    story.append(Paragraph(f"Fait à Alger, le {today}", normal_style))
+    story.append(Spacer(1, 0.5*cm))
+    
+    story.append(Paragraph("<b>Article 1 : Parties prenantes</b>", heading_style))
+    story.append(Paragraph(f"""
+    <b>L'Entreprise d'accueil :</b><br/>
+    {application.offer.company.company_name}<br/>
+    Située à : {application.offer.company.location}<br/>
+    """, normal_style))
+    story.append(Paragraph(f"""
+    <b>L'Étudiant stagiaire :</b><br/>
+    {application.student.full_name}<br/>
+    Étudiant à : {application.student.university}<br/>
+    Filière : {application.student.major}<br/>
+    Niveau : {application.student.education_level}<br/>
+    """, normal_style))
+    story.append(Paragraph(f"""
+    <b>L'Établissement d'enseignement :</b><br/>
+    {application.student.university}<br/>
+    Représentée par : {admin_user.full_name}<br/>
+    """, normal_style))
+    story.append(Spacer(1, 0.5*cm))
+    
+    story.append(Paragraph("<b>Article 2 : Objet du stage</b>", heading_style))
+    story.append(Paragraph(f"""
+    Le stage a pour objet de permettre à l'étudiant de mettre en pratique ses connaissances
+    dans le domaine de {application.offer.title}.
+    <br/><b>Description :</b> {application.offer.description}
+    """, normal_style))
+    story.append(Spacer(1, 0.5*cm))
+    
+    story.append(Paragraph("<b>Article 3 : Durée et période</b>", heading_style))
+    start_date = application.offer.start_date.strftime('%d/%m/%Y') if application.offer.start_date else "À déterminer"
+    story.append(Paragraph(f"""
+    La durée du stage est fixée à <b>{application.offer.duration}</b>.<br/>
+    Le stage débutera le <b>{start_date}</b>.
+    """, normal_style))
+    story.append(Spacer(1, 0.5*cm))
+    
+    story.append(Paragraph("<b>Article 4 : Compétences requises</b>", heading_style))
+    skills_text = ", ".join(application.offer.required_skills) if application.offer.required_skills else "Aucune"
+    story.append(Paragraph(f"Compétences : <b>{skills_text}</b>", normal_style))
+    story.append(Spacer(1, 0.5*cm))
+    
+    story.append(Paragraph("<b>Article 5 : Signatures</b>", heading_style))
+    story.append(Spacer(1, 0.5*cm))
+    
+    signature_data = [
+        ["", "", ""],
+        ["<b>L'Étudiant</b>", "<b>L'Entreprise</b>", "<b>L'Université</b>"],
+        [application.student.full_name, application.offer.company.company_name, admin_user.full_name],
+        ["", "", ""],
+        ["Signature :", "Signature :", "Signature :"],
+        ["", "", ""],
+        ["Date :", "Date :", f"Date : {today}"],
+    ]
+    
+    signature_table = Table(signature_data, colWidths=[5*cm, 5*cm, 5*cm])
+    signature_table.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('FONTNAME', (0,1), (-1,1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 10),
+        ('TOPPADDING', (0,0), (-1,-1), 8),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+    ]))
+    story.append(signature_table)
+    
+    story.append(Spacer(1, 1*cm))
+    story.append(Paragraph(f"<i>Convention générée automatiquement le {today}</i>", normal_style))
+    
+    doc.build(story)
+    
+    pdf_content = ContentFile(buffer.getvalue())
+    pdf_content.name = f"convention_{application.student.full_name}_{application.offer.company.company_name}_{today}.pdf"
+    return pdf_content
+
+
+@api_view(['POST'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin', 'company'])
+def generate_convention_from_template(request, application_id):
+    """
+    Génère une convention de stage en utilisant le template fourni
+    avec les informations de l'étudiant, l'entreprise et l'université
+    """
+    try:
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'success': False, 'error': 'Candidature non trouvée'}, status=404)
+        
+       
+        user = request.user
+        if user.role == 'admin':
+          
+            admin = Admin.objects(user=user).first()
+            if application.student.university != admin.university:
+                return Response({'success': False, 'error': 'Non autorisé'}, status=403)
+        elif user.role == 'company':
+            
+            company = _get_user_company(user)
+            if str(application.offer.company.id) != str(company.id):
+                return Response({'success': False, 'error': 'Non autorisé'}, status=403)
+        else:
+            return Response({'success': False, 'error': 'Non autorisé'}, status=403)
+        
+        
+        pdf_content = generate_convention_pdf_template(application)
+        
+        
+        application.convention_pdf = pdf_content
+        application.status = 'validated_by_co_dept'
+        application.co_dept_validation_date = datetime.now()
+        application.save()
+        
+       
+        response = HttpResponse(pdf_content.read(), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="convention_stage_{application.student.full_name}_{application.offer.company.company_name}.pdf"'
+        return response
+        
+    except Exception as e:
+        print(f"❌ Erreur: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+
+
+def generate_convention_pdf_template(application):
+    """
+    Génère une convention de stage selon le template fourni
+    """
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import cm
+    from reportlab.lib import colors
+    from django.core.files.base import ContentFile
+    from io import BytesIO
+    
+    buffer = BytesIO()
+    
+    
+    doc = SimpleDocTemplate(
+        buffer, 
+        pagesize=A4,
+        topMargin=2*cm,
+        bottomMargin=2*cm,
+        leftMargin=2*cm,
+        rightMargin=2*cm
+    )
+    
+    styles = getSampleStyleSheet()
+    
+    
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Title'],
+        fontSize=16,
+        alignment=1,  
+        spaceAfter=20,
+        textColor=colors.HexColor('#2c3e50')
+    )
+    
+    heading_style = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=12,
+        alignment=0,
+        spaceBefore=12,
+        spaceAfter=6,
+        textColor=colors.HexColor('#2980b9')
+    )
+    
+    normal_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontSize=10,
+        alignment=0,
+        spaceAfter=4,
+        leading=14
+    )
+    
+    story = []
+    
+    today = datetime.now().strftime('%d/%m/%Y')
+    
+    
+    story.append(Paragraph("REPUBLIQUE ALGERIENNE DEMOCRATIQUE ET POPULAIRE", title_style))
+    story.append(Paragraph("MINISTERE DE L'ENSEIGNEMENT SUPERIEUR ET DE LA RECHERCHE SCIENTIFIQUE", title_style))
+    story.append(Paragraph(f"<b>{application.student.university}</b>", title_style))
+    story.append(Spacer(1, 1*cm))
+    story.append(Paragraph("CONVENTION DE STAGE", title_style))
+    story.append(Spacer(1, 0.5*cm))
+    story.append(Paragraph(f"Fait à Alger, le {today}", normal_style))
+    story.append(Spacer(1, 0.5*cm))
+    
+   
+    story.append(Paragraph("Article 1 : L'ÉTABLISSEMENT DE FORMATION", heading_style))
+    story.append(Paragraph(f"""
+    <b>Nom :</b> {application.student.university}<br/>
+    <b>Adresse :</b> {application.student.wilaya}, Algérie<br/>
+    <b>Représenté par :</b> Le Directeur du département<br/>
+    <b>E-mail :</b> contact@{application.student.university.lower().replace(' ', '')}.dz
+    """, normal_style))
+    story.append(Spacer(1, 0.3*cm))
+    
+   
+    story.append(Paragraph("Article 2 : L'ORGANISME D'ACCUEIL", heading_style))
+    
+    
+    company = application.offer.company
+    company_phone = getattr(company, 'phone', None) or getattr(company, 'telephone', None) or 'Non renseigné'
+    company_website = getattr(company, 'website', None) or 'Non renseigné'
+    company_siret = getattr(company, 'siret', None) or getattr(company, 'siret_number', None) or company_website
+    
+    story.append(Paragraph(f"""
+    <b>Nom :</b> {company.company_name}<br/>
+    <b>Adresse complète :</b> {company.location}, Algérie<br/>
+    <b>N° SIRET :</b> {company_siret}<br/>
+    <b>Représenté par :</b> {company.user.username if company.user else 'Le responsable'}<br/>
+    <b>Qualité du représentant :</b> {company.user.sub_role if company.user else 'Responsable'}<br/>
+    <b>Téléphone :</b> {company_phone}<br/>
+    <b>E-mail :</b> {company.user.email if company.user else 'Non renseigné'}<br/>
+    <b>Lieu(x) du stage :</b> {application.offer.wilaya}
+    """, normal_style))
+    story.append(Spacer(1, 0.3*cm))
+    
+    
+    story.append(Paragraph("Article 3 : LE STAGIAIRE", heading_style))
+    
+    
+    full_name_parts = application.student.full_name.split()
+    first_name = full_name_parts[0] if full_name_parts else ''
+    last_name = ' '.join(full_name_parts[1:]) if len(full_name_parts) > 1 else ''
+    
+    story.append(Paragraph(f"""
+    <b>Nom :</b> {last_name}<br/>
+    <b>Prénom :</b> {first_name}<br/>
+    <b>Adresse :</b> {application.student.wilaya}, Algérie<br/>
+    <b>E-mail :</b> {application.student.user.email if application.student.user else 'Non renseigné'}<br/>
+    <b>INTITULÉ DE LA FORMATION :</b><br/>
+    <b>{application.student.major}</b> - {application.student.education_level}<br/>
+    (Année d'obtention: {application.student.graduation_year})
+    """, normal_style))
+    story.append(Spacer(1, 0.3*cm))
+    
+    
+    story.append(Paragraph("Article 4 : SUJET DE STAGE", heading_style))
+    
+    start_date = application.offer.start_date.strftime('%d/%m/%Y') if application.offer.start_date else "À déterminer"
+    
+    
+    end_date_str = "À déterminer"
+    if application.offer.start_date and application.offer.duration:
+        duration_parts = application.offer.duration.split()
+        if len(duration_parts) >= 2:
+            try:
+                duration_value = int(duration_parts[0])
+                if 'mois' in duration_parts[1].lower():
+                    end_date = application.offer.start_date + timedelta(days=duration_value * 30)
+                elif 'semaine' in duration_parts[1].lower():
+                    end_date = application.offer.start_date + timedelta(days=duration_value * 7)
+                else:
+                    end_date = application.offer.start_date + timedelta(days=duration_value)
+                end_date_str = end_date.strftime('%d/%m/%Y')
+            except:
+                end_date_str = "À déterminer"
+    
+    story.append(Paragraph(f"""
+    <b>Dates :</b> Du <b>{start_date}</b> Au <b>{end_date_str}</b><br/>
+    <b>Durée totale :</b> {application.offer.duration}<br/>
+    <b>Objectifs du stage :</b><br/>
+    {application.offer.description}<br/>
+    <b>Compétences requises :</b> {', '.join(application.offer.required_skills) if application.offer.required_skills else 'Non spécifiées'}
+    """, normal_style))
+    story.append(Spacer(1, 0.3*cm))
+    
+    
+    story.append(Paragraph("Article 5 : ENCADREMENT DU STAGIAIRE", heading_style))
+    
+    story.append(Paragraph("""
+    <b>Par l'établissement de formation :</b><br/>
+    Nom et prénom du formateur référent : Responsable pédagogique<br/>
+    Fonction : Coordinateur des stages
+    """, normal_style))
+    story.append(Spacer(1, 0.2*cm))
+    
+    story.append(Paragraph(f"""
+    <b>Par l'organisme d'accueil :</b><br/>
+    Nom et prénom du tuteur de stage : {company.user.username if company.user else 'Responsable'}<br/>
+    Fonction : {company.user.sub_role if company.user else 'Tuteur'}<br/>
+    E-mail : {company.user.email if company.user else 'Non renseigné'}
+    """, normal_style))
+    story.append(Spacer(1, 0.5*cm))
+    
+    
+    story.append(Paragraph("Article 6 : Signatures", heading_style))
+    story.append(Spacer(1, 0.5*cm))
+    
+    signature_data = [
+        ["", "", ""],
+        ["<b>L'Établissement de formation</b>", "<b>L'Organisme d'accueil</b>", "<b>Le Stagiaire</b>"],
+        ["", "", ""],
+        ["", "", ""],
+        ["Signature :", "Signature :", "Signature :"],
+        ["", "", ""],
+        ["Date :", "Date :", f"Date : {today}"],
+    ]
+    
+    signature_table = Table(signature_data, colWidths=[5*cm, 5*cm, 5*cm])
+    signature_table.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('FONTNAME', (0,1), (-1,1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 10),
+        ('TOPPADDING', (0,0), (-1,-1), 8),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+    ]))
+    story.append(signature_table)
+    
+   
+    story.append(Spacer(1, 1*cm))
+    story.append(Paragraph(f"""
+    <i>Convention de stage générée automatiquement le {today}<br/>
+    Conformément aux articles D124-1 à D124-13 du Code de l'éducation</i>
+    """, normal_style))
+    
+    
+    doc.build(story)
+    
+    pdf_content = ContentFile(buffer.getvalue())
+    pdf_content.name = f"convention_{application.student.full_name}_{application.offer.company.company_name}.pdf"
+    return pdf_content
+
+
+
+
+@api_view(['POST'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin', 'company'])
+def generate_convention_from_template(request, application_id):
+    """
+    Génère une convention de stage en utilisant le template fourni
+    avec les informations de l'étudiant, l'entreprise et l'université
+    """
+    try:
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'success': False, 'error': 'Candidature non trouvée'}, status=404)
+        
+        
+        user = request.user
+        if user.role == 'admin':
+            admin = Admin.objects(user=user).first()
+            if not admin:
+                return Response({'success': False, 'error': 'Profil admin non trouvé'}, status=404)
+            if application.student.university != admin.university:
+                return Response({'success': False, 'error': 'Non autorisé - Université différente'}, status=403)
+        elif user.role == 'company':
+            company = _get_user_company(user)
+            if not company:
+                return Response({'success': False, 'error': 'Profil entreprise non trouvé'}, status=404)
+            if str(application.offer.company.id) != str(company.id):
+                return Response({'success': False, 'error': 'Non autorisé - Cette candidature ne vous appartient pas'}, status=403)
+        else:
+            return Response({'success': False, 'error': 'Non autorisé - Rôle incorrect'}, status=403)
+        
+       
+        if application.status not in ['accepted_by_company', 'validated_by_co_dept']:
+            return Response({'success': False, 'error': f'Impossible de générer la convention - Statut actuel: {application.status}'}, status=400)
+        
+        
+        pdf_content = generate_convention_pdf_template(application)
+        
+       
+        pdf_data = pdf_content.read()
+        
+        
+        from django.core.files.base import ContentFile
+        application.convention_pdf = ContentFile(pdf_data, name=f"convention_{application.student.full_name}_{application.offer.company.company_name}.pdf")
+        if application.status == 'accepted_by_company':
+            application.status = 'validated_by_co_dept'
+        application.co_dept_validation_date = datetime.now()
+        application.co_dept_notes = f"Convention générée par {user.email} le {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        application.save()
+        
+        
+        response = HttpResponse(pdf_data, content_type='application/pdf')
+        response['Content-Disposition'] = 'inline; filename="convention.pdf"'
+        response['Content-Length'] = str(len(pdf_data))
+        response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+        return response
+        
+    except Exception as e:
+        print(f"❌ Erreur dans generate_convention_from_template: {str(e)}")
+        traceback.print_exc()
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+
+
+def generate_internship_agreement_pdf(application, admin_user):
+    """Génère une convention de stage pour le CO-DEPT HEAD ou Department Head"""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import cm
+    from reportlab.lib import colors
+    from django.core.files.base import ContentFile
+    from io import BytesIO
+    
+    buffer = BytesIO()
+    
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2.5*cm, bottomMargin=2.5*cm, leftMargin=2*cm, rightMargin=2*cm)
+    styles = getSampleStyleSheet()
+    
+    title_style = ParagraphStyle('CustomTitle', parent=styles['Title'], fontSize=18, alignment=1, spaceAfter=30, textColor=colors.HexColor('#2c3e50'))
+    heading_style = ParagraphStyle('CustomHeading', parent=styles['Heading2'], fontSize=12, alignment=0, spaceBefore=15, spaceAfter=8, textColor=colors.HexColor('#2980b9'))
+    normal_style = ParagraphStyle('CustomNormal', parent=styles['Normal'], fontSize=10, alignment=0, spaceAfter=6, leading=14)
+    
+    story = []
+    
+    today = datetime.now().strftime('%d/%m/%Y')
+    
+    story.append(Paragraph("REPUBLIQUE ALGERIENNE DEMOCRATIQUE ET POPULAIRE", title_style))
+    story.append(Paragraph("MINISTERE DE L'ENSEIGNEMENT SUPERIEUR ET DE LA RECHERCHE SCIENTIFIQUE", title_style))
+    story.append(Paragraph(f"<b>{application.student.university}</b>", title_style))
+    story.append(Spacer(1, 1*cm))
+    story.append(Paragraph("CONVENTION DE STAGE", title_style))
+    story.append(Spacer(1, 0.5*cm))
+    story.append(Paragraph(f"Fait à Alger, le {today}", normal_style))
+    story.append(Spacer(1, 0.5*cm))
+    
+    story.append(Paragraph("<b>Article 1 : Parties prenantes</b>", heading_style))
+    story.append(Paragraph(f"""
+    <b>L'Entreprise d'accueil :</b><br/>
+    {application.offer.company.company_name}<br/>
+    Située à : {application.offer.company.location}<br/>
+    """, normal_style))
+    story.append(Paragraph(f"""
+    <b>L'Étudiant stagiaire :</b><br/>
+    {application.student.full_name}<br/>
+    Étudiant à : {application.student.university}<br/>
+    Filière : {application.student.major}<br/>
+    Niveau : {application.student.education_level}<br/>
+    """, normal_style))
+    story.append(Paragraph(f"""
+    <b>L'Établissement d'enseignement :</b><br/>
+    {application.student.university}<br/>
+    Représentée par : {admin_user.full_name}<br/>
+    """, normal_style))
+    story.append(Spacer(1, 0.5*cm))
+    
+    story.append(Paragraph("<b>Article 2 : Objet du stage</b>", heading_style))
+    story.append(Paragraph(f"""
+    Le stage a pour objet de permettre à l'étudiant de mettre en pratique ses connaissances
+    dans le domaine de {application.offer.title}.
+    <br/><b>Description :</b> {application.offer.description}
+    """, normal_style))
+    story.append(Spacer(1, 0.5*cm))
+    
+    story.append(Paragraph("<b>Article 3 : Durée et période</b>", heading_style))
+    start_date = application.offer.start_date.strftime('%d/%m/%Y') if application.offer.start_date else "À déterminer"
+    story.append(Paragraph(f"""
+    La durée du stage est fixée à <b>{application.offer.duration}</b>.<br/>
+    Le stage débutera le <b>{start_date}</b>.
+    """, normal_style))
+    story.append(Spacer(1, 0.5*cm))
+    
+    story.append(Paragraph("<b>Article 4 : Compétences requises</b>", heading_style))
+    skills_text = ", ".join(application.offer.required_skills) if application.offer.required_skills else "Aucune"
+    story.append(Paragraph(f"Compétences : <b>{skills_text}</b>", normal_style))
+    story.append(Spacer(1, 0.5*cm))
+    
+    story.append(Paragraph("<b>Article 5 : Signatures</b>", heading_style))
+    story.append(Spacer(1, 0.5*cm))
+    
+    signature_data = [
+        ["", "", ""],
+        ["<b>L'Étudiant</b>", "<b>L'Entreprise</b>", "<b>L'Université</b>"],
+        [application.student.full_name, application.offer.company.company_name, admin_user.full_name],
+        ["", "", ""],
+        ["Signature :", "Signature :", "Signature :"],
+        ["", "", ""],
+        ["Date :", "Date :", f"Date : {today}"],
+    ]
+    
+    signature_table = Table(signature_data, colWidths=[5*cm, 5*cm, 5*cm])
+    signature_table.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('FONTNAME', (0,1), (-1,1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 10),
+        ('TOPPADDING', (0,0), (-1,-1), 8),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+    ]))
+    story.append(signature_table)
+    
+    story.append(Spacer(1, 1*cm))
+    story.append(Paragraph(f"<i>Convention générée automatiquement le {today}</i>", normal_style))
+    
+    doc.build(story)
+    
+    pdf_content = ContentFile(buffer.getvalue())
+    pdf_content.name = f"convention_{application.student.full_name}_{application.offer.company.company_name}_{today}.pdf"
+    return pdf_content

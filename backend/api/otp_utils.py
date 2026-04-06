@@ -1,4 +1,4 @@
-# api/otp_utils.py
+
 import secrets
 import random
 from datetime import datetime, timedelta
@@ -14,18 +14,18 @@ def create_otp_verification(email, temp_data):
     Crée une nouvelle vérification OTP
     Retourne le code généré
     """
-    # Supprimer les anciens OTP pour cet email
+    
     OTPVerification.objects(email=email).delete()
     
-    # Générer un code
+    
     code = generate_otp_code()
     
-    # Créer l'OTP
+    
     otp = OTPVerification(
         email=email,
         code=code,
         data=temp_data,
-        expires_at=datetime.now() + timedelta(minutes=15)  # Valide 15 minutes
+        expires_at=datetime.now() + timedelta(minutes=15)  
     )
     otp.save()
     
@@ -86,8 +86,8 @@ def send_otp_email(email, code, action="inscription"):
                 </div>
                 
                 <div class="warning">
-                    ⚠️ Ce code est valable pendant <strong>15 minutes</strong>.
-                    <br>⚠️ Après 3 tentatives infructueuses, le code sera invalidé.
+                     Ce code est valable pendant <strong>15 minutes</strong>.
+                    <br> Après 3 tentatives infructueuses, le code sera invalidé.
                 </div>
                 
                 <p>Si vous n'avez pas demandé cette action, ignorez cet email.</p>
@@ -123,7 +123,7 @@ def send_otp_email(email, code, action="inscription"):
 
 def verify_otp_code(email, code):
     """Vérifie si le code OTP est valide et retourne les données associées"""
-    # Compter les tentatives pour cet email
+    
     attempts_key = f"otp_attempts_{email}"
     attempts = getattr(verify_otp_code, attempts_key, 0)
     
@@ -134,14 +134,14 @@ def verify_otp_code(email, code):
         setattr(verify_otp_code, attempts_key, attempts)
         
         if attempts >= 3:
-            # Supprimer tous les OTP pour cet email après 3 tentatives
+            
             OTPVerification.objects(email=email).delete()
             return None, "Code invalide. Vous avez dépassé le nombre de tentatives autorisées (3). Veuillez demander un nouveau code."
         
         remaining = 3 - attempts
         return None, f"Code invalide. Il vous reste {remaining} tentative(s)."
     
-    # Réinitialiser les tentatives si code trouvé
+    
     setattr(verify_otp_code, attempts_key, 0)
     
     if not otp.is_valid():
@@ -150,7 +150,7 @@ def verify_otp_code(email, code):
     if otp.used:
         return None, "Ce code a déjà été utilisé. Veuillez demander un nouveau code."
     
-    # Marquer comme utilisé
+    
     otp.used = True
     otp.save()
     

@@ -11,8 +11,8 @@ import AdminDashboard from './page/AdminDashboard';
 import CoDeptHeadDashboard from './page/CoDeptHeadDashboard';
 import CompanyApplications from './page/CompanyApplications';
 import StudentApplications from './page/StudentApplications';
-// 1. IMPORT THE NEW COMPONENT
-import InternshipOfferManager from './page/InternshipOfferManager'; 
+import InternshipOfferManager from './page/InternshipOfferManager';
+import CoDeptValidations from './page/CoDeptValidations';  // NOUVEAU
 import './App.css';
 
 const ProtectedRoute = ({ children, allowedRoles, allowedSubRoles }) => {
@@ -64,13 +64,8 @@ function App() {
             </ProtectedRoute>
           } />
 
-          {/* 2. ADD THE NEW MANAGE OFFERS ROUTE */}
-          {/* Accessible by both types of company managers */}
           <Route path="/company/manage-offers" element={
-            <ProtectedRoute 
-              allowedRoles={['company']} 
-              allowedSubRoles={['hiring_manager', 'company_manager']}
-            >
+            <ProtectedRoute allowedRoles={['company']} allowedSubRoles={['hiring_manager', 'company_manager']}>
               <InternshipOfferManager />
             </ProtectedRoute>
           } />
@@ -87,16 +82,24 @@ function App() {
             </ProtectedRoute>
           } />
 
+          {/* NOUVELLE ROUTE POUR LES VALIDATIONS CO DEPT HEAD */}
+          <Route path="/co-dept-head/validations" element={
+            <ProtectedRoute allowedRoles={['admin']} allowedSubRoles={['co_dept_head']}>
+              <CoDeptValidations />
+            </ProtectedRoute>
+          } />
+
           <Route path="/company/applications" element={
-          <ProtectedRoute allowedRoles={['company']} allowedSubRoles={['hiring_manager', 'company_manager']}>
-         <CompanyApplications />
-         </ProtectedRoute>
-        } />
-        <Route path="/student/applications" element={
-  <ProtectedRoute allowedRoles={['student']}>
-    <StudentApplications />
-  </ProtectedRoute>
-} />
+            <ProtectedRoute allowedRoles={['company']} allowedSubRoles={['hiring_manager', 'company_manager']}>
+              <CompanyApplications />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/student/applications" element={
+            <ProtectedRoute allowedRoles={['student']}>
+              <StudentApplications />
+            </ProtectedRoute>
+          } />
           
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

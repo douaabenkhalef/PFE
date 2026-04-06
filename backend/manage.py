@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
@@ -8,20 +8,20 @@ def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
     
-    # Démarrer le status checker dans un thread séparé
+   
     if 'runserver' in sys.argv:
         try:
             from api.status_checker import start_status_checker
-            # Démarrer dans un thread séparé après le démarrage du serveur
+            
             def start_checker():
                 import time
-                time.sleep(3)  # Attendre que Django soit prêt
+                time.sleep(3)  
                 start_status_checker()
             
             checker_thread = threading.Thread(target=start_checker, daemon=True)
             checker_thread.start()
         except Exception as e:
-            print(f"⚠️ Impossible de démarrer le status checker: {e}")
+            print(f" Impossible de démarrer le status checker: {e}")
     
     try:
         from django.core.management import execute_from_command_line

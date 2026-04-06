@@ -1,4 +1,4 @@
-/* Import Google Fonts */
+
 @import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:ital,wght@0,400..900;1,400..900&family=Tilt+Warp&display=swap');
 
 * {
@@ -10,11 +10,11 @@ html, body {
   margin: 0;
   padding: 0;
   background: radial-gradient(circle at center, #23143d 0%, #050308 100%);
-  font-family: 'Schibsted Grotesk', sans-serif; /* default font */
+  font-family: 'Schibsted Grotesk', sans-serif; 
   color: white;
 }
 
-/* PAGE WRAPPER */
+
 .auth-page-wrapper {
   min-height: 100vh;
   width: 100%;
@@ -24,7 +24,7 @@ html, body {
   padding: 20px;
 }
 
-/* MAIN CARD */
+
 .main-container {
   position: relative;
   width: 100%;
@@ -56,7 +56,7 @@ html, body {
   pointer-events: none;
 }
 
-/* Sliding Panel */
+
 .sliding-panel {
   position: absolute;
   top: 0;
@@ -87,9 +87,9 @@ html, body {
   padding: 40px;
 }
 
-/* WELCOME TEXT */
+
 .welcome-text {
-  font-family: 'Tilt Warp', cursive; /* bold / decorative font */
+  font-family: 'Tilt Warp', cursive; 
   font-size: 3.2rem;
   font-weight: 800;
   letter-spacing: -1px;
@@ -97,9 +97,9 @@ html, body {
   line-height: 1.1;
 }
 
-/* DESCRIPTION TEXT */
+
 .sub-text {
-  font-family: 'Schibsted Grotesk', sans-serif; /* regular font */
+  font-family: 'Schibsted Grotesk', sans-serif; 
   font-size: 1rem;
   opacity: 0.9;
   line-height: 1.6;
@@ -109,7 +109,7 @@ html, body {
   margin: 0 auto;
 }
 
-/* FORM SECTION */
+
 .form-section {
   width: 50%;
   padding: 60px;
@@ -135,21 +135,21 @@ html, body {
 }
 
 .form-title {
-  font-family: 'Tilt Warp', cursive; /* bold / headings font */
+  font-family: 'Tilt Warp', cursive;
   font-size: 2rem;
   font-weight: 700;
   text-align: center;
   margin-bottom: 30px;
 }
 
-/* INPUT STACK */
+
 .input-stack {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-/* INPUT GROUP */
+
 .input-group {
   position: relative;
   border-bottom: 1px solid #374151;
@@ -165,7 +165,7 @@ html, body {
   color: white;
   font-size: 0.95rem;
   border: none;
-  font-family: 'Schibsted Grotesk', sans-serif; /* regular text */
+  font-family: 'Schibsted Grotesk', sans-serif; 
 }
 
 .input-group .icon {
@@ -177,7 +177,7 @@ html, body {
   border-bottom: 1px solid #a855f7;
 }
 
-/* BUTTON */
+
 .auth-btn {
   width: 100%;
   background-color: #9333ea;
@@ -190,7 +190,7 @@ html, body {
   border: none;
   color: white;
   cursor: pointer;
-  font-family: 'Schibsted Grotesk', sans-serif; /* regular */
+  font-family: 'Schibsted Grotesk', sans-serif; 
 }
 
 .auth-btn:hover {
@@ -198,13 +198,13 @@ html, body {
   transform: translateY(-1px);
 }
 
-/* LOGIN / SIGNUP LINK */
+
 .toggle-text {
   text-align: center;
   font-size: 0.85rem;
   color: #9ca3af;
   margin-top: 15px;
-  font-family: 'Schibsted Grotesk', sans-serif; /* regular */
+  font-family: 'Schibsted Grotesk', sans-serif;
 }
 
 .toggle-text span {
@@ -227,7 +227,7 @@ html, body {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.25s ease;
-  font-family: 'Schibsted Grotesk', sans-serif; /* regular */
+  font-family: 'Schibsted Grotesk', sans-serif; 
 }
 
 .panel-login-link:hover {
@@ -235,7 +235,7 @@ html, body {
   text-decoration: underline;
 }
 
-/* ROLE SELECTOR */
+
 .role-container {
   position: relative;
 }
@@ -278,7 +278,7 @@ html, body {
   background-color: #2d1b4d;
 }
 
-/* GRID */
+
 .grid {
   display: grid;
   gap: 16px;
@@ -288,7 +288,7 @@ html, body {
   grid-template-columns: repeat(2, 1fr);
 }
 
-/* SCROLLABLE FORM */
+
 .form-scrollable {
   max-height: 400px;
   overflow-y: auto;
