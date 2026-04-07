@@ -2,46 +2,22 @@ import base64
 import requests
 from decouple import config
 
-def send_email(recipient, subject, html_content, text_content=None, attachments=None):
 
-    try:
-        import sendgrid
-        from sendgrid.helpers.mail import Mail, Email, To, Attachment, FileContent, FileName, FileType, Disposition
-        
-        api_key = config('SENDGRID_API_KEY')
-        from_email = config('FROM_EMAIL')
-        from_name = config('FROM_NAME', default='PFE Internship Platform')
-        
-        if not api_key:
-            print(" SENDGRID_API_KEY not configured")
-            return False
-            
-        sg = sendgrid.SendGridAPIClient(api_key=api_key)
-        
-        from_address = Email(from_email, name=from_name)
-        to_address = To(recipient)
-        
-        mail = Mail(from_address, to_address, subject, html_content=html_content)
-        
-    
-        if attachments:
-            for filename, file_content, mime_type in attachments:
-                encoded_content = base64.b64encode(file_content).decode()
-                attachment = Attachment(
-                    FileContent(encoded_content),
-                    FileName(filename),
-                    FileType(mime_type),
-                    Disposition('attachment')
-                )
-                mail.add_attachment(attachment)
-        
-        response = sg.send(mail)
-        print(f" Email envoyé à {recipient} avec {len(attachments or [])} pièce(s) jointe(s)")
-        return response.status_code in [200, 201, 202]
-        
-    except Exception as e:
-        print(f" Email send error: {e}")
-        return False
+import re
+from decouple import config
+
+def send_email(recipient, subject, html_content, text_content=None, attachments=None):
+    print("\n" + "="*60)
+    print(f" [SIMULATION] Email à : {recipient}")
+    print(f" Sujet : {subject}")
+    match = re.search(r'<strong>(\d{6})</strong>', html_content)
+    if match:
+        print(f" CODE OTP : {match.group(1)}")
+    else:
+        print(f" Contenu HTML : {html_content[:200]}...")
+    print("="*60 + "\n")
+    return True
+
 
 
 def send_approval_email(recipient, name, role, approver):

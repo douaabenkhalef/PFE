@@ -965,7 +965,7 @@ export default function StudentDashboard() {
                     <div className="sd-intern-footer">
                       <Stars n={offer.rating ?? 4} />
                       <button className="sd-enroll-btn" onClick={() => setApplyOffer(offer)}>
-                        Enroll Now
+                        Apply Now
                       </button>
                     </div>
                   </div>

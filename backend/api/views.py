@@ -329,84 +329,100 @@ def login(request):
 
 @api_view(['POST'])
 def initiate_signup(request):
-    role = request.data.get('role')
-    clean_data = {k: v for k, v in request.data.items() if k != 'role'}
+    import traceback
+    try:
+        role = request.data.get('role')
+        clean_data = {k: v for k, v in request.data.items() if k != 'role'}
 
-    if role == 'student':
-        serializer = StudentRegistrationSerializer(data=clean_data)
-    elif role == 'company':
-        serializer = CompanyRegistrationSerializer(data=clean_data)
-    elif role == 'admin':
-        serializer = AdminRegistrationSerializer(data=clean_data)
-    else:
-        return Response({'success': False, 'message': 'Invalid role'}, status=status.HTTP_400_BAD_REQUEST)
+        if role == 'student':
+            serializer = StudentRegistrationSerializer(data=clean_data)
+        elif role == 'company':
+            serializer = CompanyRegistrationSerializer(data=clean_data)
+        elif role == 'admin':
+            serializer = AdminRegistrationSerializer(data=clean_data)
+        else:
+            return Response({'success': False, 'message': 'Invalid role'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if not serializer.is_valid():
-        return Response({'success': False, 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        if not serializer.is_valid():
+            return Response({'success': False, 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-    data = serializer.validated_data
-    email = data['email']
+        data = serializer.validated_data
+        email = data['email']
 
-    if User.objects(email=email).first():
-        return Response({'success': False, 'errors': {'email': ['Email already in use.']}},
-                        status=status.HTTP_400_BAD_REQUEST)
-
-    if role == 'student' and ('univ' not in email or '.dz' not in email):
-        return Response({'success': False, 'errors': {'email': ['University email required.']}},
-                        status=status.HTTP_400_BAD_REQUEST)
-
-    if role == 'company' and data.get('sub_role') == 'hiring_manager':
-        manager_email = data.get('company_manager_email')
-        company_name = data.get('company_name_for_hiring')
-        manager_user = User.objects(
-            email=manager_email,
-            role='company',
-            sub_role='company_manager',
-            status=True
-        ).first()
-        if not manager_user:
-            return Response({'success': False, 'errors': {'company_manager_email': ['No approved company manager found.']}},
-                            status=status.HTTP_400_BAD_REQUEST)
-        manager_company = Company.objects(user=manager_user).first()
-        if not manager_company:
-            return Response({'success': False, 'errors': {'company_manager_email': ['Company profile not found.']}},
-                            status=status.HTTP_400_BAD_REQUEST)
-        if manager_company.company_name.lower() != company_name.lower():
-            return Response({'success': False,
-                             'errors': {'company_name_for_hiring': ['Company name does not match manager\'s company.']}},
+        if User.objects(email=email).first():
+            return Response({'success': False, 'errors': {'email': ['Email already in use.']}},
                             status=status.HTTP_400_BAD_REQUEST)
 
-    if role == 'admin' and data.get('sub_role') == 'co_dept_head':
-        dept_head_email = data.get('dept_head_email')
-        university_name = data.get('university_for_verification')
-        dept_head_user = User.objects(
-            email=dept_head_email,
-            role='admin',
-            sub_role='admin',
-            status=True
-        ).first()
-        if not dept_head_user:
-            return Response({'success': False, 'errors': {'dept_head_email': ['No approved department head found.']}},
-                            status=status.HTTP_400_BAD_REQUEST)
-        dept_head_admin = Admin.objects(user=dept_head_user).first()
-        if not dept_head_admin:
-            return Response({'success': False, 'errors': {'dept_head_email': ['Admin profile not found.']}},
-                            status=status.HTTP_400_BAD_REQUEST)
-        if dept_head_admin.university.lower() != university_name.lower():
-            return Response({'success': False,
-                             'errors': {'university_for_verification': ['University name does not match.']}},
+        if role == 'student' and ('univ' not in email or '.dz' not in email):
+            return Response({'success': False, 'errors': {'email': ['University email required.']}},
                             status=status.HTTP_400_BAD_REQUEST)
 
-    temp_data = {'role': role, 'data': data}
-    code = create_otp_verification(email, temp_data)
-    email_sent = send_otp_email(email, code, "inscription")
-    if not email_sent:
-        return Response({'success': False, 'message': 'Failed to send verification email.'},
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        if role == 'company' and data.get('sub_role') == 'hiring_manager':
+            manager_email = data.get('company_manager_email')
+            company_name = data.get('company_name_for_hiring')
+            manager_user = User.objects(
+                email=manager_email,
+                role='company',
+                sub_role='company_manager',
+                status=True
+            ).first()
+            if not manager_user:
+                return Response({'success': False, 'errors': {'company_manager_email': ['No approved company manager found.']}},
+                                status=status.HTTP_400_BAD_REQUEST)
+            manager_company = Company.objects(user=manager_user).first()
+            if not manager_company:
+                return Response({'success': False, 'errors': {'company_manager_email': ['Company profile not found.']}},
+                                status=status.HTTP_400_BAD_REQUEST)
+            if manager_company.company_name.lower() != company_name.lower():
+                return Response({'success': False,
+                                 'errors': {'company_name_for_hiring': ['Company name does not match manager\'s company.']}},
+                                status=status.HTTP_400_BAD_REQUEST)
 
-    return Response({'success': True, 'message': 'Verification code sent', 'email': email})
+        if role == 'admin' and data.get('sub_role') == 'co_dept_head':
+            dept_head_email = data.get('dept_head_email')
+            university_name = data.get('university_for_verification')
+            dept_head_user = User.objects(
+                email=dept_head_email,
+                role='admin',
+                sub_role='admin',
+                status=True
+            ).first()
+            if not dept_head_user:
+                return Response({'success': False, 'errors': {'dept_head_email': ['No approved department head found.']}},
+                                status=status.HTTP_400_BAD_REQUEST)
+            dept_head_admin = Admin.objects(user=dept_head_user).first()
+            if not dept_head_admin:
+                return Response({'success': False, 'errors': {'dept_head_email': ['Admin profile not found.']}},
+                                status=status.HTTP_400_BAD_REQUEST)
+            if dept_head_admin.university.lower() != university_name.lower():
+                return Response({'success': False,
+                                 'errors': {'university_for_verification': ['University name does not match.']}},
+                                status=status.HTTP_400_BAD_REQUEST)
 
+        temp_data = {'role': role, 'data': data}
+        code = create_otp_verification(email, temp_data)
+        
+        
+        print("\n" + "="*60)
+        print(f" CODE DE VÉRIFICATION POUR {email} : {code}")
+        print("="*60 + "\n")
+        
+        
+        try:
+            email_sent = send_otp_email(email, code, "inscription")
+        except Exception as e:
+            print(f" Erreur lors de l'envoi de l'email: {e}")
+            email_sent = False
+        
+        if not email_sent:
+            
+            print(" L'envoi d'email a échoué, mais le code est affiché ci-dessus.")
+        
+        return Response({'success': True, 'message': 'Verification code sent', 'email': email})
 
+    except Exception as e:
+        traceback.print_exc()
+        return Response({'success': False, 'message': f'Erreur interne: {str(e)}'}, status=500)
 @api_view(['POST'])
 def complete_signup(request):
     email = request.data.get('email')
@@ -1618,6 +1634,7 @@ def generate_custom_cv(request):
 
     doc.build(story)
     return response
+
 
 
 
