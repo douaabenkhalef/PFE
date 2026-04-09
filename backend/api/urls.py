@@ -82,5 +82,19 @@ path('dept-head/reject-application/<str:application_id>/', views.dept_head_rejec
 path('dept-head/download-convention/<str:application_id>/', views.dept_head_download_convention, name='dept-head-download-convention'),
 
 path('generate-convention/<str:application_id>/', views.generate_convention_from_template, name='generate-convention'),
+path('activity-logs/company/', views.get_company_activity_logs, name='company-activity-logs'),
+    path('activity-logs/dept-head/', views.get_dept_head_activity_logs, name='dept-head-activity-logs'),
+     path('auth/check-user/', views.check_user_exists, name='check-user'),
+     # Permission Management - Hiring Managers
+    path('company/hiring-managers/', views.get_hiring_managers_list, name='hiring-managers-list'),
+    path('company/hiring-managers/<str:user_id>/permissions/', views.update_hiring_manager_permissions, name='update-hm-permissions'),
+    path('company/hiring-managers/<str:user_id>/delete/', views.delete_hiring_manager, name='delete-hiring-manager'),
+    
+    # Permission Management - Co Dept Heads
+    path('admin/co-dept-heads/', views.get_co_dept_heads_list, name='co-dept-heads-list'),
+    path('admin/co-dept-heads/<str:user_id>/permissions/', views.update_co_dept_head_permissions, name='update-cdh-permissions'),
+    path('admin/co-dept-heads/<str:user_id>/delete/', views.delete_co_dept_head, name='delete-co-dept-head'),
+    path('company/approved-hiring-managers/', views.get_approved_hiring_managers, name='approved-hiring-managers'),
+    path('admin/approved-co-dept-heads/', views.get_approved_co_dept_heads, name='approved-co-dept-heads'),
 
 ]

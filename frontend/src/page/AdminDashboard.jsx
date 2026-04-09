@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { 
   CheckCircle, XCircle, Clock, Mail, User, Shield, 
   GraduationCap, FileText, Eye, Check, X, Loader2,
-  Building2, MapPin, Calendar, Code, BookOpen, Award, Github, Globe
+  Building2, MapPin, Calendar, Code, BookOpen, Award, Github, Globe,
+  BarChart3, Users
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -351,7 +352,7 @@ const AdminDashboard = () => {
       const data = await response.json();
       if (data.success) {
         setPendingValidations(data.applications || []);
-        console.log(" Conventions en attente:", data.applications.length);
+        console.log("Conventions en attente:", data.applications.length);
       } else {
         console.error("Erreur:", data.error);
       }
@@ -392,8 +393,18 @@ const AdminDashboard = () => {
       });
       const data = await response.json();
       if (data.success) {
-        toast.success(`Co Department Head ${headName} a été refusé`);
+        toast.success(`Co Department Head ${headName} a été refusé et supprimé de la base de données`);
         fetchPendingCoDeptHeads();
+        
+        // Vérifier si l'utilisateur actuel est celui qui vient d'être supprimé
+        const currentUserEmail = localStorage.getItem('user_email');
+        if (data.deleted && currentUserEmail === headName) {
+          toast.info("Votre compte a été supprimé. Vous allez être déconnecté.");
+          setTimeout(() => {
+            logout();
+            navigate("/login");
+          }, 2000);
+        }
       } else {
         toast.error(data.message || "Erreur lors du refus");
       }
@@ -482,6 +493,24 @@ const AdminDashboard = () => {
               <h1 className="text-2xl font-bold text-white">Department Head Dashboard</h1>
             </div>
             <div className="flex items-center gap-4">
+              {/* Bouton Contrôle d'Activité */}
+              <Link
+                to="/admin/activity-logs"
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition shadow-lg flex items-center gap-2"
+              >
+                <BarChart3 size={16} />
+                Contrôle d'Activité
+              </Link>
+
+              {/* Bouton Gérer Co Dept Heads */}
+              <Link
+                to="/admin/manage-co-dept-heads"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-semibold transition shadow-lg flex items-center gap-2"
+              >
+                <Users size={16} />
+                Gérer Co Dept Heads
+              </Link>
+
               <span className="text-white/80">{user?.full_name || user?.email}</span>
               <span className="text-white/60 text-sm bg-white/10 px-3 py-1 rounded-full">{user?.university || "Université"}</span>
               <button onClick={handleLogout} className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-lg transition">Logout</button>
@@ -529,6 +558,7 @@ const AdminDashboard = () => {
             <div className="mb-8">
               <h2 className="text-3xl font-bold text-white mb-2">Co Department Heads en attente</h2>
               <p className="text-white/60">Approuvez ou refusez les demandes d'inscription des Co Department Heads</p>
+              <p className="text-red-400/60 text-sm mt-1">⚠️ Attention : Un refus supprimera définitivement le compte du Co Department Head.</p>
             </div>
 
             {pendingCoDeptHeads.length === 0 ? (
@@ -566,10 +596,18 @@ const AdminDashboard = () => {
                       )}
                     </div>
                     <div className="flex gap-3 mt-4">
-                      <button onClick={() => handleApproveCoDept(head.id, head.username)} disabled={processing} className="flex-1 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg transition flex items-center justify-center gap-2">
+                      <button 
+                        onClick={() => handleApproveCoDept(head.id, head.username)} 
+                        disabled={processing} 
+                        className="flex-1 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
                         <CheckCircle className="w-4 h-4" /> Approuver
                       </button>
-                      <button onClick={() => handleRejectCoDept(head.id, head.username)} disabled={processing} className="flex-1 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition flex items-center justify-center gap-2">
+                      <button 
+                        onClick={() => handleRejectCoDept(head.id, head.username)} 
+                        disabled={processing} 
+                        className="flex-1 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
                         <XCircle className="w-4 h-4" /> Refuser
                       </button>
                     </div>

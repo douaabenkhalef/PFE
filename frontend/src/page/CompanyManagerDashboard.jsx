@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
-import { CheckCircle, XCircle, Clock, Mail, User, Briefcase, Bell, CheckCheck, X, FileText } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Mail, User, Briefcase, Bell, CheckCheck, X, FileText, Activity, Users, Settings } from "lucide-react";
 import toast from "react-hot-toast";
 
 const API = "http://localhost:8000/api";
@@ -237,7 +237,7 @@ const CompanyManagerDashboard = () => {
       });
       const data = await res.json();
       if (data.success) {
-        showMsg("success", `${managerName} has been rejected.`);
+        showMsg("success", `${managerName} has been rejected and deleted.`);
         fetchPendingHiringManagers();
       } else {
         showMsg("error", data.message || "Rejection failed.");
@@ -266,6 +266,173 @@ const CompanyManagerDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 to-indigo-900">
+      <style>
+        {`
+          .sd-notif-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: -80px;
+            width: 360px;
+            max-width: calc(100vw - 20px);
+            background: linear-gradient(145deg, #1a0840, #0e0c27);
+            border: 1px solid rgba(141,35,212,0.40);
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.60);
+            z-index: 2000;
+            overflow: hidden;
+          }
+          .sd-notif-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #fff;
+          }
+          .sd-notif-unread-badge {
+            background: linear-gradient(135deg, #F75AFA, #8E2FFB);
+            border-radius: 20px;
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: white;
+          }
+          .sd-notif-clear {
+            background: transparent;
+            border: none;
+            color: rgba(247,90,250,0.80);
+            font-size: 0.72rem;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            transition: color 0.2s;
+          }
+          .sd-notif-clear:hover {
+            color: #F75AFA;
+          }
+          .sd-notif-list {
+            max-height: 400px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+          }
+          .sd-notif-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            transition: background 0.2s;
+            position: relative;
+          }
+          .sd-notif-item:hover {
+            background: rgba(255,255,255,0.04);
+          }
+          .sd-notif-item.unread {
+            background: rgba(141,35,212,0.08);
+          }
+          .sd-notif-icon {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .sd-notif-body {
+            flex: 1;
+            min-width: 0;
+          }
+          .sd-notif-body p {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.88);
+            line-height: 1.45;
+            margin-bottom: 4px;
+            word-break: break-word;
+          }
+          .sd-notif-time {
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.35);
+            display: block;
+          }
+          .sd-notif-unread-dot {
+            position: absolute;
+            top: 50%;
+            right: 12px;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            background: #F75AFA;
+            border-radius: 50%;
+            box-shadow: 0 0 6px rgba(247,90,250,0.6);
+          }
+          .sd-notif-mark-read {
+            position: absolute;
+            top: 50%;
+            right: 12px;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 6px;
+            padding: 4px;
+            cursor: pointer;
+            color: rgba(255,255,255,0.6);
+            transition: all 0.2s;
+          }
+          .sd-notif-mark-read:hover {
+            background: rgba(247,90,250,0.2);
+            color: #F75AFA;
+          }
+          .sd-notif-empty {
+            text-align: center;
+            padding: 32px 20px;
+          }
+          .sd-notif-empty p {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 4px;
+          }
+          .sd-notif-footer {
+            padding: 10px 18px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            text-align: center;
+          }
+          .sd-notif-footer button {
+            background: transparent;
+            border: none;
+            color: rgba(247,90,250,0.75);
+            font-size: 0.78rem;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            transition: color 0.2s;
+          }
+          .sd-notif-footer button:hover {
+            color: #F75AFA;
+          }
+          .sd-badge-count {
+            position: absolute;
+            top: -4px;
+            right: -6px;
+            min-width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, #F75AFA, #8E2FFB);
+            border-radius: 50px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            pointer-events: none;
+          }
+          .sd-notif-wrapper {
+            position: relative;
+          }
+        `}
+      </style>
+
       <nav className="bg-white/10 backdrop-blur-lg border-b border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -287,8 +454,26 @@ const CompanyManagerDashboard = () => {
                 Applications
               </Link>
 
-            
-              <div className="relative" ref={notifRef}>
+              {/* Bouton Contrôle d'Activité */}
+              <Link
+                to="/company-manager/activity-logs"
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition shadow-lg flex items-center gap-2"
+              >
+                <Activity size={16} />
+                Contrôle d'Activité
+              </Link>
+
+              {/* Bouton Gérer Hiring Managers */}
+              <Link
+                to="/company-manager/manage-hiring-managers"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-semibold transition shadow-lg flex items-center gap-2"
+              >
+                <Users size={16} />
+                Gérer Hiring Managers
+              </Link>
+
+              {/* Notification Bell */}
+              <div className="sd-notif-wrapper" ref={notifRef}>
                 <button
                   className="relative p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"
                   onClick={() => setNotifOpen(!notifOpen)}
@@ -296,7 +481,7 @@ const CompanyManagerDashboard = () => {
                 >
                   <Bell className="w-5 h-5 text-white" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    <span className="sd-badge-count">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}

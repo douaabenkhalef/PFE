@@ -12,8 +12,12 @@ import CoDeptHeadDashboard from './page/CoDeptHeadDashboard';
 import CompanyApplications from './page/CompanyApplications';
 import StudentApplications from './page/StudentApplications';
 import InternshipOfferManager from './page/InternshipOfferManager';
-import CoDeptValidations from './page/CoDeptValidations';  // NOUVEAU
+import CoDeptValidations from './page/CoDeptValidations';  
 import './App.css';
+import CompanyActivityLogs from './page/CompanyActivityLogs';
+import DeptHeadActivityLogs from './page/DeptHeadActivityLogs';
+import ManageHiringManagers from './page/ManageHiringManagers';
+import ManageCoDeptHeads from './page/ManageCoDeptHeads';
 
 const ProtectedRoute = ({ children, allowedRoles, allowedSubRoles }) => {
   const { isAuthenticated, user, loading } = useAuth();
@@ -57,7 +61,17 @@ function App() {
               <CompanyDashboard />
             </ProtectedRoute>
           } />
-          
+          <Route path="/company-manager/manage-hiring-managers" element={
+  <ProtectedRoute allowedRoles={['company']} allowedSubRoles={['company_manager']}>
+    <ManageHiringManagers />
+  </ProtectedRoute>
+} />
+
+<Route path="/admin/manage-co-dept-heads" element={
+  <ProtectedRoute allowedRoles={['admin']} allowedSubRoles={['admin']}>
+    <ManageCoDeptHeads />
+  </ProtectedRoute>
+} />
           <Route path="/company-manager/dashboard" element={
             <ProtectedRoute allowedRoles={['company']} allowedSubRoles={['company_manager']}>
               <CompanyManagerDashboard />
@@ -100,7 +114,17 @@ function App() {
               <StudentApplications />
             </ProtectedRoute>
           } />
-          
+          <Route path="/company-manager/activity-logs" element={
+  <ProtectedRoute allowedRoles={['company']} allowedSubRoles={['company_manager']}>
+    <CompanyActivityLogs />
+  </ProtectedRoute>
+} />
+
+<Route path="/admin/activity-logs" element={
+  <ProtectedRoute allowedRoles={['admin']} allowedSubRoles={['admin']}>
+    <DeptHeadActivityLogs />
+  </ProtectedRoute>
+} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

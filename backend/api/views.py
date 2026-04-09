@@ -1,4 +1,3 @@
-
 from rest_framework import status
 from django.utils import timezone
 from rest_framework.decorators import api_view, parser_classes
@@ -9,7 +8,7 @@ from datetime import datetime, timedelta
 import traceback
 from django.conf import settings
 import os
-
+from .permissions_utils import get_user_permissions, update_user_permissions
 
 from reportlab.lib.pagesizes import A4, letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
@@ -22,7 +21,7 @@ from django.core.files.base import ContentFile
 
 from .models import (
     User, Student, Company, Admin, InternshipOffer, Application, 
-    OTPVerification, PendingApproval, Notification
+    OTPVerification, PendingApproval, Notification, ActivityLog
 )
 from .serializers import (
     StudentRegistrationSerializer,
@@ -41,6 +40,7 @@ from .email_utils import (
     send_convention_validated_email, send_convention_rejected_email
 )
 from .decorators import jwt_authenticated, role_required
+from .activity_logger import log_activity
 
 
 
@@ -423,6 +423,8 @@ def initiate_signup(request):
     except Exception as e:
         traceback.print_exc()
         return Response({'success': False, 'message': f'Erreur interne: {str(e)}'}, status=500)
+
+
 @api_view(['POST'])
 def complete_signup(request):
     email = request.data.get('email')
@@ -925,6 +927,20 @@ def create_offer(request):
     )
     offer.save()
 
+    # LOG ACTIVITY - Create Offer
+    log_activity(
+        user=request.user,
+        action_type='create_offer',
+        target_type='offer',
+        target_id=str(offer.id),
+        target_name=offer.title,
+        details={
+            'wilaya': offer.wilaya,
+            'internship_type': offer.internship_type,
+            'duration': offer.duration
+        }
+    )
+
     return Response({
         'success': True,
         'message': 'Internship offer created successfully.',
@@ -1024,6 +1040,17 @@ def update_offer(request, offer_id):
             return Response({'success': False, 'message': 'An offer with this title already exists.'}, status=400)
 
     offer.save()
+
+    # LOG ACTIVITY - Update Offer
+    log_activity(
+        user=request.user,
+        action_type='update_offer',
+        target_type='offer',
+        target_id=str(offer.id),
+        target_name=offer.title,
+        details={'updated_fields': list(request.data.keys())}
+    )
+
     return Response({'success': True, 'message': 'Offer updated successfully.'})
 
 
@@ -1045,6 +1072,16 @@ def delete_offer(request, offer_id):
 
     title = offer.title
     offer.delete()
+
+    # LOG ACTIVITY - Delete Offer
+    log_activity(
+        user=request.user,
+        action_type='delete_offer',
+        target_type='offer',
+        target_id=offer_id,
+        target_name=title
+    )
+
     return Response({'success': True, 'message': f'Offer "{title}" deleted successfully.'})
 
 
@@ -1088,6 +1125,17 @@ def approve_hiring_manager(request, user_id):
 
     hiring_user.status = True
     hiring_user.save()
+    
+    # LOG ACTIVITY - Approve Hiring Manager
+    log_activity(
+        user=request.user,
+        action_type='approve_hiring_manager',
+        target_type='user',
+        target_id=str(hiring_user.id),
+        target_name=hiring_user.username,
+        details={'company_name': company.company_name}
+    )
+    
     send_approval_email(hiring_user.email, hiring_user.username, "Hiring Manager", request.user.username)
     return Response({'success': True, 'message': f'Hiring manager {hiring_user.username} approved.'})
 
@@ -1104,11 +1152,32 @@ def reject_hiring_manager(request, user_id):
     if not hiring_user.pending_company_id or hiring_user.pending_company_id != str(company.id):
         return Response({'error': 'Unauthorized', 'success': False}, status=403)
 
-    hiring_user.rejected = True
-    hiring_user.save()
-    return Response({'success': True, 'message': f'Hiring manager {hiring_user.username} rejected.'})
-
-
+    # Récupérer l'email avant suppression
+    hiring_user_email = hiring_user.email
+    hiring_user_username = hiring_user.username
+    
+    # Supprimer l'utilisateur
+    hiring_user.delete()
+    
+    # LOG ACTIVITY - Reject Hiring Manager
+    log_activity(
+        user=request.user,
+        action_type='reject_hiring_manager',
+        target_type='user',
+        target_id=user_id,
+        target_name=hiring_user_username,
+        details={
+            'company_name': company.company_name,
+            'deleted': True,
+            'email': hiring_user_email
+        }
+    )
+    
+    return Response({
+        'success': True, 
+        'message': f'Hiring manager {hiring_user_username} a été supprimé.',
+        'deleted': True
+    })
 
 
 @api_view(['GET'])
@@ -1209,6 +1278,16 @@ def approve_co_dept_head(request, user_id):
         Admin(user=co_dept, full_name=co_dept.username, wilaya=dept_head_admin.wilaya,
               university=dept_head_admin.university).save()
 
+    # LOG ACTIVITY - Approve Co Dept Head
+    log_activity(
+        user=request.user,
+        action_type='approve_co_dept_head',
+        target_type='user',
+        target_id=str(co_dept.id),
+        target_name=co_dept.username,
+        details={'university': dept_head_admin.university}
+    )
+
     send_approval_email(co_dept.email, co_dept.username, "Co Department Head", request.user.username)
     return Response({'success': True, 'message': f'Co Department Head {co_dept.username} approved.'})
 
@@ -1225,9 +1304,37 @@ def reject_co_dept_head(request, user_id):
     if not dept_head_admin or not co_dept.pending_admin_id or co_dept.pending_admin_id != str(dept_head_admin.id):
         return Response({'error': 'Unauthorized', 'success': False}, status=403)
 
-    co_dept.rejected = True
-    co_dept.save()
-    return Response({'success': True, 'message': f'Co Department Head {co_dept.username} rejected.'})
+    # Récupérer l'email avant suppression
+    co_dept_email = co_dept.email
+    co_dept_username = co_dept.username
+    
+    # Supprimer le profil Admin associé s'il existe
+    admin_profile = Admin.objects(user=co_dept).first()
+    if admin_profile:
+        admin_profile.delete()
+    
+    # Supprimer l'utilisateur
+    co_dept.delete()
+    
+    # LOG ACTIVITY - Reject Co Dept Head
+    log_activity(
+        user=request.user,
+        action_type='reject_co_dept_head',
+        target_type='user',
+        target_id=user_id,
+        target_name=co_dept_username,
+        details={
+            'university': dept_head_admin.university,
+            'deleted': True,
+            'email': co_dept_email
+        }
+    )
+    
+    return Response({
+        'success': True, 
+        'message': f'Co Department Head {co_dept_username} a été supprimé.',
+        'deleted': True
+    })
 
 
 @api_view(['GET'])
@@ -1373,10 +1480,38 @@ def respond_to_application(request, application_id):
                 return Response({'error': 'A rejection reason is required.'}, status=400)
             app.company_notes = reason
             app.status = 'rejected_by_company'
+            
+            # LOG ACTIVITY - Reject Application
+            log_activity(
+                user=request.user,
+                action_type='reject_application',
+                target_type='application',
+                target_id=str(app.id),
+                target_name=f"{app.student.full_name} - {app.offer.title}",
+                details={
+                    'offer_title': app.offer.title,
+                    'student_name': app.student.full_name,
+                    'reason': reason
+                }
+            )
         else:
             app.company_notes = request.data.get('notes', '')
             app.status = 'accepted_by_company'
             app.company_response_date = datetime.now()
+            
+            # LOG ACTIVITY - Accept Application
+            log_activity(
+                user=request.user,
+                action_type='accept_application',
+                target_type='application',
+                target_id=str(app.id),
+                target_name=f"{app.student.full_name} - {app.offer.title}",
+                details={
+                    'offer_title': app.offer.title,
+                    'student_name': app.student.full_name,
+                    'company_name': company.company_name
+                }
+            )
 
         app.save()
 
@@ -1940,6 +2075,29 @@ def co_dept_validate_application(request, application_id):
         application.co_dept_id = str(co_dept.id)
         application.save()
         
+        # LOG ACTIVITY - Validate Convention
+        log_activity(
+            user=request.user,
+            action_type='validate_convention',
+            target_type='convention',
+            target_id=str(application.id),
+            target_name=f"{application.student.full_name} - {application.offer.title}",
+            details={
+                'student_name': application.student.full_name,
+                'offer_title': application.offer.title,
+                'company_name': application.offer.company.company_name
+            }
+        )
+        
+        # LOG ACTIVITY - Generate Convention (implicitly done)
+        log_activity(
+            user=request.user,
+            action_type='generate_convention',
+            target_type='convention',
+            target_id=str(application.id),
+            target_name=f"{application.student.full_name} - {application.offer.title}"
+        )
+        
         send_convention_validated_email(application, co_dept)
         
         Notification.objects.create(
@@ -1992,6 +2150,20 @@ def co_dept_reject_application(request, application_id):
         application.co_dept_validation_date = datetime.now()
         application.co_dept_id = str(co_dept.id)
         application.save()
+        
+        # LOG ACTIVITY - Reject Convention
+        log_activity(
+            user=request.user,
+            action_type='reject_convention',
+            target_type='convention',
+            target_id=str(application.id),
+            target_name=f"{application.student.full_name} - {application.offer.title}",
+            details={
+                'reason': rejection_reason,
+                'student_name': application.student.full_name,
+                'offer_title': application.offer.title
+            }
+        )
         
         send_convention_rejected_email(application, co_dept, rejection_reason)
         
@@ -2170,6 +2342,21 @@ def dept_head_validate_application(request, application_id):
         application.co_dept_id = str(dept_head.id)
         application.save()
         
+        # LOG ACTIVITY - Validate Convention (Dept Head validating Co Dept Head's work)
+        log_activity(
+            user=request.user,
+            action_type='validate_convention',
+            target_type='convention',
+            target_id=str(application.id),
+            target_name=f"{application.student.full_name} - {application.offer.title}",
+            details={
+                'student_name': application.student.full_name,
+                'offer_title': application.offer.title,
+                'company_name': application.offer.company.company_name,
+                'validated_by': 'dept_head'
+            }
+        )
+        
         send_convention_validated_email(application, dept_head)
         
         Notification.objects.create(
@@ -2223,6 +2410,21 @@ def dept_head_reject_application(request, application_id):
         application.co_dept_id = str(dept_head.id)
         application.save()
         
+        # LOG ACTIVITY - Reject Convention (Dept Head)
+        log_activity(
+            user=request.user,
+            action_type='reject_convention',
+            target_type='convention',
+            target_id=str(application.id),
+            target_name=f"{application.student.full_name} - {application.offer.title}",
+            details={
+                'reason': rejection_reason,
+                'student_name': application.student.full_name,
+                'offer_title': application.offer.title,
+                'rejected_by': 'dept_head'
+            }
+        )
+        
         send_convention_rejected_email(application, dept_head, rejection_reason)
         
         Notification.objects.create(
@@ -2266,9 +2468,226 @@ def dept_head_download_convention(request, application_id):
         return Response({'error': str(e)}, status=500)
 
 
+# ==================== ACTIVITY LOGS ENDPOINTS ====================
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['company'], allowed_sub_roles=['company_manager'])
+def get_company_activity_logs(request):
+    """
+    Company Manager consulte l'activité des Hiring Managers de son entreprise
+    """
+    try:
+        company = Company.objects(user=request.user).first()
+        if not company:
+            return Response({'success': False, 'error': 'Company not found'}, status=404)
+        
+        # Récupérer tous les hiring managers de cette entreprise
+        hiring_managers = User.objects(
+            role='company',
+            sub_role='hiring_manager',
+            status=True,
+            pending_company_id=str(company.id)
+        )
+        hiring_manager_ids = [str(hm.id) for hm in hiring_managers]
+        
+        # Ajouter le company manager lui-même
+        hiring_manager_ids.append(str(request.user.id))
+        
+        # Récupérer les logs des actions des hiring managers
+        logs = ActivityLog.objects(
+            user_id__in=hiring_manager_ids,
+            action_type__in=[
+                'create_offer', 'update_offer', 'delete_offer',
+                'accept_application', 'reject_application',
+                'approve_hiring_manager', 'reject_hiring_manager'
+            ]
+        ).order_by('-created_at')
+        
+        # Filtrer par date si spécifié
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        action_type = request.query_params.get('action_type')
+        
+        if start_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
+                logs = logs.filter(created_at__gte=start_date_obj)
+            except:
+                pass
+        if end_date:
+            try:
+                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+                logs = logs.filter(created_at__lte=end_date_obj)
+            except:
+                pass
+        if action_type:
+            logs = logs.filter(action_type=action_type)
+        
+        # Formatage des logs
+        result = []
+        for log in logs:
+            result.append({
+                'id': str(log.id),
+                'user_email': log.user_email,
+                'user_name': log.user_email.split('@')[0],
+                'action_type': log.action_type,
+                'action_label': {
+                    'create_offer': 'Création d\'offre',
+                    'update_offer': 'Modification d\'offre',
+                    'delete_offer': 'Suppression d\'offre',
+                    'accept_application': 'Acceptation de candidature',
+                    'reject_application': 'Refus de candidature',
+                    'approve_hiring_manager': 'Approbation Hiring Manager',
+                    'reject_hiring_manager': 'Refus Hiring Manager'
+                }.get(log.action_type, log.action_type),
+                'target_type': log.target_type,
+                'target_name': log.target_name,
+                'details': log.details,
+                'created_at': log.created_at.strftime('%d/%m/%Y %H:%M:%S'),
+                'status': log.status
+            })
+        
+        # Statistiques
+        stats = {
+            'total_actions': logs.count(),
+            'by_type': {},
+            'last_7_days': logs.filter(created_at__gte=datetime.now() - timedelta(days=7)).count(),
+            'top_actors': {}
+        }
+        
+        # Compter par type d'action
+        for log in logs:
+            action = log.action_type
+            stats['by_type'][action] = stats['by_type'].get(action, 0) + 1
+        
+        return Response({
+            'success': True,
+            'logs': result,
+            'stats': stats,
+            'count': len(result)
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin'])
+def get_dept_head_activity_logs(request):
+    """
+    Department Head consulte l'activité des Co Dept Heads de son université
+    """
+    try:
+        dept_head = Admin.objects(user=request.user).first()
+        if not dept_head:
+            return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
+        
+        # Récupérer tous les co dept heads de cette université
+        co_dept_heads = User.objects(
+            role='admin',
+            sub_role='co_dept_head',
+            status=True,
+            pending_admin_id=str(request.user.id)
+        )
+        co_dept_ids = [str(cd.id) for cd in co_dept_heads]
+        
+        # Ajouter le dept head lui-même
+        co_dept_ids.append(str(request.user.id))
+        
+        # Récupérer les logs
+        logs = ActivityLog.objects(
+            user_id__in=co_dept_ids,
+            action_type__in=[
+                'validate_convention', 'reject_convention',
+                'generate_convention',
+                'approve_co_dept_head', 'reject_co_dept_head'
+            ]
+        ).order_by('-created_at')
+        
+        # Filtres optionnels
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        action_type = request.query_params.get('action_type')
+        
+        if start_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
+                logs = logs.filter(created_at__gte=start_date_obj)
+            except:
+                pass
+        if end_date:
+            try:
+                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+                logs = logs.filter(created_at__lte=end_date_obj)
+            except:
+                pass
+        if action_type:
+            logs = logs.filter(action_type=action_type)
+        
+        result = []
+        for log in logs:
+            result.append({
+                'id': str(log.id),
+                'user_email': log.user_email,
+                'user_name': log.user_email.split('@')[0],
+                'action_type': log.action_type,
+                'action_label': {
+                    'validate_convention': 'Validation de convention',
+                    'reject_convention': 'Refus de convention',
+                    'generate_convention': 'Génération de convention',
+                    'approve_co_dept_head': 'Approbation Co Dept Head',
+                    'reject_co_dept_head': 'Refus Co Dept Head'
+                }.get(log.action_type, log.action_type),
+                'target_type': log.target_type,
+                'target_name': log.target_name,
+                'details': log.details,
+                'created_at': log.created_at.strftime('%d/%m/%Y %H:%M:%S'),
+                'status': log.status
+            })
+        
+        # Statistiques
+        stats = {
+            'total_actions': logs.count(),
+            'by_type': {},
+            'validations_count': logs.filter(action_type='validate_convention').count(),
+            'rejections_count': logs.filter(action_type='reject_convention').count(),
+            'generations_count': logs.filter(action_type='generate_convention').count(),
+            'approvals_count': logs.filter(action_type='approve_co_dept_head').count(),
+            'rejections_co_count': logs.filter(action_type='reject_co_dept_head').count()
+        }
+        
+        for log in logs:
+            action = log.action_type
+            stats['by_type'][action] = stats['by_type'].get(action, 0) + 1
+        
+        return Response({
+            'success': True,
+            'logs': result,
+            'stats': stats,
+            'count': len(result)
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+def check_user_exists(request):
+    """
+    Vérifie si l'utilisateur existe toujours dans la base de données
+    """
+    try:
+        user = User.objects(id=str(request.user.id)).first()
+        return Response({'exists': user is not None})
+    except Exception as e:
+        return Response({'exists': False, 'error': str(e)})
 
 
 def generate_internship_agreement_pdf(application, admin_user):
+    """Génère une convention de stage pour le CO-DEPT HEAD ou Department Head"""
     from reportlab.lib.pagesizes import A4
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -2378,50 +2797,79 @@ def generate_internship_agreement_pdf(application, admin_user):
 @jwt_authenticated
 @role_required(allowed_roles=['admin', 'company'])
 def generate_convention_from_template(request, application_id):
-    
+    """
+    Génère une convention de stage en utilisant le template fourni
+    avec les informations de l'étudiant, l'entreprise et l'université
+    """
     try:
         application = Application.objects(id=application_id).first()
         if not application:
             return Response({'success': False, 'error': 'Candidature non trouvée'}, status=404)
         
-       
+        
         user = request.user
         if user.role == 'admin':
-          
             admin = Admin.objects(user=user).first()
+            if not admin:
+                return Response({'success': False, 'error': 'Profil admin non trouvé'}, status=404)
             if application.student.university != admin.university:
-                return Response({'success': False, 'error': 'Non autorisé'}, status=403)
+                return Response({'success': False, 'error': 'Non autorisé - Université différente'}, status=403)
         elif user.role == 'company':
-            
             company = _get_user_company(user)
+            if not company:
+                return Response({'success': False, 'error': 'Profil entreprise non trouvé'}, status=404)
             if str(application.offer.company.id) != str(company.id):
-                return Response({'success': False, 'error': 'Non autorisé'}, status=403)
+                return Response({'success': False, 'error': 'Non autorisé - Cette candidature ne vous appartient pas'}, status=403)
         else:
-            return Response({'success': False, 'error': 'Non autorisé'}, status=403)
+            return Response({'success': False, 'error': 'Non autorisé - Rôle incorrect'}, status=403)
+        
+       
+        if application.status not in ['accepted_by_company', 'validated_by_co_dept']:
+            return Response({'success': False, 'error': f'Impossible de générer la convention - Statut actuel: {application.status}'}, status=400)
         
         
         pdf_content = generate_convention_pdf_template(application)
         
+       
+        pdf_data = pdf_content.read()
         
-        application.convention_pdf = pdf_content
-        application.status = 'validated_by_co_dept'
+        
+        from django.core.files.base import ContentFile
+        application.convention_pdf = ContentFile(pdf_data, name=f"convention_{application.student.full_name}_{application.offer.company.company_name}.pdf")
+        if application.status == 'accepted_by_company':
+            application.status = 'validated_by_co_dept'
         application.co_dept_validation_date = datetime.now()
+        application.co_dept_notes = f"Convention générée par {user.email} le {datetime.now().strftime('%d/%m/%Y %H:%M')}"
         application.save()
         
-       
-        response = HttpResponse(pdf_content.read(), content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="convention_stage_{application.student.full_name}_{application.offer.company.company_name}.pdf"'
+        # LOG ACTIVITY - Generate Convention from template
+        log_activity(
+            user=user,
+            action_type='generate_convention',
+            target_type='convention',
+            target_id=str(application.id),
+            target_name=f"{application.student.full_name} - {application.offer.title}",
+            details={
+                'generated_by': user.role,
+                'student_name': application.student.full_name,
+                'offer_title': application.offer.title
+            }
+        )
+        
+        response = HttpResponse(pdf_data, content_type='application/pdf')
+        response['Content-Disposition'] = 'inline; filename="convention.pdf"'
+        response['Content-Length'] = str(len(pdf_data))
+        response['Access-Control-Expose-Headers'] = 'Content-Disposition'
         return response
         
     except Exception as e:
-        print(f"❌ Erreur: {str(e)}")
+        print(f"❌ Erreur dans generate_convention_from_template: {str(e)}")
+        traceback.print_exc()
         return Response({'success': False, 'error': str(e)}, status=500)
 
 
-
-
 def generate_convention_pdf_template(application):
-    
+    """Génère une convention de stage en utilisant le template"""
     from reportlab.lib.pagesizes import A4
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -2626,174 +3074,371 @@ def generate_convention_pdf_template(application):
     return pdf_content
 
 
+# ==================== PERMISSIONS MANAGEMENT ENDPOINTS ====================
 
-
-@api_view(['POST'])
+@api_view(['GET'])
 @jwt_authenticated
-@role_required(allowed_roles=['admin', 'company'])
-def generate_convention_from_template(request, application_id):
+@role_required(allowed_roles=['company'], allowed_sub_roles=['company_manager'])
+def get_hiring_managers_list(request):
     """
-    Génère une convention de stage en utilisant le template fourni
-    avec les informations de l'étudiant, l'entreprise et l'université
+    Company Manager - Liste des hiring managers avec leurs permissions
     """
     try:
-        application = Application.objects(id=application_id).first()
-        if not application:
-            return Response({'success': False, 'error': 'Candidature non trouvée'}, status=404)
+        company = Company.objects(user=request.user).first()
+        if not company:
+            return Response({'success': False, 'error': 'Company not found'}, status=404)
         
+        hiring_managers = User.objects(
+            role='company',
+            sub_role='hiring_manager',
+            pending_company_id=str(company.id)
+        )
         
-        user = request.user
-        if user.role == 'admin':
-            admin = Admin.objects(user=user).first()
-            if not admin:
-                return Response({'success': False, 'error': 'Profil admin non trouvé'}, status=404)
-            if application.student.university != admin.university:
-                return Response({'success': False, 'error': 'Non autorisé - Université différente'}, status=403)
-        elif user.role == 'company':
-            company = _get_user_company(user)
-            if not company:
-                return Response({'success': False, 'error': 'Profil entreprise non trouvé'}, status=404)
-            if str(application.offer.company.id) != str(company.id):
-                return Response({'success': False, 'error': 'Non autorisé - Cette candidature ne vous appartient pas'}, status=403)
-        else:
-            return Response({'success': False, 'error': 'Non autorisé - Rôle incorrect'}, status=403)
+        result = []
+        for hm in hiring_managers:
+            permissions = get_user_permissions(hm)
+            result.append({
+                'id': str(hm.id),
+                'username': hm.username,
+                'email': hm.email,
+                'status': hm.status,
+                'created_at': hm.created_at.strftime('%d/%m/%Y'),
+                'permissions': {
+                    'can_manage_applications': permissions.can_manage_applications if permissions else True,
+                    'can_create_offer': permissions.can_create_offer if permissions else True,
+                    'can_modify_offer': permissions.can_modify_offer if permissions else True,
+                    'can_delete_offer': permissions.can_delete_offer if permissions else True,
+                }
+            })
         
-       
-        if application.status not in ['accepted_by_company', 'validated_by_co_dept']:
-            return Response({'success': False, 'error': f'Impossible de générer la convention - Statut actuel: {application.status}'}, status=400)
-        
-        
-        pdf_content = generate_convention_pdf_template(application)
-        
-       
-        pdf_data = pdf_content.read()
-        
-        
-        from django.core.files.base import ContentFile
-        application.convention_pdf = ContentFile(pdf_data, name=f"convention_{application.student.full_name}_{application.offer.company.company_name}.pdf")
-        if application.status == 'accepted_by_company':
-            application.status = 'validated_by_co_dept'
-        application.co_dept_validation_date = datetime.now()
-        application.co_dept_notes = f"Convention générée par {user.email} le {datetime.now().strftime('%d/%m/%Y %H:%M')}"
-        application.save()
-        
-        
-        response = HttpResponse(pdf_data, content_type='application/pdf')
-        response['Content-Disposition'] = 'inline; filename="convention.pdf"'
-        response['Content-Length'] = str(len(pdf_data))
-        response['Access-Control-Expose-Headers'] = 'Content-Disposition'
-        return response
+        return Response({'success': True, 'hiring_managers': result})
         
     except Exception as e:
-        print(f"❌ Erreur dans generate_convention_from_template: {str(e)}")
-        traceback.print_exc()
         return Response({'success': False, 'error': str(e)}, status=500)
 
 
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin'])
+def get_co_dept_heads_list(request):
+    """
+    Department Head - Liste des co dept heads avec leurs permissions
+    """
+    try:
+        dept_head = Admin.objects(user=request.user).first()
+        if not dept_head:
+            return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
+        
+        co_dept_heads = User.objects(
+            role='admin',
+            sub_role='co_dept_head',
+            pending_admin_id=str(request.user.id)
+        )
+        
+        result = []
+        for cd in co_dept_heads:
+            permissions = get_user_permissions(cd)
+            result.append({
+                'id': str(cd.id),
+                'username': cd.username,
+                'email': cd.email,
+                'status': cd.status,
+                'created_at': cd.created_at.strftime('%d/%m/%Y'),
+                'permissions': {
+                    'can_manage_conventions': permissions.can_manage_conventions if permissions else True,
+                    'can_add_signature': permissions.can_add_signature if permissions else True,
+                    'can_manage_university_profile': permissions.can_manage_university_profile if permissions else False,
+                }
+            })
+        
+        return Response({'success': True, 'co_dept_heads': result})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
 
 
-def generate_internship_agreement_pdf(application, admin_user):
-    """Génère une convention de stage pour le CO-DEPT HEAD ou Department Head"""
-    from reportlab.lib.pagesizes import A4
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import cm
-    from reportlab.lib import colors
-    from django.core.files.base import ContentFile
-    from io import BytesIO
-    
-    buffer = BytesIO()
-    
-    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2.5*cm, bottomMargin=2.5*cm, leftMargin=2*cm, rightMargin=2*cm)
-    styles = getSampleStyleSheet()
-    
-    title_style = ParagraphStyle('CustomTitle', parent=styles['Title'], fontSize=18, alignment=1, spaceAfter=30, textColor=colors.HexColor('#2c3e50'))
-    heading_style = ParagraphStyle('CustomHeading', parent=styles['Heading2'], fontSize=12, alignment=0, spaceBefore=15, spaceAfter=8, textColor=colors.HexColor('#2980b9'))
-    normal_style = ParagraphStyle('CustomNormal', parent=styles['Normal'], fontSize=10, alignment=0, spaceAfter=6, leading=14)
-    
-    story = []
-    
-    today = datetime.now().strftime('%d/%m/%Y')
-    
-    story.append(Paragraph("REPUBLIQUE ALGERIENNE DEMOCRATIQUE ET POPULAIRE", title_style))
-    story.append(Paragraph("MINISTERE DE L'ENSEIGNEMENT SUPERIEUR ET DE LA RECHERCHE SCIENTIFIQUE", title_style))
-    story.append(Paragraph(f"<b>{application.student.university}</b>", title_style))
-    story.append(Spacer(1, 1*cm))
-    story.append(Paragraph("CONVENTION DE STAGE", title_style))
-    story.append(Spacer(1, 0.5*cm))
-    story.append(Paragraph(f"Fait à Alger, le {today}", normal_style))
-    story.append(Spacer(1, 0.5*cm))
-    
-    story.append(Paragraph("<b>Article 1 : Parties prenantes</b>", heading_style))
-    story.append(Paragraph(f"""
-    <b>L'Entreprise d'accueil :</b><br/>
-    {application.offer.company.company_name}<br/>
-    Située à : {application.offer.company.location}<br/>
-    """, normal_style))
-    story.append(Paragraph(f"""
-    <b>L'Étudiant stagiaire :</b><br/>
-    {application.student.full_name}<br/>
-    Étudiant à : {application.student.university}<br/>
-    Filière : {application.student.major}<br/>
-    Niveau : {application.student.education_level}<br/>
-    """, normal_style))
-    story.append(Paragraph(f"""
-    <b>L'Établissement d'enseignement :</b><br/>
-    {application.student.university}<br/>
-    Représentée par : {admin_user.full_name}<br/>
-    """, normal_style))
-    story.append(Spacer(1, 0.5*cm))
-    
-    story.append(Paragraph("<b>Article 2 : Objet du stage</b>", heading_style))
-    story.append(Paragraph(f"""
-    Le stage a pour objet de permettre à l'étudiant de mettre en pratique ses connaissances
-    dans le domaine de {application.offer.title}.
-    <br/><b>Description :</b> {application.offer.description}
-    """, normal_style))
-    story.append(Spacer(1, 0.5*cm))
-    
-    story.append(Paragraph("<b>Article 3 : Durée et période</b>", heading_style))
-    start_date = application.offer.start_date.strftime('%d/%m/%Y') if application.offer.start_date else "À déterminer"
-    story.append(Paragraph(f"""
-    La durée du stage est fixée à <b>{application.offer.duration}</b>.<br/>
-    Le stage débutera le <b>{start_date}</b>.
-    """, normal_style))
-    story.append(Spacer(1, 0.5*cm))
-    
-    story.append(Paragraph("<b>Article 4 : Compétences requises</b>", heading_style))
-    skills_text = ", ".join(application.offer.required_skills) if application.offer.required_skills else "Aucune"
-    story.append(Paragraph(f"Compétences : <b>{skills_text}</b>", normal_style))
-    story.append(Spacer(1, 0.5*cm))
-    
-    story.append(Paragraph("<b>Article 5 : Signatures</b>", heading_style))
-    story.append(Spacer(1, 0.5*cm))
-    
-    signature_data = [
-        ["", "", ""],
-        ["<b>L'Étudiant</b>", "<b>L'Entreprise</b>", "<b>L'Université</b>"],
-        [application.student.full_name, application.offer.company.company_name, admin_user.full_name],
-        ["", "", ""],
-        ["Signature :", "Signature :", "Signature :"],
-        ["", "", ""],
-        ["Date :", "Date :", f"Date : {today}"],
-    ]
-    
-    signature_table = Table(signature_data, colWidths=[5*cm, 5*cm, 5*cm])
-    signature_table.setStyle(TableStyle([
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('FONTNAME', (0,1), (-1,1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,0), (-1,-1), 10),
-        ('TOPPADDING', (0,0), (-1,-1), 8),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
-    ]))
-    story.append(signature_table)
-    
-    story.append(Spacer(1, 1*cm))
-    story.append(Paragraph(f"<i>Convention générée automatiquement le {today}</i>", normal_style))
-    
-    doc.build(story)
-    
-    pdf_content = ContentFile(buffer.getvalue())
-    pdf_content.name = f"convention_{application.student.full_name}_{application.offer.company.company_name}_{today}.pdf"
-    return pdf_content
+# ==================== UPDATE PERMISSIONS ENDPOINTS ====================
+
+@api_view(['PUT'])
+@jwt_authenticated
+def update_hiring_manager_permissions(request, user_id):
+    """
+    Company Manager - Met à jour les permissions d'un hiring manager
+    """
+    try:
+        # Vérifier que l'utilisateur actuel est company manager
+        if request.user.role != 'company' or request.user.sub_role != 'company_manager':
+            return Response({'success': False, 'error': 'Unauthorized'}, status=403)
+        
+        company = Company.objects(user=request.user).first()
+        if not company:
+            return Response({'success': False, 'error': 'Company not found'}, status=404)
+        
+        # Vérifier que le hiring manager appartient à cette entreprise
+        hiring_manager = User.objects(id=user_id, role='company', sub_role='hiring_manager').first()
+        if not hiring_manager or hiring_manager.pending_company_id != str(company.id):
+            return Response({'success': False, 'error': 'Hiring manager not found'}, status=404)
+        
+        # Mettre à jour les permissions
+        permissions_data = {
+            'can_manage_applications': request.data.get('can_manage_applications', True),
+            'can_manage_hiring_managers': request.data.get('can_manage_hiring_managers', False),
+            'can_create_offer': request.data.get('can_create_offer', True),
+            'can_modify_offer': request.data.get('can_modify_offer', True),
+            'can_delete_offer': request.data.get('can_delete_offer', True),
+            'can_manage_company_profile': request.data.get('can_manage_company_profile', False),
+        }
+        
+        update_user_permissions(user_id, permissions_data)
+        
+        # Log l'activité
+        log_activity(
+            user=request.user,
+            action_type='update_permissions',
+            target_type='user',
+            target_id=user_id,
+            target_name=hiring_manager.username,
+            details={'permissions': permissions_data}
+        )
+        
+        return Response({'success': True, 'message': 'Permissions updated successfully'})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['PUT'])
+@jwt_authenticated
+def update_co_dept_head_permissions(request, user_id):
+    """
+    Department Head - Met à jour les permissions d'un co dept head
+    """
+    try:
+        # Vérifier que l'utilisateur actuel est department head
+        if request.user.role != 'admin' or request.user.sub_role != 'admin':
+            return Response({'success': False, 'error': 'Unauthorized'}, status=403)
+        
+        dept_head = Admin.objects(user=request.user).first()
+        if not dept_head:
+            return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
+        
+        # Vérifier que le co dept head appartient à cette université
+        co_dept = User.objects(id=user_id, role='admin', sub_role='co_dept_head').first()
+        if not co_dept or co_dept.pending_admin_id != str(request.user.id):
+            return Response({'success': False, 'error': 'Co Dept Head not found'}, status=404)
+        
+        # Mettre à jour les permissions
+        permissions_data = {
+            'can_manage_conventions': request.data.get('can_manage_conventions', True),
+            'can_manage_co_dept_heads': request.data.get('can_manage_co_dept_heads', False),
+            'can_add_signature': request.data.get('can_add_signature', True),
+            'can_manage_university_profile': request.data.get('can_manage_university_profile', False),
+        }
+        
+        update_user_permissions(user_id, permissions_data)
+        
+        # Log l'activité
+        log_activity(
+            user=request.user,
+            action_type='update_permissions',
+            target_type='user',
+            target_id=user_id,
+            target_name=co_dept.username,
+            details={'permissions': permissions_data}
+        )
+        
+        return Response({'success': True, 'message': 'Permissions updated successfully'})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+# ==================== DELETE ENDPOINTS ====================
+
+@api_view(['DELETE'])
+@jwt_authenticated
+def delete_hiring_manager(request, user_id):
+    """
+    Company Manager - Supprime un hiring manager
+    """
+    try:
+        if request.user.role != 'company' or request.user.sub_role != 'company_manager':
+            return Response({'success': False, 'error': 'Unauthorized'}, status=403)
+        
+        company = Company.objects(user=request.user).first()
+        if not company:
+            return Response({'success': False, 'error': 'Company not found'}, status=404)
+        
+        hiring_manager = User.objects(id=user_id, role='company', sub_role='hiring_manager').first()
+        if not hiring_manager or hiring_manager.pending_company_id != str(company.id):
+            return Response({'success': False, 'error': 'Hiring manager not found'}, status=404)
+        
+        # Supprimer les permissions
+        UserPermission.objects(user_id=user_id).delete()
+        
+        # Supprimer l'utilisateur
+        email = hiring_manager.email
+        username = hiring_manager.username
+        hiring_manager.delete()
+        
+        log_activity(
+            user=request.user,
+            action_type='delete_hiring_manager',
+            target_type='user',
+            target_id=user_id,
+            target_name=username,
+            details={'email': email}
+        )
+        
+        return Response({'success': True, 'message': f'Hiring manager {username} deleted successfully'})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['DELETE'])
+@jwt_authenticated
+def delete_co_dept_head(request, user_id):
+    """
+    Department Head - Supprime un co dept head
+    """
+    try:
+        if request.user.role != 'admin' or request.user.sub_role != 'admin':
+            return Response({'success': False, 'error': 'Unauthorized'}, status=403)
+        
+        dept_head = Admin.objects(user=request.user).first()
+        if not dept_head:
+            return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
+        
+        co_dept = User.objects(id=user_id, role='admin', sub_role='co_dept_head').first()
+        if not co_dept or co_dept.pending_admin_id != str(request.user.id):
+            return Response({'success': False, 'error': 'Co Dept Head not found'}, status=404)
+        
+        # Supprimer le profil Admin associé
+        admin_profile = Admin.objects(user=co_dept).first()
+        if admin_profile:
+            admin_profile.delete()
+        
+        # Supprimer les permissions
+        UserPermission.objects(user_id=user_id).delete()
+        
+        # Supprimer l'utilisateur
+        email = co_dept.email
+        username = co_dept.username
+        co_dept.delete()
+        
+        log_activity(
+            user=request.user,
+            action_type='delete_co_dept_head',
+            target_type='user',
+            target_id=user_id,
+            target_name=username,
+            details={'email': email}
+        )
+        
+        return Response({'success': True, 'message': f'Co Dept Head {username} deleted successfully'})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+# ==================== APPROVED LISTS ENDPOINTS (FINAL) ====================
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['company'], allowed_sub_roles=['company_manager'])
+def get_approved_hiring_managers(request):
+    """
+    Company Manager - Liste des hiring managers APPROUVÉS (status=True)
+    """
+    try:
+        company = Company.objects(user=request.user).first()
+        if not company:
+            return Response({'success': False, 'error': 'Company not found'}, status=404)
+        
+        hiring_managers = User.objects(
+            role='company',
+            sub_role='hiring_manager',
+            status=True,
+            pending_company_id=str(company.id)
+        )
+        
+        result = []
+        for hm in hiring_managers:
+            permissions = get_user_permissions(hm)
+            result.append({
+                'id': str(hm.id),
+                'username': hm.username,
+                'email': hm.email,
+                'status': hm.status,
+                'created_at': hm.created_at.strftime('%d/%m/%Y'),
+                'permissions': {
+                    'can_manage_applications': permissions.can_manage_applications if permissions else True,
+                    'can_manage_hiring_managers': permissions.can_manage_hiring_managers if permissions else False,
+                    'can_create_offer': permissions.can_create_offer if permissions else True,
+                    'can_modify_offer': permissions.can_modify_offer if permissions else True,
+                    'can_delete_offer': permissions.can_delete_offer if permissions else True,
+                    'can_manage_company_profile': permissions.can_manage_company_profile if permissions else False,
+                }
+            })
+        
+        return Response({'success': True, 'hiring_managers': result})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin'])
+def get_approved_co_dept_heads(request):
+    """
+    Department Head - Liste des co dept heads APPROUVÉS (status=True)
+    """
+    try:
+        dept_head = Admin.objects(user=request.user).first()
+        if not dept_head:
+            return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
+        
+        co_dept_heads = User.objects(
+            role='admin',
+            sub_role='co_dept_head',
+            status=True,
+            pending_admin_id=str(request.user.id)
+        )
+        
+        # Si aucun trouvé, chercher par université
+        if co_dept_heads.count() == 0:
+            all_co_depts = User.objects(
+                role='admin',
+                sub_role='co_dept_head',
+                status=True
+            )
+            temp_list = []
+            for cd in all_co_depts:
+                cd_admin = Admin.objects(user=cd).first()
+                if cd_admin and cd_admin.university == dept_head.university:
+                    temp_list.append(cd)
+            co_dept_heads = temp_list
+        
+        result = []
+        for cd in co_dept_heads:
+            permissions = get_user_permissions(cd)
+            result.append({
+                'id': str(cd.id),
+                'username': cd.username,
+                'email': cd.email,
+                'status': cd.status,
+                'created_at': cd.created_at.strftime('%d/%m/%Y'),
+                'permissions': {
+                    'can_manage_conventions': permissions.can_manage_conventions if permissions else True,
+                    'can_manage_co_dept_heads': permissions.can_manage_co_dept_heads if permissions else False,
+                    'can_add_signature': permissions.can_add_signature if permissions else True,
+                    'can_manage_university_profile': permissions.can_manage_university_profile if permissions else False,
+                }
+            })
+        
+        return Response({'success': True, 'co_dept_heads': result})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
