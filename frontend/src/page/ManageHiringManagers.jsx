@@ -1,11 +1,11 @@
-// frontend/src/page/ManageCoDeptHeads.jsx
+// frontend/src/page/ManageHiringManagers.jsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { 
   Users, Trash2, Edit2, Save, X, CheckCircle, XCircle,
-  ArrowLeft, Shield, GraduationCap, Mail, Calendar, Settings,
-  UserCheck, FileText, Signature
+  ArrowLeft, Shield, Briefcase, Mail, Calendar, Settings,
+  UserCheck
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -31,7 +31,7 @@ const PermissionCheckbox = ({ label, checked, onChange, description, disabled })
   </label>
 );
 
-const CoDeptHeadCard = ({ manager, onUpdatePermissions, onDelete }) => {
+const HiringManagerCard = ({ manager, onUpdatePermissions, onDelete }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [permissions, setPermissions] = useState(manager.permissions);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -52,7 +52,7 @@ const CoDeptHeadCard = ({ manager, onUpdatePermissions, onDelete }) => {
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-purple-400" />
+              <Briefcase className="w-5 h-5 text-purple-400" />
             </div>
             <div>
               <h3 className="text-white font-semibold">{manager.username}</h3>
@@ -116,31 +116,45 @@ const CoDeptHeadCard = ({ manager, onUpdatePermissions, onDelete }) => {
 
         <div className="space-y-2">
           <PermissionCheckbox
-            label="Gérer les conventions"
-            description="Valider ou refuser les conventions de stage"
-            checked={permissions.can_manage_conventions}
-            onChange={(e) => setPermissions(prev => ({ ...prev, can_manage_conventions: e.target.checked }))}
+            label="Gérer les candidatures"
+            description="Voir et répondre aux candidatures des étudiants"
+            checked={permissions.can_manage_applications}
+            onChange={(e) => setPermissions(prev => ({ ...prev, can_manage_applications: e.target.checked }))}
             disabled={!isEditing}
           />
           <PermissionCheckbox
-            label="Gérer les Co Dept Heads"
-            description="Ajouter, modifier ou supprimer des co department heads"
-            checked={permissions.can_manage_co_dept_heads}
-            onChange={(e) => setPermissions(prev => ({ ...prev, can_manage_co_dept_heads: e.target.checked }))}
+            label="Gérer les Hiring Managers"
+            description="Ajouter, modifier ou supprimer des hiring managers"
+            checked={permissions.can_manage_hiring_managers}
+            onChange={(e) => setPermissions(prev => ({ ...prev, can_manage_hiring_managers: e.target.checked }))}
             disabled={!isEditing}
           />
           <PermissionCheckbox
-            label="Ajouter une signature"
-            description="Signer les conventions de stage"
-            checked={permissions.can_add_signature}
-            onChange={(e) => setPermissions(prev => ({ ...prev, can_add_signature: e.target.checked }))}
+            label="Créer des offres"
+            description="Publier de nouvelles offres de stage"
+            checked={permissions.can_create_offer}
+            onChange={(e) => setPermissions(prev => ({ ...prev, can_create_offer: e.target.checked }))}
             disabled={!isEditing}
           />
           <PermissionCheckbox
-            label="Gérer le profil université"
-            description="Modifier les informations de l'université"
-            checked={permissions.can_manage_university_profile}
-            onChange={(e) => setPermissions(prev => ({ ...prev, can_manage_university_profile: e.target.checked }))}
+            label="Modifier des offres"
+            description="Modifier les offres existantes"
+            checked={permissions.can_modify_offer}
+            onChange={(e) => setPermissions(prev => ({ ...prev, can_modify_offer: e.target.checked }))}
+            disabled={!isEditing}
+          />
+          <PermissionCheckbox
+            label="Supprimer des offres"
+            description="Supprimer les offres de stage"
+            checked={permissions.can_delete_offer}
+            onChange={(e) => setPermissions(prev => ({ ...prev, can_delete_offer: e.target.checked }))}
+            disabled={!isEditing}
+          />
+          <PermissionCheckbox
+            label="Gérer le profil entreprise"
+            description="Modifier les informations de l'entreprise"
+            checked={permissions.can_manage_company_profile}
+            onChange={(e) => setPermissions(prev => ({ ...prev, can_manage_company_profile: e.target.checked }))}
             disabled={!isEditing}
           />
         </div>
@@ -176,20 +190,20 @@ const CoDeptHeadCard = ({ manager, onUpdatePermissions, onDelete }) => {
   );
 };
 
-export default function ManageCoDeptHeads() {
+export default function ManageHiringManagers() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [coDeptHeads, setCoDeptHeads] = useState([]);
+  const [hiringManagers, setHiringManagers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchCoDeptHeads = async () => {
+  const fetchHiringManagers = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/admin/approved-co-dept-heads/`, { headers: authHeaders() });
+      const res = await fetch(`${API}/company/approved-hiring-managers/`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) {
-        setCoDeptHeads(data.co_dept_heads);
-        console.log("Co Dept Heads chargés:", data.co_dept_heads.length);
+        setHiringManagers(data.hiring_managers);
+        console.log("Hiring managers chargés:", data.hiring_managers.length);
       } else {
         toast.error(data.error || 'Erreur de chargement');
       }
@@ -202,12 +216,12 @@ export default function ManageCoDeptHeads() {
   };
 
   useEffect(() => {
-    fetchCoDeptHeads();
+    fetchHiringManagers();
   }, []);
 
   const handleUpdatePermissions = async (userId, permissions) => {
     try {
-      const res = await fetch(`${API}/admin/co-dept-heads/${userId}/permissions/`, {
+      const res = await fetch(`${API}/company/hiring-managers/${userId}/permissions/`, {
         method: 'PUT',
         headers: authHeaders(),
         body: JSON.stringify(permissions)
@@ -215,7 +229,7 @@ export default function ManageCoDeptHeads() {
       const data = await res.json();
       if (data.success) {
         toast.success('Permissions mises à jour avec succès');
-        fetchCoDeptHeads();
+        fetchHiringManagers();
       } else {
         toast.error(data.error || 'Erreur lors de la mise à jour');
       }
@@ -226,14 +240,14 @@ export default function ManageCoDeptHeads() {
 
   const handleDelete = async (userId, username) => {
     try {
-      const res = await fetch(`${API}/admin/co-dept-heads/${userId}/delete/`, {
+      const res = await fetch(`${API}/company/hiring-managers/${userId}/delete/`, {
         method: 'DELETE',
         headers: authHeaders()
       });
       const data = await res.json();
       if (data.success) {
-        toast.success(`Co Department Head ${username} supprimé avec succès`);
-        fetchCoDeptHeads();
+        toast.success(`Hiring manager ${username} supprimé avec succès`);
+        fetchHiringManagers();
       } else {
         toast.error(data.error || 'Erreur lors de la suppression');
       }
@@ -249,7 +263,7 @@ export default function ManageCoDeptHeads() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate('/admin/dashboard')}
+                onClick={() => navigate('/company-manager/dashboard')}
                 className="flex items-center gap-2 text-white/70 hover:text-white transition"
               >
                 <ArrowLeft size={18} />
@@ -258,12 +272,12 @@ export default function ManageCoDeptHeads() {
               <span className="text-white/30">|</span>
               <div className="flex items-center gap-3">
                 <Users className="w-6 h-6 text-purple-400" />
-                <h1 className="text-xl font-bold text-white">Gestion des Co Department Heads</h1>
+                <h1 className="text-xl font-bold text-white">Gestion des Hiring Managers</h1>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-white/80">{user?.full_name || user?.email}</span>
-              <span className="text-white/60 text-sm bg-white/10 px-3 py-1 rounded-full">Department Head</span>
+              <span className="text-white/80">{user?.company_name}</span>
+              <span className="text-white/60 text-sm bg-white/10 px-3 py-1 rounded-full">Company Manager</span>
             </div>
           </div>
         </div>
@@ -271,9 +285,9 @@ export default function ManageCoDeptHeads() {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-2">Co Department Heads Actifs</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">Hiring Managers Actifs</h2>
           <p className="text-white/60">
-            Gérez les permissions des co department heads approuvés de votre université.
+            Gérez les permissions des hiring managers approuvés de votre entreprise.
           </p>
         </div>
 
@@ -281,16 +295,16 @@ export default function ManageCoDeptHeads() {
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
           </div>
-        ) : coDeptHeads.length === 0 ? (
+        ) : hiringManagers.length === 0 ? (
           <div className="bg-white/10 backdrop-blur-lg rounded-xl p-12 text-center border border-white/20">
             <Users className="w-16 h-16 text-white/30 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">Aucun co department head actif</h3>
-            <p className="text-white/60">Aucun co department head n'a encore été approuvé pour votre université.</p>
+            <h3 className="text-xl font-semibold text-white mb-2">Aucun hiring manager actif</h3>
+            <p className="text-white/60">Aucun hiring manager n'a encore été approuvé pour votre entreprise.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {coDeptHeads.map(manager => (
-              <CoDeptHeadCard
+            {hiringManagers.map(manager => (
+              <HiringManagerCard
                 key={manager.id}
                 manager={manager}
                 onUpdatePermissions={handleUpdatePermissions}
