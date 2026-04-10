@@ -5,7 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Activity, Eye, Filter, Calendar, RefreshCw, 
   CheckCircle, XCircle, Clock, FileText, UserPlus, 
-  UserMinus, FileSignature, ArrowLeft, BarChart3
+  UserMinus, FileSignature, ArrowLeft, BarChart3,
+  PenTool, Settings, Trash2, Briefcase, Users
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -20,11 +21,24 @@ const actionIcons = {
   'reject_convention': { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Refus de convention' },
   'generate_convention': { icon: FileText, color: 'text-blue-400', bg: 'bg-blue-500/10', label: 'Génération de convention' },
   'approve_co_dept_head': { icon: UserPlus, color: 'text-green-400', bg: 'bg-green-500/10', label: 'Approbation Co Dept Head' },
-  'reject_co_dept_head': { icon: UserMinus, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Refus Co Dept Head' }
+  'reject_co_dept_head': { icon: UserMinus, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Refus Co Dept Head' },
+  'add_signature': { icon: PenTool, color: 'text-purple-400', bg: 'bg-purple-500/10', label: 'Ajout de signature' },
+  'update_permissions': { icon: Settings, color: 'text-yellow-400', bg: 'bg-yellow-500/10', label: 'Modification permissions' },
+  'delete_co_dept_head': { icon: Trash2, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Suppression Co Dept Head' },
+  'create_offer': { icon: Briefcase, color: 'text-cyan-400', bg: 'bg-cyan-500/10', label: 'Création offre' },
+  'update_offer': { icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-500/10', label: 'Modification offre' },
+  'delete_offer': { icon: Trash2, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Suppression offre' },
+  'accept_application': { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10', label: 'Acceptation candidature' },
+  'reject_application': { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Refus candidature' }
 };
 
 const ActivityLogCard = ({ log }) => {
-  const config = actionIcons[log.action_type] || { icon: Activity, color: 'text-gray-400', bg: 'bg-gray-500/10', label: log.action_label };
+  const config = actionIcons[log.action_type] || { 
+    icon: Activity, 
+    color: 'text-gray-400', 
+    bg: 'bg-gray-500/10', 
+    label: log.action_label 
+  };
   const IconComponent = config.icon;
 
   return (
@@ -49,9 +63,9 @@ const ActivityLogCard = ({ log }) => {
           
           <div className="mt-3 p-3 bg-slate-800/60 rounded-lg">
             <p className="text-white/80 text-sm">
-              <span className="text-purple-400">Convention:</span> {log.target_name}
+              <span className="text-purple-400">Cible:</span> {log.target_name}
             </p>
-            {log.details && (
+            {log.details && Object.keys(log.details).length > 0 && (
               <div className="mt-2 space-y-1">
                 {log.details.student_name && (
                   <p className="text-white/60 text-xs">👤 {log.details.student_name}</p>
@@ -67,6 +81,12 @@ const ActivityLogCard = ({ log }) => {
                 )}
                 {log.details.company_name && (
                   <p className="text-white/60 text-xs">🏢 {log.details.company_name}</p>
+                )}
+                {log.details.signed_by && (
+                  <p className="text-purple-400 text-xs">✎ Signé par: {log.details.signed_by}</p>
+                )}
+                {log.details.permissions && (
+                  <p className="text-yellow-400 text-xs">🔧 Permissions modifiées</p>
                 )}
               </div>
             )}
@@ -126,8 +146,16 @@ export default function DeptHeadActivityLogs() {
     { value: 'validate_convention', label: 'Validations de convention' },
     { value: 'reject_convention', label: 'Refus de convention' },
     { value: 'generate_convention', label: 'Générations de convention' },
+    { value: 'add_signature', label: 'Ajouts de signature' },
     { value: 'approve_co_dept_head', label: 'Approbations Co Dept Head' },
-    { value: 'reject_co_dept_head', label: 'Refus Co Dept Head' }
+    { value: 'reject_co_dept_head', label: 'Refus Co Dept Head' },
+    { value: 'update_permissions', label: 'Modifications permissions' },
+    { value: 'delete_co_dept_head', label: 'Suppressions Co Dept Head' },
+    { value: 'create_offer', label: 'Créations offre' },
+    { value: 'update_offer', label: 'Modifications offre' },
+    { value: 'delete_offer', label: 'Suppressions offre' },
+    { value: 'accept_application', label: 'Acceptations candidature' },
+    { value: 'reject_application', label: 'Refus candidature' }
   ];
 
   return (
@@ -159,7 +187,7 @@ export default function DeptHeadActivityLogs() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
             <div className="flex items-center justify-between">
               <div>
@@ -181,6 +209,28 @@ export default function DeptHeadActivityLogs() {
           <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
             <div className="flex items-center justify-between">
               <div>
+                <p className="text-white/60 text-sm">Signatures</p>
+                <p className="text-2xl font-bold text-purple-400">{stats.signatures_count || 0}</p>
+              </div>
+              <PenTool className="w-8 h-8 text-purple-400 opacity-60" />
+            </div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white/60 text-sm">Offres traitées</p>
+                <p className="text-2xl font-bold text-cyan-400">{stats.offers_count || 0}</p>
+              </div>
+              <Briefcase className="w-8 h-8 text-cyan-400 opacity-60" />
+            </div>
+          </div>
+        </div>
+
+        {/* Deuxième ligne de stats */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-white/60 text-sm">Refus</p>
                 <p className="text-2xl font-bold text-red-400">{stats.rejections_count || 0}</p>
               </div>
@@ -190,19 +240,37 @@ export default function DeptHeadActivityLogs() {
           <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-white/60 text-sm">Générations</p>
-                <p className="text-2xl font-bold text-blue-400">{stats.generations_count || 0}</p>
+                <p className="text-white/60 text-sm">Approbations Co Dept</p>
+                <p className="text-2xl font-bold text-emerald-400">{stats.approvals_count || 0}</p>
               </div>
-              <FileText className="w-8 h-8 text-blue-400 opacity-60" />
+              <UserPlus className="w-8 h-8 text-emerald-400 opacity-60" />
             </div>
           </div>
           <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-white/60 text-sm">Approbations Co Dept</p>
-                <p className="text-2xl font-bold text-purple-400">{stats.approvals_count || 0}</p>
+                <p className="text-white/60 text-sm">Modif. permissions</p>
+                <p className="text-2xl font-bold text-yellow-400">{stats.permissions_count || 0}</p>
               </div>
-              <UserPlus className="w-8 h-8 text-purple-400 opacity-60" />
+              <Settings className="w-8 h-8 text-yellow-400 opacity-60" />
+            </div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white/60 text-sm">Suppressions</p>
+                <p className="text-2xl font-bold text-red-400">{stats.deletions_count || 0}</p>
+              </div>
+              <Trash2 className="w-8 h-8 text-red-400 opacity-60" />
+            </div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white/60 text-sm">Candidatures</p>
+                <p className="text-2xl font-bold text-blue-400">{stats.applications_count || 0}</p>
+              </div>
+              <Users className="w-8 h-8 text-blue-400 opacity-60" />
             </div>
           </div>
         </div>

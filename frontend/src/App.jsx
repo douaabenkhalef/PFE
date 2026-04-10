@@ -18,6 +18,7 @@ import CompanyActivityLogs from './page/CompanyActivityLogs';
 import DeptHeadActivityLogs from './page/DeptHeadActivityLogs';
 import ManageHiringManagers from './page/ManageHiringManagers';
 import ManageCoDeptHeads from './page/ManageCoDeptHeads';
+import ManageStudents from './page/ManageStudents';
 
 const ProtectedRoute = ({ children, allowedRoles, allowedSubRoles }) => {
   const { isAuthenticated, user, loading } = useAuth();
@@ -123,6 +124,11 @@ function App() {
 <Route path="/admin/activity-logs" element={
   <ProtectedRoute allowedRoles={['admin']} allowedSubRoles={['admin']}>
     <DeptHeadActivityLogs />
+  </ProtectedRoute>
+} />
+<Route path="/admin/manage-students" element={
+  <ProtectedRoute allowedRoles={['admin']} allowedSubRoles={['admin', 'co_dept_head']}>
+    <ManageStudents />
   </ProtectedRoute>
 } />
           <Route path="*" element={<Navigate to="/" replace />} />

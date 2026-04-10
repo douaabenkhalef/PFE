@@ -1,3 +1,4 @@
+// src/utils/messages.js
 export const VALIDATION_MESSAGES = {
   PASSWORD_MISMATCH: "Les mots de passe ne correspondent pas.",
   PASSWORD_TOO_SHORT: "Le mot de passe doit contenir au moins 8 caractères.",
@@ -30,6 +31,12 @@ export const ERROR_MESSAGES = {
   REGISTRATION_FAILED: "Erreur lors de l'inscription.",
   NETWORK_ERROR: "Erreur de connexion. Vérifiez votre réseau.",
   UNKNOWN_ERROR: "Une erreur inattendue s'est produite.",
+  // ============ NOUVEAUX MESSAGES POUR LES PERMISSIONS ============
+  PERMISSION_DENIED: "Vous n'avez pas les permissions nécessaires pour effectuer cette action.",
+  PERMISSION_DENIED_VALIDATE: "Vous n'avez pas les permissions pour valider cette convention.",
+  PERMISSION_DENIED_REJECT: "Vous n'avez pas les permissions pour refuser cette convention.",
+  PERMISSION_DENIED_SIGN: "Vous n'avez pas les permissions pour signer cette convention.",
+  PERMISSION_DENIED_STAMP: "Vous n'avez pas les permissions pour ajouter le cachet.",
 };
 
 export const translateError = (errorMessage) => {

@@ -1891,6 +1891,8 @@ def mark_all_notifications_read(request):
 
 
 
+# ==================== CO DEPT HEAD ENDPOINTS ====================
+
 @api_view(['GET'])
 @jwt_authenticated
 @role_required(allowed_roles=['admin'], allowed_sub_roles=['co_dept_head'])
@@ -1905,7 +1907,7 @@ def co_dept_pending_validations(request):
         
         applications = Application.objects(
             student__in=student_ids,
-            status='accepted_by_company'
+            status__in=['accepted_by_company', 'validated_by_co_dept']
         ).order_by('-applied_at')
         
         result = []
@@ -1914,6 +1916,11 @@ def co_dept_pending_validations(request):
             offer = app.offer
             company = offer.company if offer else None
             
+            # Construire l'URL de la convention si elle existe
+            convention_url = None
+            if app.convention_pdf:
+                convention_url = f'/api/co-dept/download-convention/{str(app.id)}/'
+            
             result.append({
                 'id': str(app.id),
                 'status': app.status,
@@ -1921,6 +1928,7 @@ def co_dept_pending_validations(request):
                 'company_response_date': app.company_response_date.strftime('%Y-%m-%d %H:%M') if app.company_response_date else None,
                 'cover_letter': app.cover_letter,
                 'cv_file_url': f'/api/co-dept/application/{str(app.id)}/cv/' if app.cv_file else None,
+                'convention_url': convention_url,
                 'student': {
                     'id': str(student.id),
                     'full_name': student.full_name,
@@ -2186,7 +2194,7 @@ def co_dept_reject_application(request, application_id):
 
 @api_view(['GET'])
 @jwt_authenticated
-@role_required(allowed_roles=['admin'], allowed_sub_roles=['co_dept_head'])
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['co_dept_head','admin'])
 def co_dept_download_convention(request, application_id):
     try:
         application = Application.objects(id=application_id).first()
@@ -2241,6 +2249,11 @@ def dept_head_pending_validations(request):
             offer = app.offer
             company = offer.company if offer else None
             
+            # Construire l'URL de la convention si elle existe
+            convention_url = None
+            if app.convention_pdf:
+                convention_url = f'/api/dept-head/download-convention/{str(app.id)}/'
+            
             result.append({
                 'id': str(app.id),
                 'status': app.status,
@@ -2248,6 +2261,7 @@ def dept_head_pending_validations(request):
                 'company_response_date': app.company_response_date.strftime('%Y-%m-%d %H:%M') if app.company_response_date else None,
                 'cover_letter': app.cover_letter,
                 'cv_file_url': f'/api/dept-head/application/{str(app.id)}/cv/' if app.cv_file else None,
+                'convention_url': convention_url,
                 'student': {
                     'id': str(student.id),
                     'full_name': student.full_name,
@@ -2571,7 +2585,6 @@ def get_company_activity_logs(request):
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
 
-
 @api_view(['GET'])
 @jwt_authenticated
 @role_required(allowed_roles=['admin'], allowed_sub_roles=['admin'])
@@ -2584,26 +2597,25 @@ def get_dept_head_activity_logs(request):
         if not dept_head:
             return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
         
-        # Récupérer tous les co dept heads de cette université
-        co_dept_heads = User.objects(
-            role='admin',
-            sub_role='co_dept_head',
-            status=True,
-            pending_admin_id=str(request.user.id)
-        )
-        co_dept_ids = [str(cd.id) for cd in co_dept_heads]
+        # Récupérer TOUS les admins (Co Dept Heads) de la même université
+        co_dept_admins = Admin.objects(university=dept_head.university)
+        
+        # Filtrer ceux qui ont le rôle co_dept_head
+        co_dept_ids = []
+        for admin in co_dept_admins:
+            if admin.user and admin.user.role == 'admin' and admin.user.sub_role == 'co_dept_head':
+                co_dept_ids.append(str(admin.user.id))
         
         # Ajouter le dept head lui-même
         co_dept_ids.append(str(request.user.id))
         
-        # Récupérer les logs
+        print(f"=== Dept Head Activity Logs ===")
+        print(f"Dept Head: {dept_head.full_name} - {dept_head.university}")
+        print(f"Co Dept Heads trouvés: {len(co_dept_ids)}")
+        
+        # Récupérer TOUS les logs (plus de filtre action_type)
         logs = ActivityLog.objects(
-            user_id__in=co_dept_ids,
-            action_type__in=[
-                'validate_convention', 'reject_convention',
-                'generate_convention',
-                'approve_co_dept_head', 'reject_co_dept_head'
-            ]
+            user_id__in=co_dept_ids
         ).order_by('-created_at')
         
         # Filtres optionnels
@@ -2628,18 +2640,28 @@ def get_dept_head_activity_logs(request):
         
         result = []
         for log in logs:
+            action_labels = {
+                'validate_convention': 'Validation de convention',
+                'reject_convention': 'Refus de convention',
+                'generate_convention': 'Génération de convention',
+                'approve_co_dept_head': 'Approbation Co Dept Head',
+                'reject_co_dept_head': 'Refus Co Dept Head',
+                'add_signature': 'Ajout de signature',
+                'update_permissions': 'Modification des permissions',
+                'delete_co_dept_head': 'Suppression Co Dept Head',
+                'create_offer': 'Création d\'offre',
+                'update_offer': 'Modification d\'offre',
+                'delete_offer': 'Suppression d\'offre',
+                'accept_application': 'Acceptation de candidature',
+                'reject_application': 'Refus de candidature'
+            }
+            
             result.append({
                 'id': str(log.id),
                 'user_email': log.user_email,
                 'user_name': log.user_email.split('@')[0],
                 'action_type': log.action_type,
-                'action_label': {
-                    'validate_convention': 'Validation de convention',
-                    'reject_convention': 'Refus de convention',
-                    'generate_convention': 'Génération de convention',
-                    'approve_co_dept_head': 'Approbation Co Dept Head',
-                    'reject_co_dept_head': 'Refus Co Dept Head'
-                }.get(log.action_type, log.action_type),
+                'action_label': action_labels.get(log.action_type, log.action_type),
                 'target_type': log.target_type,
                 'target_name': log.target_name,
                 'details': log.details,
@@ -2655,12 +2677,20 @@ def get_dept_head_activity_logs(request):
             'rejections_count': logs.filter(action_type='reject_convention').count(),
             'generations_count': logs.filter(action_type='generate_convention').count(),
             'approvals_count': logs.filter(action_type='approve_co_dept_head').count(),
-            'rejections_co_count': logs.filter(action_type='reject_co_dept_head').count()
+            'rejections_co_count': logs.filter(action_type='reject_co_dept_head').count(),
+            'signatures_count': logs.filter(action_type='add_signature').count(),
+            'permissions_count': logs.filter(action_type='update_permissions').count(),
+            'deletions_count': logs.filter(action_type='delete_co_dept_head').count(),
+            'offers_count': logs.filter(action_type__in=['create_offer', 'update_offer', 'delete_offer']).count(),
+            'applications_count': logs.filter(action_type__in=['accept_application', 'reject_application']).count()
         }
         
         for log in logs:
             action = log.action_type
             stats['by_type'][action] = stats['by_type'].get(action, 0) + 1
+        
+        print(f"Logs trouvés: {len(result)}")
+        print(f"Signatures: {stats['signatures_count']}")
         
         return Response({
             'success': True,
@@ -2670,6 +2700,8 @@ def get_dept_head_activity_logs(request):
         })
         
     except Exception as e:
+        print(f" Erreur: {str(e)}")
+        traceback.print_exc()
         return Response({'success': False, 'error': str(e)}, status=500)
 
 
@@ -2685,113 +2717,215 @@ def check_user_exists(request):
     except Exception as e:
         return Response({'exists': False, 'error': str(e)})
 
-
 def generate_internship_agreement_pdf(application, admin_user):
-    """Génère une convention de stage pour le CO-DEPT HEAD ou Department Head"""
+    """Génère une convention de stage avec signature et cachet importé"""
     from reportlab.lib.pagesizes import A4
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import cm
     from reportlab.lib import colors
     from django.core.files.base import ContentFile
     from io import BytesIO
+    import base64
+    from PIL import Image as PILImage
+    import io
     
     buffer = BytesIO()
     
-    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2.5*cm, bottomMargin=2.5*cm, leftMargin=2*cm, rightMargin=2*cm)
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm, leftMargin=2*cm, rightMargin=2*cm)
     styles = getSampleStyleSheet()
     
-    title_style = ParagraphStyle('CustomTitle', parent=styles['Title'], fontSize=18, alignment=1, spaceAfter=30, textColor=colors.HexColor('#2c3e50'))
-    heading_style = ParagraphStyle('CustomHeading', parent=styles['Heading2'], fontSize=12, alignment=0, spaceBefore=15, spaceAfter=8, textColor=colors.HexColor('#2980b9'))
-    normal_style = ParagraphStyle('CustomNormal', parent=styles['Normal'], fontSize=10, alignment=0, spaceAfter=6, leading=14)
+    title_style = ParagraphStyle('CustomTitle', parent=styles['Title'], fontSize=16, alignment=1, spaceAfter=20, fontName='Helvetica-Bold')
+    heading_style = ParagraphStyle('CustomHeading', parent=styles['Heading2'], fontSize=12, alignment=0, spaceBefore=12, spaceAfter=6, fontName='Helvetica-Bold')
+    normal_style = ParagraphStyle('CustomNormal', parent=styles['Normal'], fontSize=10, alignment=0, spaceAfter=4, leading=14)
+    bold_style = ParagraphStyle('BoldNormal', parent=normal_style, fontName='Helvetica-Bold')
     
     story = []
     
     today = datetime.now().strftime('%d/%m/%Y')
     
-    story.append(Paragraph("REPUBLIQUE ALGERIENNE DEMOCRATIQUE ET POPULAIRE", title_style))
-    story.append(Paragraph("MINISTERE DE L'ENSEIGNEMENT SUPERIEUR ET DE LA RECHERCHE SCIENTIFIQUE", title_style))
-    story.append(Paragraph(f"<b>{application.student.university}</b>", title_style))
-    story.append(Spacer(1, 1*cm))
     story.append(Paragraph("CONVENTION DE STAGE", title_style))
     story.append(Spacer(1, 0.5*cm))
-    story.append(Paragraph(f"Fait à Alger, le {today}", normal_style))
+    
+    story.append(Paragraph("ENTRE", bold_style))
+    story.append(Spacer(1, 0.3*cm))
+    
+    company = application.offer.company
+    story.append(Paragraph(f"<b>L'entreprise (nom et adresse)</b><br/>{company.company_name}<br/>{company.location}<br/>Tel: {getattr(company, 'phone', 'Non renseigné')}<br/>Fax: ...", normal_style))
+    story.append(Spacer(1, 0.3*cm))
+    
+    story.append(Paragraph(f"<b>L'UNIVERSITE DE {application.student.university.upper()}</b><br/>{application.student.university}<br/>Representee par: {admin_user.full_name}<br/>Tel/Fax: 021 30 31 82", normal_style))
+    story.append(Spacer(1, 0.3*cm))
+    
+    story.append(Paragraph("ET", bold_style))
+    story.append(Spacer(1, 0.3*cm))
+    
+    story.append(Paragraph(f"<b>Monsieur/Madame :</b> {application.student.full_name}", normal_style))
     story.append(Spacer(1, 0.5*cm))
     
-    story.append(Paragraph("<b>Article 1 : Parties prenantes</b>", heading_style))
-    story.append(Paragraph(f"""
-    <b>L'Entreprise d'accueil :</b><br/>
-    {application.offer.company.company_name}<br/>
-    Située à : {application.offer.company.location}<br/>
-    """, normal_style))
-    story.append(Paragraph(f"""
-    <b>L'Étudiant stagiaire :</b><br/>
-    {application.student.full_name}<br/>
-    Étudiant à : {application.student.university}<br/>
-    Filière : {application.student.major}<br/>
-    Niveau : {application.student.education_level}<br/>
-    """, normal_style))
-    story.append(Paragraph(f"""
-    <b>L'Établissement d'enseignement :</b><br/>
-    {application.student.university}<br/>
-    Représentée par : {admin_user.full_name}<br/>
-    """, normal_style))
-    story.append(Spacer(1, 0.5*cm))
+    story.append(Paragraph("DONNEES RELATIVES A L'ETUDIANT", heading_style))
+    story.append(Spacer(1, 0.3*cm))
     
-    story.append(Paragraph("<b>Article 2 : Objet du stage</b>", heading_style))
-    story.append(Paragraph(f"""
-    Le stage a pour objet de permettre à l'étudiant de mettre en pratique ses connaissances
-    dans le domaine de {application.offer.title}.
-    <br/><b>Description :</b> {application.offer.description}
-    """, normal_style))
-    story.append(Spacer(1, 0.5*cm))
-    
-    story.append(Paragraph("<b>Article 3 : Durée et période</b>", heading_style))
-    start_date = application.offer.start_date.strftime('%d/%m/%Y') if application.offer.start_date else "À déterminer"
-    story.append(Paragraph(f"""
-    La durée du stage est fixée à <b>{application.offer.duration}</b>.<br/>
-    Le stage débutera le <b>{start_date}</b>.
-    """, normal_style))
-    story.append(Spacer(1, 0.5*cm))
-    
-    story.append(Paragraph("<b>Article 4 : Compétences requises</b>", heading_style))
-    skills_text = ", ".join(application.offer.required_skills) if application.offer.required_skills else "Aucune"
-    story.append(Paragraph(f"Compétences : <b>{skills_text}</b>", normal_style))
-    story.append(Spacer(1, 0.5*cm))
-    
-    story.append(Paragraph("<b>Article 5 : Signatures</b>", heading_style))
-    story.append(Spacer(1, 0.5*cm))
-    
-    signature_data = [
-        ["", "", ""],
-        ["<b>L'Étudiant</b>", "<b>L'Entreprise</b>", "<b>L'Université</b>"],
-        [application.student.full_name, application.offer.company.company_name, admin_user.full_name],
-        ["", "", ""],
-        ["Signature :", "Signature :", "Signature :"],
-        ["", "", ""],
-        ["Date :", "Date :", f"Date : {today}"],
+    student_data = [
+        ["Nom et prenom:", application.student.full_name],
+        ["Faculte:", application.student.major.split()[0] if application.student.major else "Informatique"],
+        ["Departement:", application.student.major.split()[0] if application.student.major else "Informatique"],
+        ["Carte d'etudiant n°:", str(application.student.user.id)[-8:]],
+        ["N° Securite Sociale:", "Non renseigné"],
+        ["Tel:", application.student.user.email],
+        ["Diplome prepare:", application.student.education_level],
+        ["Theme du stage:", application.offer.title],
+        ["Responsable pedagogique:", admin_user.full_name],
+        ["Duree du stage:", application.offer.duration],
+        ["Date de debut du stage:", application.offer.start_date.strftime('%d/%m/%Y') if application.offer.start_date else "À déterminer"],
+        ["Date de fin du stage:", "À déterminer"],
     ]
     
-    signature_table = Table(signature_data, colWidths=[5*cm, 5*cm, 5*cm])
+    student_table = Table(student_data, colWidths=[5*cm, 11*cm])
+    student_table.setStyle(TableStyle([
+        ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+        ('FONTSIZE', (0,0), (-1,-1), 9),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ('LEFTPADDING', (0,0), (-1,-1), 2),
+        ('RIGHTPADDING', (0,0), (-1,-1), 2),
+        ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+    ]))
+    story.append(student_table)
+    story.append(Spacer(1, 0.5*cm))
+    
+    story.append(Paragraph("Etablie en 02 exemplaires originaux: 1 exemplaire pour l'universite et 01 exemplaire pour l'entreprise", normal_style))
+    story.append(Spacer(1, 0.5*cm))
+    
+    story.append(Paragraph(f"Fait a Constantine le: {today}", normal_style))
+    story.append(Spacer(1, 1*cm))
+    
+    story.append(Paragraph("Signatures et Cachet:", heading_style))
+    story.append(Spacer(1, 0.3*cm))
+    
+    # Charger la signature
+    signature_img = None
+    stamp_img = None
+    
+    if application.university_signature:
+        try:
+            sig_data = application.university_signature
+            if ',' in sig_data:
+                sig_data = sig_data.split(',')[1]
+            img_data = base64.b64decode(sig_data)
+            img_io = io.BytesIO(img_data)
+            signature_img = Image(img_io, width=4*cm, height=1.5*cm)
+        except Exception as e:
+            print(f"Erreur chargement signature: {e}")
+    
+    # Charger le cachet importé
+    if application.university_stamp:
+        try:
+            stamp_data = application.university_stamp
+            if ',' in stamp_data:
+                stamp_data = stamp_data.split(',')[1]
+            stamp_img_data = base64.b64decode(stamp_data)
+            stamp_io = io.BytesIO(stamp_img_data)
+            stamp_img = Image(stamp_io, width=3*cm, height=3*cm)
+        except Exception as e:
+            print(f"Erreur chargement cachet: {e}")
+    
+    signature_data = [
+        ["", "", "", ""],
+        ["<b>Visa du chef de departement:</b>", "<b>Pour l'entreprise</b>", "<b>Pour l'universite</b>", "<b>Cachet de l'universite</b>"],
+        ["", "", "", ""],
+        ["", "", "", ""],
+    ]
+    
+    # Remplir les cellules
+    if signature_img:
+        signature_data[3][2] = signature_img
+    else:
+        signature_data[3][2] = Paragraph("Signature :", normal_style)
+    
+    if stamp_img:
+        signature_data[3][3] = stamp_img
+    else:
+        signature_data[3][3] = Paragraph("Cachet :", normal_style)
+    
+    signature_table = Table(signature_data, colWidths=[3.5*cm, 3.5*cm, 3.5*cm, 3.5*cm])
     signature_table.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('FONTNAME', (0,1), (-1,1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,0), (-1,-1), 10),
-        ('TOPPADDING', (0,0), (-1,-1), 8),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+        ('FONTSIZE', (0,0), (-1,-1), 8),
+        ('TOPPADDING', (0,0), (-1,-1), 10),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+        ('BACKGROUND', (0,1), (-1,1), colors.HexColor('#f0f0f0')),
     ]))
     story.append(signature_table)
-    
-    story.append(Spacer(1, 1*cm))
-    story.append(Paragraph(f"<i>Convention générée automatiquement le {today}</i>", normal_style))
     
     doc.build(story)
     
     pdf_content = ContentFile(buffer.getvalue())
-    pdf_content.name = f"convention_{application.student.full_name}_{application.offer.company.company_name}_{today}.pdf"
+    pdf_content.name = f"convention_{application.student.full_name}_{application.offer.company.company_name}.pdf"
     return pdf_content
 
+@api_view(['POST'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin', 'co_dept_head'])
+def add_university_signature(request, application_id):
+    """
+    Department Head ou Co Department Head - Ajoute la signature de l'université
+    """
+    try:
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'success': False, 'error': 'Application not found'}, status=404)
+        
+        admin_profile = Admin.objects(user=request.user).first()
+        if not admin_profile:
+            return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
+        
+        if application.student.university != admin_profile.university:
+            return Response({'success': False, 'error': 'Unauthorized'}, status=403)
+        
+        if application.status != 'validated_by_co_dept':
+            return Response({'success': False, 'error': 'Convention not validated yet'}, status=400)
+        
+        signature_data = request.data.get('signature', '')
+        if not signature_data:
+            return Response({'success': False, 'error': 'Signature data required'}, status=400)
+        
+        application.university_signature = signature_data
+        application.university_signature_date = datetime.now()
+        application.university_signed_by = admin_profile.full_name
+        application.signature_status = 'university_signed'
+        
+        # ============ RÉGÉNÉRER LE PDF AVEC LA SIGNATURE ============
+        # Générer un nouveau PDF qui inclut la signature
+        new_pdf = generate_internship_agreement_pdf(application, admin_profile)
+        application.convention_pdf = new_pdf
+        # ============================================================
+        
+        application.save()
+        
+        log_activity(
+            user=request.user,
+            action_type='add_signature',
+            target_type='convention',
+            target_id=str(application.id),
+            target_name=f"{application.student.full_name} - {application.offer.title}",
+            details={'signature_type': 'university', 'signed_by': admin_profile.full_name}
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'University signature added successfully',
+            'signed_by': admin_profile.full_name,
+            'signature_status': application.signature_status
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
 
 @api_view(['POST'])
 @jwt_authenticated
@@ -2869,17 +3003,18 @@ def generate_convention_from_template(request, application_id):
 
 
 def generate_convention_pdf_template(application):
-    """Génère une convention de stage en utilisant le template"""
+    """Génère une convention de stage en utilisant le template avec signatures"""
     from reportlab.lib.pagesizes import A4
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import cm
     from reportlab.lib import colors
     from django.core.files.base import ContentFile
     from io import BytesIO
+    import base64
+    import tempfile
     
     buffer = BytesIO()
-    
     
     doc = SimpleDocTemplate(
         buffer, 
@@ -2891,7 +3026,6 @@ def generate_convention_pdf_template(application):
     )
     
     styles = getSampleStyleSheet()
-    
     
     title_style = ParagraphStyle(
         'CustomTitle',
@@ -2925,7 +3059,6 @@ def generate_convention_pdf_template(application):
     
     today = datetime.now().strftime('%d/%m/%Y')
     
-    
     story.append(Paragraph("REPUBLIQUE ALGERIENNE DEMOCRATIQUE ET POPULAIRE", title_style))
     story.append(Paragraph("MINISTERE DE L'ENSEIGNEMENT SUPERIEUR ET DE LA RECHERCHE SCIENTIFIQUE", title_style))
     story.append(Paragraph(f"<b>{application.student.university}</b>", title_style))
@@ -2935,7 +3068,7 @@ def generate_convention_pdf_template(application):
     story.append(Paragraph(f"Fait à Alger, le {today}", normal_style))
     story.append(Spacer(1, 0.5*cm))
     
-   
+    # Article 1
     story.append(Paragraph("Article 1 : L'ÉTABLISSEMENT DE FORMATION", heading_style))
     story.append(Paragraph(f"""
     <b>Nom :</b> {application.student.university}<br/>
@@ -2945,10 +3078,8 @@ def generate_convention_pdf_template(application):
     """, normal_style))
     story.append(Spacer(1, 0.3*cm))
     
-   
+    # Article 2
     story.append(Paragraph("Article 2 : L'ORGANISME D'ACCUEIL", heading_style))
-    
-    
     company = application.offer.company
     company_phone = getattr(company, 'phone', None) or getattr(company, 'telephone', None) or 'Non renseigné'
     company_website = getattr(company, 'website', None) or 'Non renseigné'
@@ -2966,10 +3097,8 @@ def generate_convention_pdf_template(application):
     """, normal_style))
     story.append(Spacer(1, 0.3*cm))
     
-    
+    # Article 3
     story.append(Paragraph("Article 3 : LE STAGIAIRE", heading_style))
-    
-    
     full_name_parts = application.student.full_name.split()
     first_name = full_name_parts[0] if full_name_parts else ''
     last_name = ' '.join(full_name_parts[1:]) if len(full_name_parts) > 1 else ''
@@ -2985,11 +3114,9 @@ def generate_convention_pdf_template(application):
     """, normal_style))
     story.append(Spacer(1, 0.3*cm))
     
-    
+    # Article 4
     story.append(Paragraph("Article 4 : SUJET DE STAGE", heading_style))
-    
     start_date = application.offer.start_date.strftime('%d/%m/%Y') if application.offer.start_date else "À déterminer"
-    
     
     end_date_str = "À déterminer"
     if application.offer.start_date and application.offer.duration:
@@ -3016,16 +3143,14 @@ def generate_convention_pdf_template(application):
     """, normal_style))
     story.append(Spacer(1, 0.3*cm))
     
-    
+    # Article 5
     story.append(Paragraph("Article 5 : ENCADREMENT DU STAGIAIRE", heading_style))
-    
     story.append(Paragraph("""
     <b>Par l'établissement de formation :</b><br/>
     Nom et prénom du formateur référent : Responsable pédagogique<br/>
     Fonction : Coordinateur des stages
     """, normal_style))
     story.append(Spacer(1, 0.2*cm))
-    
     story.append(Paragraph(f"""
     <b>Par l'organisme d'accueil :</b><br/>
     Nom et prénom du tuteur de stage : {company.user.username if company.user else 'Responsable'}<br/>
@@ -3034,19 +3159,77 @@ def generate_convention_pdf_template(application):
     """, normal_style))
     story.append(Spacer(1, 0.5*cm))
     
-    
+    # Article 6 - Signatures
     story.append(Paragraph("Article 6 : Signatures", heading_style))
     story.append(Spacer(1, 0.5*cm))
+    
+    # Charger les signatures
+    university_signature_img = None
+    company_signature_img = None
+    student_signature_img = None
+    
+    if application.university_signature:
+        try:
+            sig_data = application.university_signature
+            if ',' in sig_data:
+                sig_data = sig_data.split(',')[1]
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
+                tmp_file.write(base64.b64decode(sig_data))
+                tmp_file_path = tmp_file.name
+            university_signature_img = Image(tmp_file_path, width=3*cm, height=1.5*cm)
+        except Exception as e:
+            print(f"Erreur chargement signature université: {e}")
+    
+    if application.company_signature:
+        try:
+            sig_data = application.company_signature
+            if ',' in sig_data:
+                sig_data = sig_data.split(',')[1]
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
+                tmp_file.write(base64.b64decode(sig_data))
+                tmp_file_path = tmp_file.name
+            company_signature_img = Image(tmp_file_path, width=3*cm, height=1.5*cm)
+        except Exception as e:
+            print(f"Erreur chargement signature entreprise: {e}")
+    
+    if application.student_signature:
+        try:
+            sig_data = application.student_signature
+            if ',' in sig_data:
+                sig_data = sig_data.split(',')[1]
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
+                tmp_file.write(base64.b64decode(sig_data))
+                tmp_file_path = tmp_file.name
+            student_signature_img = Image(tmp_file_path, width=3*cm, height=1.5*cm)
+        except Exception as e:
+            print(f"Erreur chargement signature étudiant: {e}")
     
     signature_data = [
         ["", "", ""],
         ["<b>L'Établissement de formation</b>", "<b>L'Organisme d'accueil</b>", "<b>Le Stagiaire</b>"],
         ["", "", ""],
         ["", "", ""],
-        ["Signature :", "Signature :", "Signature :"],
-        ["", "", ""],
-        ["Date :", "Date :", f"Date : {today}"],
     ]
+    
+    signature_row = []
+    if university_signature_img:
+        signature_row.append(university_signature_img)
+    else:
+        signature_row.append(Paragraph("Signature :", normal_style))
+    
+    if company_signature_img:
+        signature_row.append(company_signature_img)
+    else:
+        signature_row.append(Paragraph("Signature :", normal_style))
+    
+    if student_signature_img:
+        signature_row.append(student_signature_img)
+    else:
+        signature_row.append(Paragraph("Signature :", normal_style))
+    
+    signature_data.append(signature_row)
+    signature_data.append(["", "", ""])
+    signature_data.append(["Date :", "Date :", f"Date : {today}"])
     
     signature_table = Table(signature_data, colWidths=[5*cm, 5*cm, 5*cm])
     signature_table.setStyle(TableStyle([
@@ -3059,21 +3242,17 @@ def generate_convention_pdf_template(application):
     ]))
     story.append(signature_table)
     
-   
     story.append(Spacer(1, 1*cm))
     story.append(Paragraph(f"""
     <i>Convention de stage générée automatiquement le {today}<br/>
     Conformément aux articles D124-1 à D124-13 du Code de l'éducation</i>
     """, normal_style))
     
-    
     doc.build(story)
     
     pdf_content = ContentFile(buffer.getvalue())
     pdf_content.name = f"convention_{application.student.full_name}_{application.offer.company.company_name}.pdf"
     return pdf_content
-
-
 # ==================== PERMISSIONS MANAGEMENT ENDPOINTS ====================
 
 @api_view(['GET'])
@@ -3129,34 +3308,32 @@ def get_co_dept_heads_list(request):
         if not dept_head:
             return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
         
-        co_dept_heads = User.objects(
-            role='admin',
-            sub_role='co_dept_head',
-            pending_admin_id=str(request.user.id)
-        )
+        # Récupérer TOUS les co dept heads de la même université
+        co_dept_admins = Admin.objects(university=dept_head.university)
         
         result = []
-        for cd in co_dept_heads:
-            permissions = get_user_permissions(cd)
-            result.append({
-                'id': str(cd.id),
-                'username': cd.username,
-                'email': cd.email,
-                'status': cd.status,
-                'created_at': cd.created_at.strftime('%d/%m/%Y'),
-                'permissions': {
-                    'can_manage_conventions': permissions.can_manage_conventions if permissions else True,
-                    'can_add_signature': permissions.can_add_signature if permissions else True,
-                    'can_manage_university_profile': permissions.can_manage_university_profile if permissions else False,
-                }
-            })
+        for admin_profile in co_dept_admins:
+            if admin_profile.user and admin_profile.user.role == 'admin' and admin_profile.user.sub_role == 'co_dept_head':
+                cd = admin_profile.user
+                permissions = get_user_permissions(cd)
+                result.append({
+                    'id': str(cd.id),
+                    'username': cd.username,
+                    'email': cd.email,
+                    'status': cd.status,
+                    'created_at': cd.created_at.strftime('%d/%m/%Y'),
+                    'permissions': {
+                        'can_manage_conventions': permissions.can_manage_conventions if permissions else True,
+                        'can_manage_co_dept_heads': permissions.can_manage_co_dept_heads if permissions else False,
+                        'can_add_signature': permissions.can_add_signature if permissions else True,
+                        'can_manage_university_profile': permissions.can_manage_university_profile if permissions else False,
+                    }
+                })
         
         return Response({'success': True, 'co_dept_heads': result})
         
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
-
-
 # ==================== UPDATE PERMISSIONS ENDPOINTS ====================
 
 @api_view(['PUT'])
@@ -3209,6 +3386,7 @@ def update_hiring_manager_permissions(request, user_id):
 
 @api_view(['PUT'])
 @jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin'])
 def update_co_dept_head_permissions(request, user_id):
     """
     Department Head - Met à jour les permissions d'un co dept head
@@ -3222,10 +3400,19 @@ def update_co_dept_head_permissions(request, user_id):
         if not dept_head:
             return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
         
-        # Vérifier que le co dept head appartient à cette université
+        # Chercher le co dept head (sans vérifier pending_admin_id)
         co_dept = User.objects(id=user_id, role='admin', sub_role='co_dept_head').first()
-        if not co_dept or co_dept.pending_admin_id != str(request.user.id):
+        if not co_dept:
             return Response({'success': False, 'error': 'Co Dept Head not found'}, status=404)
+        
+        # Vérifier par université au lieu de pending_admin_id
+        co_dept_admin = Admin.objects(user=co_dept).first()
+        if not co_dept_admin:
+            # Si pas de profil Admin, créer un temporaire pour vérification
+            return Response({'success': False, 'error': 'Co Dept Head admin profile not found'}, status=404)
+        
+        if co_dept_admin.university != dept_head.university:
+            return Response({'success': False, 'error': f'Unauthorized - Different university. Co Dept Head: {co_dept_admin.university}, Your university: {dept_head.university}'}, status=403)
         
         # Mettre à jour les permissions
         permissions_data = {
@@ -3251,7 +3438,6 @@ def update_co_dept_head_permissions(request, user_id):
         
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
-
 
 # ==================== DELETE ENDPOINTS ====================
 
@@ -3342,7 +3528,7 @@ def delete_co_dept_head(request, user_id):
         return Response({'success': False, 'error': str(e)}, status=500)
 
 
-# ==================== APPROVED LISTS ENDPOINTS (FINAL) ====================
+# ==================== APPROVED LISTS ENDPOINTS ====================
 
 @api_view(['GET'])
 @jwt_authenticated
@@ -3439,6 +3625,734 @@ def get_approved_co_dept_heads(request):
             })
         
         return Response({'success': True, 'co_dept_heads': result})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+# ==================== STUDENT MANAGEMENT ENDPOINTS ====================
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin', 'co_dept_head'])
+def get_university_students(request):
+    """
+    Department Head ou Co Department Head - Liste des étudiants de l'université
+    """
+    try:
+        admin_profile = Admin.objects(user=request.user).first()
+        if not admin_profile:
+            return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
+        
+        university = admin_profile.university
+        students = Student.objects(university=university)
+        
+        # Filtres
+        search = request.query_params.get('search', '').strip()
+        if search:
+            students = students.filter(
+                __raw__={
+                    '$or': [
+                        {'full_name': {'$regex': search, '$options': 'i'}},
+                        {'major': {'$regex': search, '$options': 'i'}},
+                    ]
+                }
+            )
+        
+        major = request.query_params.get('major', '').strip()
+        if major:
+            students = students.filter(major__iexact=major)
+        
+        wilaya = request.query_params.get('wilaya', '').strip()
+        if wilaya:
+            students = students.filter(wilaya=wilaya)
+        
+        skills = request.query_params.get('skills', '').strip()
+        if skills:
+            skill_list = [s.strip() for s in skills.split(',') if s.strip()]
+            students = students.filter(skills__in=skill_list)
+        
+        is_placed = request.query_params.get('is_placed', '').strip()
+        if is_placed == 'true':
+            students = students.filter(is_placed=True)
+        elif is_placed == 'false':
+            students = students.filter(is_placed=False)
+        
+        total_students = Student.objects(university=university).count()
+        placed_students = Student.objects(university=university, is_placed=True).count()
+        
+        result = []
+        for student in students:
+            applications_count = Application.objects(student=student).count()
+            accepted_applications = Application.objects(student=student, status='accepted_by_company').count()
+            created_at = student.user.created_at if student.user else None
+            
+            result.append({
+                'id': str(student.id),
+                'full_name': student.full_name,
+                'email': student.user.email if student.user else None,
+                'wilaya': student.wilaya,
+                'skills': student.skills,
+                'github': student.github,
+                'portfolio': student.portfolio,
+                'education_level': student.education_level,
+                'university': student.university,
+                'major': student.major,
+                'graduation_year': student.graduation_year,
+                'is_placed': student.is_placed,
+                'placed_company_name': student.placed_company.company_name if student.placed_company else None,
+                'placement_date': student.placement_date.strftime('%d/%m/%Y') if student.placement_date else None,
+                'created_at': created_at.strftime('%d/%m/%Y') if created_at else 'N/A',
+                'applications_count': applications_count,
+                'accepted_applications': accepted_applications,
+                'validated_applications': Application.objects(student=student, status='validated_by_co_dept').count(),
+            })
+        
+        return Response({
+            'success': True,
+            'students': result,
+            'stats': {
+                'total': total_students,
+                'placed': placed_students,
+                'unplaced': total_students - placed_students,
+                'filtered': len(result)
+            },
+            'university': university
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin', 'co_dept_head'])
+def get_student_details(request, student_id):
+    """
+    Department Head ou Co Department Head - Détails d'un étudiant
+    """
+    try:
+        admin_profile = Admin.objects(user=request.user).first()
+        if not admin_profile:
+            return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
+        
+        student = Student.objects(id=student_id).first()
+        if not student:
+            return Response({'success': False, 'error': 'Student not found'}, status=404)
+        
+        if student.university != admin_profile.university:
+            return Response({'success': False, 'error': 'Unauthorized'}, status=403)
+        
+        applications = Application.objects(student=student).order_by('-applied_at')
+        
+        applications_list = []
+        for app in applications:
+            applications_list.append({
+                'id': str(app.id),
+                'offer_title': app.offer.title if app.offer else None,
+                'company_name': app.offer.company.company_name if app.offer and app.offer.company else None,
+                'status': app.status,
+                'applied_at': app.applied_at.strftime('%d/%m/%Y'),
+                'company_response_date': app.company_response_date.strftime('%d/%m/%Y') if app.company_response_date else None,
+            })
+        
+        return Response({
+            'success': True,
+            'student': {
+                'id': str(student.id),
+                'full_name': student.full_name,
+                'email': student.user.email if student.user else None,
+                'wilaya': student.wilaya,
+                'skills': student.skills,
+                'github': student.github,
+                'portfolio': student.portfolio,
+                'education_level': student.education_level,
+                'university': student.university,
+                'major': student.major,
+                'graduation_year': student.graduation_year,
+                'is_placed': student.is_placed,
+                'placed_company_name': student.placed_company.company_name if student.placed_company else None,
+                'placement_date': student.placement_date.strftime('%d/%m/%Y') if student.placement_date else None,
+                'created_at': student.user.created_at.strftime('%d/%m/%Y') if student.user else 'N/A',
+            },
+            'applications': applications_list
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin', 'co_dept_head'])
+def get_university_stats(request):
+    """
+    Department Head ou Co Department Head - Statistiques de l'université
+    """
+    try:
+        admin_profile = Admin.objects(user=request.user).first()
+        if not admin_profile:
+            return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
+        
+        university = admin_profile.university
+        
+        total_students = Student.objects(university=university).count()
+        placed_students = Student.objects(university=university, is_placed=True).count()
+        
+        # Statistiques par filière
+        majors = Student.objects(university=university).distinct('major')
+        major_stats = []
+        for major in majors:
+            if major:
+                count = Student.objects(university=university, major=major).count()
+                placed = Student.objects(university=university, major=major, is_placed=True).count()
+                major_stats.append({
+                    'name': major,
+                    'total': count,
+                    'placed': placed,
+                    'placement_rate': round((placed / count * 100) if count > 0 else 0, 1)
+                })
+        
+        # Statistiques par année
+        years = Student.objects(university=university).distinct('graduation_year')
+        year_stats = []
+        for year in years:
+            if year:
+                count = Student.objects(university=university, graduation_year=year).count()
+                placed = Student.objects(university=university, graduation_year=year, is_placed=True).count()
+                year_stats.append({
+                    'year': year,
+                    'total': count,
+                    'placed': placed,
+                    'placement_rate': round((placed / count * 100) if count > 0 else 0, 1)
+                })
+        
+        # Top compétences
+        all_skills = []
+        for student in Student.objects(university=university):
+            all_skills.extend(student.skills)
+        from collections import Counter
+        top_skills = Counter(all_skills).most_common(10)
+        top_skills_list = [{'skill': skill, 'count': count} for skill, count in top_skills]
+        
+        return Response({
+            'success': True,
+            'stats': {
+                'total_students': total_students,
+                'placed_students': placed_students,
+                'unplaced_students': total_students - placed_students,
+                'placement_rate': round((placed_students / total_students * 100) if total_students > 0 else 0, 1),
+                'by_major': major_stats,
+                'by_graduation_year': year_stats,
+                'top_skills': top_skills_list
+            }
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin', 'co_dept_head'])
+def get_placement_statistics(request):
+    """
+    Department Head ou Co Department Head - Statistiques détaillées de placement
+    """
+    try:
+        admin_profile = Admin.objects(user=request.user).first()
+        if not admin_profile:
+            return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
+        
+        university = admin_profile.university
+        
+        total_students = Student.objects(university=university).count()
+        placed_students = Student.objects(university=university, is_placed=True).count()
+        unplaced_students = total_students - placed_students
+        placement_rate = round((placed_students / total_students * 100), 1) if total_students > 0 else 0
+        
+        # Statistiques par filière
+        majors = Student.objects(university=university).distinct('major')
+        major_stats = []
+        for major in majors:
+            if major:
+                students_in_major = Student.objects(university=university, major=major)
+                total = students_in_major.count()
+                placed = students_in_major.filter(is_placed=True).count()
+                major_stats.append({
+                    'name': major,
+                    'total': total,
+                    'placed': placed,
+                    'unplaced': total - placed,
+                    'placement_rate': round((placed / total * 100), 1) if total > 0 else 0
+                })
+        
+        # Statistiques par année
+        years = Student.objects(university=university).distinct('graduation_year')
+        year_stats = []
+        for year in years:
+            if year:
+                students_in_year = Student.objects(university=university, graduation_year=year)
+                total = students_in_year.count()
+                placed = students_in_year.filter(is_placed=True).count()
+                year_stats.append({
+                    'year': year,
+                    'total': total,
+                    'placed': placed,
+                    'unplaced': total - placed,
+                    'placement_rate': round((placed / total * 100), 1) if total > 0 else 0
+                })
+        
+        # Top compétences
+        placed_skills = []
+        unplaced_skills = []
+        
+        for student in Student.objects(university=university, is_placed=True):
+            placed_skills.extend(student.skills)
+        
+        for student in Student.objects(university=university, is_placed=False):
+            unplaced_skills.extend(student.skills)
+        
+        from collections import Counter
+        top_placed_skills = Counter(placed_skills).most_common(10)
+        top_unplaced_skills = Counter(unplaced_skills).most_common(10)
+        
+        return Response({
+            'success': True,
+            'stats': {
+                'global': {
+                    'total_students': total_students,
+                    'placed_students': placed_students,
+                    'unplaced_students': unplaced_students,
+                    'placement_rate': placement_rate
+                },
+                'by_major': major_stats,
+                'by_graduation_year': year_stats,
+                'top_skills': {
+                    'placed': [{'skill': s, 'count': c} for s, c in top_placed_skills],
+                    'unplaced': [{'skill': s, 'count': c} for s, c in top_unplaced_skills]
+                }
+            }
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+# ==================== SIGNATURE MANAGEMENT ENDPOINTS ====================
+
+@api_view(['POST'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin', 'co_dept_head'])
+def add_university_signature(request, application_id):
+    """
+    Department Head ou Co Department Head - Ajoute la signature de l'université
+    """
+    try:
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'success': False, 'error': 'Application not found'}, status=404)
+        
+        admin_profile = Admin.objects(user=request.user).first()
+        if not admin_profile:
+            return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
+        
+        if application.student.university != admin_profile.university:
+            return Response({'success': False, 'error': 'Unauthorized'}, status=403)
+        
+        if application.status != 'validated_by_co_dept':
+            return Response({'success': False, 'error': 'Convention not validated yet'}, status=400)
+        
+        signature_data = request.data.get('signature', '')
+        if not signature_data:
+            return Response({'success': False, 'error': 'Signature data required'}, status=400)
+        
+        application.university_signature = signature_data
+        application.university_signature_date = datetime.now()
+        application.university_signed_by = admin_profile.full_name
+        application.signature_status = 'university_signed'
+        
+        # ============ RÉGÉNÉRER LE PDF AVEC LA SIGNATURE ============
+        # Générer un nouveau PDF qui inclut la signature
+        new_pdf = generate_internship_agreement_pdf(application, admin_profile)
+        application.convention_pdf = new_pdf
+        # ============================================================
+        
+        application.save()
+        
+        log_activity(
+            user=request.user,
+            action_type='add_signature',
+            target_type='convention',
+            target_id=str(application.id),
+            target_name=f"{application.student.full_name} - {application.offer.title}",
+            details={'signature_type': 'university', 'signed_by': admin_profile.full_name}
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'University signature added successfully',
+            'signed_by': admin_profile.full_name,
+            'signature_status': application.signature_status
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+@api_view(['POST'])
+@jwt_authenticated
+@role_required(allowed_roles=['company'])
+def add_company_signature(request, application_id):
+    """
+    Company - Ajoute la signature de l'entreprise à la convention
+    """
+    try:
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'success': False, 'error': 'Application not found'}, status=404)
+        
+        company = _get_user_company(request.user)
+        if not company or str(application.offer.company.id) != str(company.id):
+            return Response({'success': False, 'error': 'Unauthorized'}, status=403)
+        
+        if application.status != 'validated_by_co_dept':
+            return Response({'success': False, 'error': 'Convention not validated yet'}, status=400)
+        
+        signature_data = request.data.get('signature', '')
+        if not signature_data:
+            return Response({'success': False, 'error': 'Signature data required'}, status=400)
+        
+        application.company_signature = signature_data
+        application.company_signature_date = datetime.now()
+        application.company_signed_by = request.user.username
+        application.signature_status = 'company_signed'
+        application.save()
+        
+        log_activity(
+            user=request.user,
+            action_type='add_signature',
+            target_type='convention',
+            target_id=str(application.id),
+            target_name=f"{application.student.full_name} - {application.offer.title}",
+            details={'signature_type': 'company', 'signed_by': request.user.username}
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'Company signature added successfully',
+            'signed_by': request.user.username,
+            'signature_status': application.signature_status
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+@jwt_authenticated
+@role_required(allowed_roles=['student'])
+def add_student_signature(request, application_id):
+    """
+    Student - Ajoute la signature de l'étudiant à la convention
+    """
+    try:
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'success': False, 'error': 'Application not found'}, status=404)
+        
+        student = Student.objects(user=request.user).first()
+        if not student or str(application.student.id) != str(student.id):
+            return Response({'success': False, 'error': 'Unauthorized'}, status=403)
+        
+        if application.status != 'validated_by_co_dept':
+            return Response({'success': False, 'error': 'Convention not validated yet'}, status=400)
+        
+        signature_data = request.data.get('signature', '')
+        if not signature_data:
+            return Response({'success': False, 'error': 'Signature data required'}, status=400)
+        
+        application.student_signature = signature_data
+        application.student_signature_date = datetime.now()
+        application.student_signed_by = student.full_name
+        application.signature_status = 'student_signed'
+        application.save()
+        
+        log_activity(
+            user=request.user,
+            action_type='add_signature',
+            target_type='convention',
+            target_id=str(application.id),
+            target_name=f"{application.student.full_name} - {application.offer.title}",
+            details={'signature_type': 'student', 'signed_by': student.full_name}
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'Student signature added successfully',
+            'signed_by': student.full_name,
+            'signature_status': application.signature_status
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+def get_signature_status(request, application_id):
+    """
+    Récupère le statut des signatures d'une convention
+    """
+    try:
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'success': False, 'error': 'Application not found'}, status=404)
+        
+        # Vérifier les permissions
+        user = request.user
+        is_authorized = False
+        
+        if user.role == 'student':
+            student = Student.objects(user=user).first()
+            if student and str(application.student.id) == str(student.id):
+                is_authorized = True
+        elif user.role == 'company':
+            company = _get_user_company(user)
+            if company and str(application.offer.company.id) == str(company.id):
+                is_authorized = True
+        elif user.role == 'admin':
+            admin = Admin.objects(user=user).first()
+            if admin and application.student.university == admin.university:
+                is_authorized = True
+        
+        if not is_authorized:
+            return Response({'success': False, 'error': 'Unauthorized'}, status=403)
+        
+        return Response({
+            'success': True,
+            'signature_status': application.signature_status,
+            'university_signed': bool(application.university_signature),
+            'university_signed_by': application.university_signed_by,
+            'university_signature_date': application.university_signature_date.strftime('%d/%m/%Y %H:%M') if application.university_signature_date else None,
+            'company_signed': bool(application.company_signature),
+            'company_signed_by': application.company_signed_by,
+            'company_signature_date': application.company_signature_date.strftime('%d/%m/%Y %H:%M') if application.company_signature_date else None,
+            'student_signed': bool(application.student_signature),
+            'student_signed_by': application.student_signed_by,
+            'student_signature_date': application.student_signature_date.strftime('%d/%m/%Y %H:%M') if application.student_signature_date else None,
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+    
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin'])
+def dept_head_validated_validations(request):
+    """Department Head - Récupère les conventions déjà validées (prêtes à signer)"""
+    try:
+        dept_head = Admin.objects(user=request.user).first()
+        if not dept_head:
+            return Response({'success': False, 'error': 'Profil Department Head non trouvé'}, status=404)
+        
+        students = Student.objects(university=dept_head.university)
+        student_ids = [str(s.id) for s in students]
+        
+        applications = Application.objects(
+            student__in=student_ids,
+            status='validated_by_co_dept'
+        ).order_by('-co_dept_validation_date')
+        
+        result = []
+        for app in applications:
+            student = app.student
+            offer = app.offer
+            company = offer.company if offer else None
+            
+            result.append({
+                'id': str(app.id),
+                'status': app.status,
+                'applied_at': app.applied_at.strftime('%Y-%m-%d %H:%M') if app.applied_at else None,
+                'company_response_date': app.company_response_date.strftime('%Y-%m-%d %H:%M') if app.company_response_date else None,
+                'co_dept_validation_date': app.co_dept_validation_date.strftime('%Y-%m-%d %H:%M') if app.co_dept_validation_date else None,
+                'cover_letter': app.cover_letter,
+                'cv_file_url': f'/api/dept-head/application/{str(app.id)}/cv/' if app.cv_file else None,
+                'convention_url': f'/api/co-dept/download-convention/{str(app.id)}/',
+                'student': {
+                    'id': str(student.id),
+                    'full_name': student.full_name,
+                    'email': student.user.email if student.user else None,
+                    'wilaya': student.wilaya,
+                    'skills': student.skills,
+                    'github': student.github,
+                    'portfolio': student.portfolio,
+                    'education_level': student.education_level,
+                    'university': student.university,
+                    'major': student.major,
+                    'graduation_year': student.graduation_year,
+                },
+                'offer': {
+                    'id': str(offer.id),
+                    'title': offer.title,
+                    'description': offer.description,
+                    'wilaya': offer.wilaya,
+                    'internship_type': offer.internship_type,
+                    'required_skills': offer.required_skills,
+                    'duration': offer.duration,
+                    'start_date': offer.start_date.strftime('%Y-%m-%d') if offer.start_date else None,
+                },
+                'company': {
+                    'id': str(company.id) if company else None,
+                    'company_name': company.company_name if company else None,
+                    'description': company.description if company else None,
+                    'location': company.location if company else None,
+                    'industry': company.industry if company else None,
+                    'email': company.user.email if company and company.user else None,
+                }
+            })
+        
+        return Response({'success': True, 'count': len(result), 'applications': result})
+        
+    except Exception as e:
+        print(f" Erreur: {str(e)}")
+        traceback.print_exc()
+        return Response({'success': False, 'error': str(e)}, status=500)
+    
+@api_view(['POST'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin', 'co_dept_head'])
+def add_university_stamp(request, application_id):
+    """
+    Department Head ou Co Department Head - Ajoute le cachet de l'université
+    """
+    try:
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'success': False, 'error': 'Application not found'}, status=404)
+        
+        admin_profile = Admin.objects(user=request.user).first()
+        if not admin_profile:
+            return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
+        
+        if application.student.university != admin_profile.university:
+            return Response({'success': False, 'error': 'Unauthorized'}, status=403)
+        
+        if application.status != 'validated_by_co_dept':
+            return Response({'success': False, 'error': 'Convention not validated yet'}, status=400)
+        
+        stamp_data = request.data.get('stamp', '')
+        if not stamp_data:
+            return Response({'success': False, 'error': 'Stamp data required'}, status=400)
+        
+        application.university_stamp = stamp_data
+        application.university_stamp_date = datetime.now()
+        application.stamp_status = 'stamped'
+        application.save()
+        
+        log_activity(
+            user=request.user,
+            action_type='add_stamp',
+            target_type='convention',
+            target_id=str(application.id),
+            target_name=f"{application.student.full_name} - {application.offer.title}",
+            details={'stamp_type': 'university', 'added_by': admin_profile.full_name}
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'University stamp added successfully',
+            'added_by': admin_profile.full_name,
+            'stamp_status': application.stamp_status
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+    
+@api_view(['POST'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin', 'co_dept_head'])
+def add_university_stamp(request, application_id):
+    """
+    Department Head ou Co Department Head - Ajoute le cachet de l'université
+    """
+    try:
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'success': False, 'error': 'Application not found'}, status=404)
+        
+        admin_profile = Admin.objects(user=request.user).first()
+        if not admin_profile:
+            return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
+        
+        if application.student.university != admin_profile.university:
+            return Response({'success': False, 'error': 'Unauthorized'}, status=403)
+        
+        if application.status != 'validated_by_co_dept':
+            return Response({'success': False, 'error': 'Convention not validated yet'}, status=400)
+        
+        stamp_data = request.data.get('stamp', '')
+        if not stamp_data:
+            return Response({'success': False, 'error': 'Stamp data required'}, status=400)
+        
+        application.university_stamp = stamp_data
+        application.university_stamp_date = datetime.now()
+        application.stamp_status = 'stamped'
+        application.save()
+        
+        log_activity(
+            user=request.user,
+            action_type='add_stamp',
+            target_type='convention',
+            target_id=str(application.id),
+            target_name=f"{application.student.full_name} - {application.offer.title}",
+            details={'stamp_type': 'university', 'added_by': admin_profile.full_name}
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'University stamp added successfully',
+            'added_by': admin_profile.full_name,
+            'stamp_status': application.stamp_status
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+@api_view(['GET'])
+@jwt_authenticated
+def get_stamp_status(request, application_id):
+    """
+    Récupère le statut du cachet d'une convention
+    """
+    try:
+        application = Application.objects(id=application_id).first()
+        if not application:
+            return Response({'success': False, 'error': 'Application not found'}, status=404)
+        
+        # Vérifier les permissions
+        user = request.user
+        is_authorized = False
+        
+        if user.role == 'student':
+            student = Student.objects(user=user).first()
+            if student and str(application.student.id) == str(student.id):
+                is_authorized = True
+        elif user.role == 'company':
+            company = _get_user_company(user)
+            if company and str(application.offer.company.id) == str(company.id):
+                is_authorized = True
+        elif user.role == 'admin':
+            admin = Admin.objects(user=user).first()
+            if admin and application.student.university == admin.university:
+                is_authorized = True
+        
+        if not is_authorized:
+            return Response({'success': False, 'error': 'Unauthorized'}, status=403)
+        
+        return Response({
+            'success': True,
+            'has_stamp': bool(application.university_stamp),
+            'stamp_added_by': application.stamp_added_by,
+            'stamp_date': application.university_stamp_date.strftime('%d/%m/%Y %H:%M') if application.university_stamp_date else None,
+        })
         
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)

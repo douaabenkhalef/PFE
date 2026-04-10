@@ -96,5 +96,19 @@ path('activity-logs/company/', views.get_company_activity_logs, name='company-ac
     path('admin/co-dept-heads/<str:user_id>/delete/', views.delete_co_dept_head, name='delete-co-dept-head'),
     path('company/approved-hiring-managers/', views.get_approved_hiring_managers, name='approved-hiring-managers'),
     path('admin/approved-co-dept-heads/', views.get_approved_co_dept_heads, name='approved-co-dept-heads'),
+    path('admin/university-students/', views.get_university_students, name='university-students'),
+    path('admin/university-students/<str:student_id>/', views.get_student_details, name='student-details'),
+    path('admin/university-stats/', views.get_university_stats, name='university-stats'),
+    path('admin/placement-stats/', views.get_placement_statistics, name='placement-stats'),
+    path('signature/university/<str:application_id>/', views.add_university_signature, name='add-university-signature'),
+    path('signature/company/<str:application_id>/', views.add_company_signature, name='add-company-signature'),
+    path('signature/student/<str:application_id>/', views.add_student_signature, name='add-student-signature'),
+    path('signature/status/<str:application_id>/', views.get_signature_status, name='signature-status'),
+    path('dept-head/download-convention/<str:application_id>/', views.dept_head_download_convention, name='dept-head-download-convention'),
+    path('dept-head/validated-validations/', views.dept_head_validated_validations, name='dept-head-validated'),
+    path('stamp/university/<str:application_id>/', views.add_university_stamp, name='add-university-stamp'),
+    path('stamp/status/<str:application_id>/', views.get_stamp_status, name='stamp-status'),
+    
+    
 
 ]

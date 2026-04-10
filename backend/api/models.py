@@ -14,24 +14,25 @@ class UserPermission(Document):
     user_id = StringField(required=True, unique=True)
     
     # ============ PERMISSIONS HIRING MANAGER ============
-    can_manage_applications = BooleanField(default=True)      # Gérer les candidatures
-    can_manage_hiring_managers = BooleanField(default=False)  # Gérer les hiring managers (réservé Company Manager)
-    can_create_offer = BooleanField(default=True)             # Créer des offres
-    can_modify_offer = BooleanField(default=True)             # Modifier des offres
-    can_delete_offer = BooleanField(default=True)             # Supprimer des offres
-    can_manage_company_profile = BooleanField(default=False)  # Gérer le profil entreprise (réservé Company Manager)
+    can_manage_applications = BooleanField(default=True)
+    can_manage_hiring_managers = BooleanField(default=False)
+    can_create_offer = BooleanField(default=True)
+    can_modify_offer = BooleanField(default=True)
+    can_delete_offer = BooleanField(default=True)
+    can_manage_company_profile = BooleanField(default=False)
     
     # ============ PERMISSIONS CO DEPT HEAD ============
-    can_manage_conventions = BooleanField(default=True)       # Gérer les conventions (valider/refuser)
-    can_manage_co_dept_heads = BooleanField(default=False)    # Gérer les co dept heads (réservé Dept Head)
-    can_add_signature = BooleanField(default=True)            # Ajouter une signature
-    can_manage_university_profile = BooleanField(default=False) # Gérer le profil université (réservé Dept Head)
+    can_manage_conventions = BooleanField(default=True)
+    can_manage_co_dept_heads = BooleanField(default=False)
+    can_add_signature = BooleanField(default=True)
+    can_manage_university_profile = BooleanField(default=False)
     
     created_at = DateTimeField(default=datetime.now)
     updated_at = DateTimeField(default=datetime.now)
     
     def __str__(self):
         return f"Permissions for user {self.user_id}"
+
 
 # ==================== USER MODEL ====================
 
@@ -52,7 +53,6 @@ class User(Document):
     pending_company_id = StringField(default='')
     pending_admin_id = StringField(default='')
     
-    # Référence vers les permissions (maintenant UserPermission est défini)
     permissions = ReferenceField('UserPermission', null=True, reverse_delete_rule=2)
     
     def set_password(self, password):
@@ -105,6 +105,7 @@ class Student(Document):
     is_placed = BooleanField(default=False)
     placed_company = ReferenceField(Company, null=True, reverse_delete_rule=3)
     placement_date = DateTimeField(null=True)
+    created_at = DateTimeField(default=datetime.now)
     
     def __str__(self):
         return self.full_name
@@ -161,11 +162,37 @@ class Application(Document):
     co_dept_validation_date = DateTimeField(null=True)
     co_dept_notes = StringField(blank=True)      
     convention_pdf = FileField(blank=True)       
-    co_dept_id = StringField(blank=True)         
+    co_dept_id = StringField(blank=True)
+    
+    # ============ CHAMPS POUR LES SIGNATURES ============
+    university_signature = StringField(blank=True, default='')
+    university_signature_date = DateTimeField(null=True)
+    university_signed_by = StringField(blank=True)
+    
+    company_signature = StringField(blank=True, default='')
+    company_signature_date = DateTimeField(null=True)
+    company_signed_by = StringField(blank=True)
+    
+    student_signature = StringField(blank=True, default='')
+    student_signature_date = DateTimeField(null=True)
+    student_signed_by = StringField(blank=True)
+    
+    signature_status = StringField(
+        choices=['pending', 'university_signed', 'company_signed', 'student_signed', 'fully_signed'],
+        default='pending'
+    )
+    
+    # ============ CHAMPS POUR LE CACHET (TAMPON) ============
+    university_stamp = StringField(blank=True, default='')
+    university_stamp_date = DateTimeField(null=True)
+    stamp_added_by = StringField(blank=True)
+    stamp_status = StringField(
+        choices=['pending', 'stamped'],
+        default='pending'
+    )
     
     def __str__(self):
         return f"{self.student.full_name} - {self.offer.title}"
-
 
 # ==================== NOTIFICATION MODEL ====================
 
@@ -302,7 +329,8 @@ class ActivityLog(Document):
         'generate_convention',
         'update_permissions',
         'delete_hiring_manager',
-        'delete_co_dept_head'
+        'delete_co_dept_head',
+        'add_signature'
     ])
     
     target_type = StringField(required=True, choices=[
@@ -321,6 +349,3 @@ class ActivityLog(Document):
     
     def __str__(self):
         return f"{self.created_at} - {self.user_email} - {self.action_type}"
-    
-
- 
