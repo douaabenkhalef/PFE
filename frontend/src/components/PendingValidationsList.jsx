@@ -36,26 +36,62 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-// Composant d'erreur intégré (même style que AuthPage)
 const InlineFormError = ({ messages, onClose }) => {
   if (!messages || messages.length === 0) return null;
   const messageArray = Array.isArray(messages) ? messages : [messages];
+  
+  const isPermissionError = messageArray.some(msg => 
+    msg?.toLowerCase().includes('permission') || 
+    msg?.toLowerCase().includes('pas les droits') ||
+    msg?.toLowerCase().includes('pas autorisé') ||
+    msg?.toLowerCase().includes('non autorisé')
+  );
+  
   return (
-    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4">
-      <div className="flex items-start gap-2">
-        <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+    <div className={`rounded-lg p-4 mb-4 ${
+      isPermissionError 
+        ? 'bg-orange-500/10 border border-orange-500/30' 
+        : 'bg-red-500/10 border border-red-500/30'
+    }`}>
+      <div className="flex items-start gap-3">
+        {isPermissionError ? (
+          <ShieldIcon className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" />
+        ) : (
+          <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+        )}
         <div className="flex-1">
           {messageArray.map((msg, index) => (
-            <p key={index} className="text-red-300 text-sm">{msg}</p>
+            <p key={index} className={`text-sm ${isPermissionError ? 'text-orange-300' : 'text-red-300'}`}>
+              {msg}
+            </p>
           ))}
+          {isPermissionError && (
+            <p className="text-orange-300/70 text-xs mt-2">
+              💡 Veuillez contacter votre Department Head pour demander les permissions nécessaires.
+            </p>
+          )}
         </div>
         {onClose && (
-          <button onClick={onClose} className="text-red-400/70 hover:text-red-300 transition ml-2">✕</button>
+          <button 
+            onClick={onClose} 
+            className={`${isPermissionError ? 'text-orange-400/70 hover:text-orange-300' : 'text-red-400/70 hover:text-red-300'} transition ml-2`}
+          >
+            ✕
+          </button>
         )}
       </div>
     </div>
   );
 };
+
+// Helper icon component
+const ShieldIcon = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    <path d="M12 8v4" />
+    <circle cx="12" cy="16" r="0.5" fill="currentColor" />
+  </svg>
+);
 
 const DetailsModal = ({ 
   application, 
@@ -89,9 +125,13 @@ const DetailsModal = ({
   });
 
   const showError = (errorMsg) => {
+    console.log("🔴 showError called:", errorMsg);
     setModalError(errorMsg);
     setTimeout(() => setModalError(null), 5000);
-    if (onPermissionError) onPermissionError(errorMsg);
+    if (onPermissionError) {
+      console.log("🔴 Calling onPermissionError from showError");
+      onPermissionError(errorMsg);
+    }
   };
 
   useEffect(() => {
@@ -178,11 +218,13 @@ const DetailsModal = ({
   };
 
   const handleValidate = async () => {
+    console.log("🔵 handleValidate called in DetailsModal");
     setModalError(null);
     setSubmitting(true);
     try {
       await onValidate(application.id);
     } catch (err) {
+      console.log("🔴 Error caught in handleValidate:", err.message);
       showError(err.message || "Vous n'avez pas les permissions pour valider cette convention.");
     } finally {
       setSubmitting(false);
@@ -219,7 +261,8 @@ const DetailsModal = ({
       const data = await res.json();
       
       if (res.status === 403) {
-        const errorMsg = data.error || "Vous n'avez pas les permissions pour signer cette convention.";
+        const errorMsg = data.error || data.detail || "Vous n'avez pas les permissions pour signer cette convention. Veuillez contacter le Department Head.";
+        console.log("🔴 Signature permission error:", errorMsg);
         showError(errorMsg);
         setShowSignatureModal(false);
         return;
@@ -257,7 +300,8 @@ const DetailsModal = ({
       const data = await res.json();
       
       if (res.status === 403) {
-        const errorMsg = data.error || "Vous n'avez pas les permissions pour ajouter le cachet.";
+        const errorMsg = data.error || data.detail || "Vous n'avez pas les permissions pour ajouter le cachet. Veuillez contacter le Department Head.";
+        console.log("🔴 Stamp permission error:", errorMsg);
         showError(errorMsg);
         setShowStampModal(false);
         return;
@@ -315,7 +359,7 @@ const DetailsModal = ({
           <div className="p-6 space-y-6">
             <InlineFormError messages={modalError} onClose={() => setModalError(null)} />
 
-            {/* Infos offre - identique à avant */}
+            {/* Infos offre */}
             <div className="bg-slate-800/60 rounded-xl p-5">
               <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <Building2 size={15} /> Offre de stage
@@ -558,36 +602,51 @@ export default function PendingValidationsList({
   }, []);
 
   const handleValidate = async (applicationId) => {
+    console.log("🔵 handleValidate called for application:", applicationId);
+    console.log("🔵 validateEndpoint:", validateEndpoint);
+    console.log("🔵 onPermissionError exists?", !!onPermissionError);
+    
     try {
       const res = await fetch(`${API}${validateEndpoint}${applicationId}/`, {
         method: 'POST',
         headers: authHeaders()
       });
       
+      const data = await res.json();
+      
+      console.log("🔍 Response status:", res.status);
+      console.log("🔍 Response data:", data);
+      
       if (res.status === 403) {
-        const data = await res.json();
-        const errorMsg = data.error || "Vous n'avez pas les permissions pour valider cette convention.";
-        if (onPermissionError) onPermissionError(errorMsg);
+        const errorMsg = data.error || data.detail || data.message || "Vous n'avez pas les permissions pour valider cette convention. Veuillez contacter le Department Head.";
+        console.log("🔴 403 detected, calling onPermissionError with:", errorMsg);
+        if (onPermissionError) {
+          onPermissionError(errorMsg);
+        } else {
+          console.log("🔴 WARNING: onPermissionError is not defined!");
+        }
         throw new Error(errorMsg);
       }
       
-      const data = await res.json();
       if (data.success) {
         toast.success('Convention validée et générée avec succès !');
         await fetchPendingValidations();
         setSelectedApp(null);
       } else {
-        const errorMsg = data.error || 'Erreur lors de la validation';
+        const errorMsg = data.error || data.detail || data.message || 'Erreur lors de la validation';
+        console.log("🔴 Validation error:", errorMsg);
         if (onPermissionError) onPermissionError(errorMsg);
         throw new Error(errorMsg);
       }
     } catch (err) {
-      console.error("Erreur:", err);
+      console.error("❌ Erreur dans handleValidate:", err);
       throw err;
     }
   };
 
   const handleReject = async (applicationId, reason) => {
+    console.log("🔵 handleReject called for application:", applicationId);
+    
     try {
       const res = await fetch(`${API}${rejectEndpoint}${applicationId}/`, {
         method: 'POST',
@@ -595,25 +654,32 @@ export default function PendingValidationsList({
         body: JSON.stringify({ rejection_reason: reason })
       });
       
+      const data = await res.json();
+      
+      console.log("🔍 Reject response status:", res.status);
+      console.log("🔍 Reject response data:", data);
+      
       if (res.status === 403) {
-        const data = await res.json();
-        const errorMsg = data.error || "Vous n'avez pas les permissions pour refuser cette convention.";
-        if (onPermissionError) onPermissionError(errorMsg);
+        const errorMsg = data.error || data.detail || data.message || "Vous n'avez pas les permissions pour refuser cette convention. Veuillez contacter le Department Head.";
+        console.log("🔴 403 detected in reject, calling onPermissionError with:", errorMsg);
+        if (onPermissionError) {
+          onPermissionError(errorMsg);
+        }
         throw new Error(errorMsg);
       }
       
-      const data = await res.json();
       if (data.success) {
         toast.success('Candidature refusée');
         await fetchPendingValidations();
         setSelectedApp(null);
       } else {
-        const errorMsg = data.error || 'Erreur lors du refus';
+        const errorMsg = data.error || data.detail || data.message || 'Erreur lors du refus';
+        console.log("🔴 Reject error:", errorMsg);
         if (onPermissionError) onPermissionError(errorMsg);
         throw new Error(errorMsg);
       }
     } catch (err) {
-      console.error("Erreur:", err);
+      console.error("❌ Erreur dans handleReject:", err);
       throw err;
     }
   };

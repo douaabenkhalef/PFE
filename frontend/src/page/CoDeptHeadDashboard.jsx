@@ -1,12 +1,17 @@
-import React, { useState, useEffect } from 'react';
+// frontend/src/page/CoDeptHeadDashboard.jsx
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   GraduationCap, Clock, BookOpen, Users, FileCheck, 
   Clock as ClockIcon, FileText, Bell, CheckCheck, X,
-  CheckCircle, XCircle, Activity, UserCheck
+  CheckCircle, XCircle, Activity, UserCheck, Shield,
+  AlertTriangle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import UniversityUsersStatus from '../components/UniversityUsersStatus';
+import ChatWidget from '../components/ChatWidget';
+import PrivateChat from '../components/PrivateChat';
 
 const API = 'http://localhost:8000/api';
 const token = () => localStorage.getItem('access_token');
@@ -111,6 +116,36 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
   );
 };
 
+// Composant d'avertissement pour les permissions manquantes
+const PermissionWarning = ({ permissions, userRole }) => {
+  if (!permissions) return null;
+  
+  const missingPermissions = [];
+  if (permissions.can_manage_conventions === false) missingPermissions.push("valider/refuser des conventions");
+  if (permissions.can_add_signature === false) missingPermissions.push("signer des conventions");
+  if (permissions.can_add_stamp === false) missingPermissions.push("ajouter le cachet");
+  if (permissions.can_manage_university_profile === false && userRole === 'co_dept_head') missingPermissions.push("modifier le profil de l'université");
+  
+  if (missingPermissions.length === 0) return null;
+  
+  return (
+    <div className="mb-6 bg-orange-500/10 border border-orange-500/30 rounded-xl p-4">
+      <div className="flex items-start gap-3">
+        <AlertTriangle className="w-5 h-5 text-orange-400 mt-0.5" />
+        <div className="flex-1">
+          <p className="text-orange-300 font-medium">Permissions limitées</p>
+          <p className="text-orange-300/80 text-sm">
+            Vous n'avez pas la permission de : {missingPermissions.join(", ")}.
+          </p>
+          <p className="text-orange-300/60 text-xs mt-1">
+            💡 Contactez votre Department Head pour demander ces permissions.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const CoDeptHeadDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -118,11 +153,17 @@ const CoDeptHeadDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
-  const notifRef = React.useRef(null);
+  const [userPermissions, setUserPermissions] = useState(null);
+  const notifRef = useRef(null);
+  
+  // État pour le chat privé
+  const [privateChatOpen, setPrivateChatOpen] = useState(false);
+  const [selectedChatUser, setSelectedChatUser] = useState(null);
 
   useEffect(() => {
     fetchStats();
     fetchNotifications();
+    fetchUserPermissions();
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -136,6 +177,18 @@ const CoDeptHeadDashboard = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const fetchUserPermissions = async () => {
+    try {
+      const res = await fetch(`${API}/auth/me/`, { headers: authHeaders() });
+      const data = await res.json();
+      if (data.success && data.permissions) {
+        setUserPermissions(data.permissions);
+      }
+    } catch (err) {
+      console.error("Erreur chargement permissions:", err);
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -197,6 +250,16 @@ const CoDeptHeadDashboard = () => {
   const navigateToValidation = (applicationId) => {
     navigate(`/co-dept-head/validations?app=${applicationId}`);
     setNotifOpen(false);
+  };
+
+  const handleStartPrivateChat = (targetUser) => {
+    setSelectedChatUser(targetUser);
+    setPrivateChatOpen(true);
+  };
+
+  const handleClosePrivateChat = () => {
+    setPrivateChatOpen(false);
+    setSelectedChatUser(null);
   };
 
   const handleLogout = () => {
@@ -393,10 +456,19 @@ const CoDeptHeadDashboard = () => {
               <h1 className="text-2xl font-bold text-white">Co Department Head Dashboard</h1>
             </div>
             <div className="flex items-center gap-4">
-              {/* Bouton Conventions à valider */}
               <Link
                 to="/co-dept-head/validations"
-                className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-sm font-semibold transition shadow-lg flex items-center gap-2"
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition shadow-lg flex items-center gap-2 ${
+                  userPermissions?.can_manage_conventions === false
+                    ? 'bg-gray-600 cursor-not-allowed opacity-50'
+                    : 'bg-orange-600 hover:bg-orange-500 text-white'
+                }`}
+                onClick={(e) => {
+                  if (userPermissions?.can_manage_conventions === false) {
+                    e.preventDefault();
+                    toast.error("Vous n'avez pas la permission de gérer les conventions. Contactez le Department Head.");
+                  }
+                }}
               >
                 <FileText size={16} />
                 Conventions à valider
@@ -405,7 +477,6 @@ const CoDeptHeadDashboard = () => {
                 )}
               </Link>
 
-              {/* Bouton Gérer Étudiants */}
               <Link
                 to="/admin/manage-students"
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-semibold transition shadow-lg flex items-center gap-2"
@@ -414,7 +485,6 @@ const CoDeptHeadDashboard = () => {
                 Gérer Étudiants
               </Link>
 
-              {/* Notification Bell */}
               <div className="sd-notif-wrapper" ref={notifRef}>
                 <button
                   className="relative p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"
@@ -471,98 +541,142 @@ const CoDeptHeadDashboard = () => {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:border-purple-500 transition-all">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white/60 text-sm">Étudiants</p>
-                  <p className="text-3xl font-bold text-white">{stats.students}</p>
-                  <p className="text-white/60 text-sm mt-2">Étudiants inscrits</p>
-                </div>
-                <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
-                  <Users className="w-6 h-6 text-purple-400" />
+          <>
+            <PermissionWarning permissions={userPermissions} userRole={user?.sub_role} />
+            
+            <div className="mb-8">
+              <UniversityUsersStatus onStartPrivateChat={handleStartPrivateChat} />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:border-purple-500 transition-all">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-white/60 text-sm">Étudiants</p>
+                    <p className="text-3xl font-bold text-white">{stats.students}</p>
+                    <p className="text-white/60 text-sm mt-2">Étudiants inscrits</p>
+                  </div>
+                  <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
+                    <Users className="w-6 h-6 text-purple-400" />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:border-purple-500 transition-all">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white/60 text-sm">Stages validés</p>
-                  <p className="text-3xl font-bold text-white">{stats.validations}</p>
-                  <p className="text-white/60 text-sm mt-2">Conventions signées</p>
-                </div>
-                <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
-                  <FileCheck className="w-6 h-6 text-green-400" />
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:border-purple-500 transition-all">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-white/60 text-sm">Stages validés</p>
+                    <p className="text-3xl font-bold text-white">{stats.validations}</p>
+                    <p className="text-white/60 text-sm mt-2">Conventions signées</p>
+                  </div>
+                  <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
+                    <FileCheck className="w-6 h-6 text-green-400" />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:border-purple-500 transition-all">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white/60 text-sm">En attente</p>
-                  <p className="text-3xl font-bold text-white">{stats.pending}</p>
-                  <p className="text-white/60 text-sm mt-2">Stages à valider</p>
-                </div>
-                <div className="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
-                  <ClockIcon className="w-6 h-6 text-yellow-400" />
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:border-purple-500 transition-all">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-white/60 text-sm">En attente</p>
+                    <p className="text-3xl font-bold text-white">{stats.pending}</p>
+                    <p className="text-white/60 text-sm mt-2">Stages à valider</p>
+                  </div>
+                  <div className="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
+                    <ClockIcon className="w-6 h-6 text-yellow-400" />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Informations université */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:border-purple-500 transition-all col-span-full">
-              <div className="flex items-center gap-3 mb-4">
-                <BookOpen className="w-6 h-6 text-purple-400" />
-                <h3 className="text-lg font-semibold text-white">Informations université</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-white/60 text-sm">Nom de l'université</p>
-                  <p className="text-white font-medium">{user?.university || "Non spécifié"}</p>
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:border-purple-500 transition-all col-span-full">
+                <div className="flex items-center gap-3 mb-4">
+                  <BookOpen className="w-6 h-6 text-purple-400" />
+                  <h3 className="text-lg font-semibold text-white">Informations université</h3>
                 </div>
-                <div>
-                  <p className="text-white/60 text-sm">Email</p>
-                  <p className="text-white font-medium">{user?.email}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-white/60 text-sm">Nom de l'université</p>
+                    <p className="text-white font-medium">{user?.university || "Non spécifié"}</p>
+                  </div>
+                  <div>
+                    <p className="text-white/60 text-sm">Email</p>
+                    <p className="text-white font-medium">{user?.email}</p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Actions rapides */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 col-span-full">
-              <h3 className="text-lg font-semibold text-white mb-4">Actions rapides</h3>
-              <div className="flex flex-wrap gap-4">
-                <Link
-                  to="/co-dept-head/validations"
-                  className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 rounded-lg transition flex items-center gap-2"
-                >
-                  <FileText className="w-4 h-4" />
-                  Conventions à valider
-                  {stats.pending > 0 && (
-                    <span className="bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full">{stats.pending}</span>
-                  )}
-                </Link>
-                <Link
-                  to="/admin/manage-students"
-                  className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg transition flex items-center gap-2"
-                >
-                  <Users className="w-4 h-4" />
-                  Gérer les étudiants
-                </Link>
-                <button className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg transition flex items-center gap-2">
-                  <FileCheck className="w-4 h-4" />
-                  Stages validés
-                </button>
-                <button className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-lg transition flex items-center gap-2">
-                  <Activity className="w-4 h-4" />
-                  Générer rapports
-                </button>
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 col-span-full">
+                <h3 className="text-lg font-semibold text-white mb-4">Actions rapides</h3>
+                <div className="flex flex-wrap gap-4">
+                  <Link
+                    to="/co-dept-head/validations"
+                    className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
+                      userPermissions?.can_manage_conventions === false
+                        ? 'bg-gray-600/50 cursor-not-allowed opacity-50 text-gray-300'
+                        : 'bg-orange-500/20 hover:bg-orange-500/30 text-orange-300'
+                    }`}
+                    onClick={(e) => {
+                      if (userPermissions?.can_manage_conventions === false) {
+                        e.preventDefault();
+                        toast.error("Vous n'avez pas la permission de valider des conventions.");
+                      }
+                    }}
+                  >
+                    <FileText className="w-4 h-4" />
+                    Conventions à valider
+                    {stats.pending > 0 && (
+                      <span className="bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full">{stats.pending}</span>
+                    )}
+                  </Link>
+                  <Link
+                    to="/admin/manage-students"
+                    className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg transition flex items-center gap-2"
+                  >
+                    <Users className="w-4 h-4" />
+                    Gérer les étudiants
+                  </Link>
+                  <button 
+                    className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
+                      userPermissions?.can_add_signature === false
+                        ? 'bg-gray-600/50 cursor-not-allowed opacity-50 text-gray-300'
+                        : 'bg-purple-500/20 hover:bg-purple-500/30 text-purple-300'
+                    }`}
+                    onClick={() => {
+                      if (userPermissions?.can_add_signature === false) {
+                        toast.error("Vous n'avez pas la permission de signer des conventions.");
+                      } else {
+                        toast.info("Redirection vers la page des conventions signées");
+                      }
+                    }}
+                  >
+                    <FileCheck className="w-4 h-4" />
+                    Stages validés
+                  </button>
+                  <button className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg transition flex items-center gap-2">
+                    <Activity className="w-4 h-4" />
+                    Générer rapports
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          </>
         )}
       </main>
+      
+      {/* Chat de groupe */}
+      {isApproved && (
+        <ChatWidget university={user?.university || "Université"} />
+      )}
+      
+      {/* Chat privé */}
+      {privateChatOpen && selectedChatUser && (
+        <PrivateChat
+          university={user?.university || "Université"}
+          currentUser={user}
+          targetUser={selectedChatUser}
+          onClose={handleClosePrivateChat}
+        />
+      )}
     </div>
   );
 };

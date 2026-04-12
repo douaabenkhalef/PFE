@@ -25,6 +25,7 @@ class UserPermission(Document):
     can_manage_conventions = BooleanField(default=True)
     can_manage_co_dept_heads = BooleanField(default=False)
     can_add_signature = BooleanField(default=True)
+    can_add_stamp = BooleanField(default=True)
     can_manage_university_profile = BooleanField(default=False)
     
     created_at = DateTimeField(default=datetime.now)
@@ -35,6 +36,8 @@ class UserPermission(Document):
 
 
 # ==================== USER MODEL ====================
+
+
 
 class User(Document):
     meta = {'collection': 'users'}
@@ -50,6 +53,9 @@ class User(Document):
     created_at = DateTimeField(default=datetime.now)
     updated_at = DateTimeField(default=datetime.now)
     
+    # 🔥 AJOUTER CE CHAMP POUR LA DERNIÈRE ACTIVITÉ
+    last_activity = DateTimeField(default=datetime.now)
+    
     pending_company_id = StringField(default='')
     pending_admin_id = StringField(default='')
     
@@ -62,6 +68,12 @@ class User(Document):
     
     def check_password(self, password):
         return bcrypt.checkpw(password.encode('utf-8'), self.password_hash.encode('utf-8'))
+    
+    def is_online(self):
+        """Vérifie si l'utilisateur est en ligne (activité dans les 5 dernières minutes)"""
+        if not self.last_activity:
+            return False
+        return (datetime.now() - self.last_activity).seconds < 300  # 5 minutes
     
     def __str__(self):
         return f"{self.email} - {self.role}"
@@ -349,3 +361,44 @@ class ActivityLog(Document):
     
     def __str__(self):
         return f"{self.created_at} - {self.user_email} - {self.action_type}"
+    
+class ChatMessage(Document):
+    """
+    Messages de chat entre les membres de l'université
+    """
+    meta = {'collection': 'chat_messages'}
+    
+    university = StringField(required=True, max_length=200)
+    user_id = StringField(required=True)
+    username = StringField(required=True, max_length=50)
+    message = StringField(required=True)
+    created_at = DateTimeField(default=datetime.now)
+    is_read = BooleanField(default=False)
+    
+    def __str__(self):
+        return f"{self.username}: {self.message[:50]}"
+   
+
+
+
+class PrivateChatMessage(Document):
+    """
+    Messages privés entre utilisateurs
+    """
+    meta = {'collection': 'private_chat_messages'}
+    
+    sender_id = StringField(required=True)
+    sender_name = StringField(required=True)
+    receiver_id = StringField(required=True)
+    receiver_name = StringField(required=True)
+    university = StringField(required=True, max_length=200)
+    message = StringField(required=True)
+    message_type = StringField(default='text', choices=['text', 'image', 'file'])
+    file_url = StringField(default='')
+    file_name = StringField(default='')
+    file_size = IntField(default=0)
+    is_read = BooleanField(default=False)
+    created_at = DateTimeField(default=datetime.now)
+    
+    def __str__(self):
+        return f"{self.sender_name} -> {self.receiver_name}: {self.message[:50]}"

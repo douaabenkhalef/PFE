@@ -1,8 +1,11 @@
+// frontend/src/page/Home.jsx
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from "../components/LanguageSwitcher";
 import "./Home.css";
 
-
+// Icônes (garder les mêmes)
 const MoonIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -59,16 +62,17 @@ function Stars({ n = 5, max = 5 }) {
 }
 
 const services = [
-  { id: 1, title: "Explore offers", desc: "Students can view company offers, search using filters, and apply for internships.", image: "/images/service1.png" },
-  { id: 2, title: "Student Applications", desc: "Students can easily submit their applications and upload their CVs through our intuitive platform.", image: "/images/service2.png" },
-  { id: 3, title: "Administration Validation", desc: "Administrators review and validate student applications with powerful management tools.", image: "/images/service3.png" },
+  { id: 1, titleKey: "explore_offers", descKey: "explore_offers.desc", image: "/images/service1.png" },
+  { id: 2, titleKey: "student_applications", descKey: "student_applications.desc", image: "/images/service2.png" },
+  { id: 3, titleKey: "admin_validation", descKey: "admin_validation.desc", image: "/images/service3.png" },
 ];
 
 function SearchOverlay({ onClose }) {
+  const { t } = useTranslation();
   return (
     <div className="search-overlay" onClick={onClose}>
       <div className="search-overlay-inner" onClick={e => e.stopPropagation()}>
-        <input autoFocus className="search-overlay-input" placeholder="Rechercher..." type="text" />
+        <input autoFocus className="search-overlay-input" placeholder={t('nav.search') || "Rechercher..."} type="text" />
         <button className="search-overlay-close" onClick={onClose}><CloseIcon /></button>
       </div>
     </div>
@@ -76,12 +80,13 @@ function SearchOverlay({ onClose }) {
 }
 
 function CompaniesModal({ companies, onClose }) {
+  const { t } = useTranslation();
   if (!companies.length) return null;
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose}><CloseIcon /></button>
-        <h2 className="modal-title">Toutes les entreprises</h2>
+        <h2 className="modal-title">{t('home.top_companies')}</h2>
         <div className="modal-grid">
           {companies.map(company => (
             <div className="modal-company-card" key={company.id}>
@@ -90,8 +95,8 @@ function CompaniesModal({ companies, onClose }) {
               </div>
               <div className="modal-company-info">
                 <h3>{company.company_name}</h3>
-                <p>{company.sector || "Secteur"}</p>
-                <span>{company.students_applied ?? 0} candidatures</span>
+                <p>{company.sector || t('common.company')}</p>
+                <span>{company.students_applied ?? 0} {t('common.applications')}</span>
               </div>
             </div>
           ))}
@@ -102,6 +107,7 @@ function CompaniesModal({ companies, onClose }) {
 }
 
 export default function Home() {
+  const { t } = useTranslation();
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
   const [showCompaniesModal, setShowCompaniesModal] = useState(false);
@@ -162,25 +168,26 @@ export default function Home() {
           <button className="navbar-search-btn" onClick={() => setSearchOpen(true)}><SearchIcon /></button>
         </div>
         <ul className="navbar-links">
-          <li><a href="#home" className={activeSection === "home" ? "active" : ""} onClick={e => { e.preventDefault(); scrollTo("home", homeRef); }}>Home</a></li>
-          <li><a href="#companies" className={activeSection === "companies" ? "active" : ""} onClick={e => { e.preventDefault(); scrollTo("companies", companiesRef); }}>Top companies</a></li>
-          <li><a href="#services" className={activeSection === "services" ? "active" : ""} onClick={e => { e.preventDefault(); scrollTo("services", servicesRef); }}>Our services</a></li>
+          <li><a href="#home" className={activeSection === "home" ? "active" : ""} onClick={e => { e.preventDefault(); scrollTo("home", homeRef); }}>{t('nav.home')}</a></li>
+          <li><a href="#companies" className={activeSection === "companies" ? "active" : ""} onClick={e => { e.preventDefault(); scrollTo("companies", companiesRef); }}>{t('nav.companies')}</a></li>
+          <li><a href="#services" className={activeSection === "services" ? "active" : ""} onClick={e => { e.preventDefault(); scrollTo("services", servicesRef); }}>{t('nav.services')}</a></li>
         </ul>
         <div className="navbar-right">
-          <button className="btn-contact">Contact Us</button>
+          <button className="btn-contact">{t('nav.contact')}</button>
+          <LanguageSwitcher />
           <button className="navbar-moon-btn"><MoonIcon /></button>
         </div>
       </nav>
 
-      {}
+      {/* Hero Section */}
       <section className="hero-section" id="home" ref={homeRef} data-section="home">
         <div className="hero-container">
           <div className="hero-content">
-            <h1>University<br /><span>Stage</span></h1>
-            <p>facilitates the organization of offers into categorized lists based on student search criteria, while also allowing for the immediate review of attached CVs.</p>
+            <h1>{t('home.title')}<br /><span>Stage</span></h1>
+            <p>{t('home.subtitle')}</p>
             <div className="hero-buttons">
-              <button className="btn-primary" onClick={() => navigate("/login")}>Get started</button>
-              <button className="btn-outline">About us</button>
+              <button className="btn-primary" onClick={() => navigate("/login")}>{t('home.get_started')}</button>
+              <button className="btn-outline">{t('home.about_us')}</button>
             </div>
           </div>
           <div className="hero-image-box">
@@ -189,20 +196,20 @@ export default function Home() {
         </div>
       </section>
 
-      {}
+      {/* Companies Section */}
       <section className="companies-section" id="companies" ref={companiesRef} data-section="companies">
-        <h2 className="section-title"><span className="word-top">Top </span><span className="word-grad">Companies</span></h2>
+        <h2 className="section-title"><span className="word-top">{t('home.top_companies')} </span><span className="word-grad">Companies</span></h2>
         <div className="companies-grid">
           {loadingCompanies ? (
-            <div className="loading-placeholder">Chargement des entreprises...</div>
+            <div className="loading-placeholder">{t('home.loading_companies')}</div>
           ) : companies.length === 0 ? (
-            <div className="empty-placeholder">Aucune entreprise pour le moment.</div>
+            <div className="empty-placeholder">{t('home.no_companies')}</div>
           ) : (
             companies.slice(0, 3).map(company => (
               <div className="company-card" key={company.id}>
                 <div className="company-img-box">
                   {company.logo ? <img src={company.logo} alt={company.company_name} style={{ width: "80px", height: "80px", objectFit: "contain" }} /> : <ImgIcon />}
-                  <span>{company.sector || "Entreprise"}</span>
+                  <span>{company.sector || t('common.company')}</span>
                 </div>
                 <div className="company-info-zone">
                   <div className="company-name">{company.company_name}</div>
@@ -210,38 +217,42 @@ export default function Home() {
                     <div className="rep-block"><span className="rep-icon">👤</span><div><span className="rep-name">Recruteur</span><span className="rep-label">Contact</span></div></div>
                     <div className="internship-info"><strong>{company.students_applied ?? 0}</strong> Candidatures</div>
                   </div>
-                  <div className="stars-row"><Stars n={4} /><button className="see-details-btn">See Details <ArrowRight /></button></div>
+                  <div className="stars-row"><Stars n={4} /><button className="see-details-btn">{t('home.see_all')} <ArrowRight /></button></div>
                 </div>
               </div>
             ))
           )}
         </div>
         <div className="see-all-btn-wrap">
-          <button className="btn-see-all" onClick={() => setShowCompaniesModal(true)}>See All <ArrowRight /></button>
+          <button className="btn-see-all" onClick={() => setShowCompaniesModal(true)}>{t('home.see_all')} <ArrowRight /></button>
         </div>
       </section>
 
-      {}
+      {/* Services Section */}
       <section className="services-section" id="services" ref={servicesRef} data-section="services">
-        <h2 className="section-title"><span className="word-white">Our </span><span className="word-grad">services</span></h2>
+        <h2 className="section-title"><span className="word-white">{t('home.our_services')} </span><span className="word-grad">services</span></h2>
         <div className="services-grid">
-          {services.map(s => (
-            <div className="service-card" key={s.id}>
-              <div className="service-img-box"><img src={s.image} alt={s.title} className="service-image" /></div>
-              <div className="service-card-body"><h3>{s.title}</h3><p>{s.desc}</p></div>
-            </div>
-          ))}
+          {services.map(s => {
+            const title = t(`services.${s.titleKey}.title`);
+            const desc = t(`services.${s.descKey}`);
+            return (
+              <div className="service-card" key={s.id}>
+                <div className="service-img-box"><img src={s.image} alt={title} className="service-image" /></div>
+                <div className="service-card-body"><h3>{title}</h3><p>{desc}</p></div>
+              </div>
+            );
+          })}
         </div>
-        <div className="learn-more-wrap"><button className="btn-learn-more">LEARN MORE</button></div>
+        <div className="learn-more-wrap"><button className="btn-learn-more">{t('home.learn_more')}</button></div>
       </section>
 
-      {}
+      {/* Footer */}
       <footer className="footer">
         <div className="footer-grid">
           <div className="footer-brand"><div className="footer-brand-logo">🎓 UnivStage</div><p>Connecting students with professional opportunities and empowering the next generation of innovators.</p></div>
-          <div className="footer-contact"><h4>Contact Us</h4><ul><li><MapPinIcon />123 University Ave, Campus Center, CA 94000</li><li><PhoneIcon />+1 (555) 123-4567</li><li><MailIcon />internships@university.edu</li></ul></div>
+          <div className="footer-contact"><h4>{t('footer.contact_us')}</h4><ul><li><MapPinIcon />123 University Ave, Campus Center, CA 94000</li><li><PhoneIcon />+1 (555) 123-4567</li><li><MailIcon />internships@university.edu</li></ul></div>
         </div>
-        <div className="footer-bottom"><p>© 2026 UnivStage. All rights reserved.</p><div className="footer-socials"><a href="#!">f</a><a href="#!">𝕏</a><a href="#!">in</a><a href="#!">◎</a></div><div className="footer-bottom-links"><a href="#!">Privacy Policy</a><span>|</span><a href="#!">Terms of Service</a></div></div>
+        <div className="footer-bottom"><p>© 2026 UnivStage. {t('footer.rights')}</p><div className="footer-socials"><a href="#!">f</a><a href="#!">𝕏</a><a href="#!">in</a><a href="#!">◎</a></div><div className="footer-bottom-links"><a href="#!">{t('footer.privacy_policy')}</a><span>|</span><a href="#!">{t('footer.terms')}</a></div></div>
       </footer>
     </>
   );

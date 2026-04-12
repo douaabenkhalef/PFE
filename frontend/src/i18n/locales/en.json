@@ -1,0 +1,91 @@
+{
+  "common": {
+    "login": "Login",
+    "signup": "Sign Up",
+    "logout": "Logout",
+    "dashboard": "Dashboard",
+    "language": "Language",
+    "french": "French",
+    "english": "English",
+    "company": "Company"
+  },
+  "nav": {
+    "home": "Home",
+    "companies": "Companies",
+    "services": "Services",
+    "contact": "Contact",
+    "search": "Search..."
+  },
+  "home": {
+    "welcome": "WELCOME",
+    "welcome_back": "WELCOME BACK",
+    "title": "University Stage",
+    "subtitle": "facilitates the organization of offers into categorized lists based on student search criteria, while also allowing for the immediate review of attached CVs.",
+    "get_started": "Get started",
+    "about_us": "About us",
+    "top_companies": "Top Companies",
+    "top_companies_subtitle": "The popular companies offering internships",
+    "see_all": "See All",
+    "our_services": "Our Services",
+    "our_services_subtitle": "Discover our services",
+    "learn_more": "LEARN MORE",
+    "no_companies": "No companies at the moment.",
+    "loading_companies": "Loading companies..."
+  },
+  "services": {
+    "explore_offers": {
+      "title": "Explore offers",
+      "desc": "Students can view company offers, search using filters, and apply for internships."
+    },
+    "student_applications": {
+      "title": "Student Applications",
+      "desc": "Students can easily submit their applications and upload their CVs through our intuitive platform."
+    },
+    "admin_validation": {
+      "title": "Administration Validation",
+      "desc": "Administrators review and validate student applications with powerful management tools."
+    }
+  },
+  "footer": {
+    "contact_us": "Contact Us",
+    "rights": "All rights reserved.",
+    "privacy_policy": "Privacy Policy",
+    "terms": "Terms of Service"
+  },
+  "auth": {
+    "login_title": "Login",
+    "signup_title": "Sign Up",
+    "email": "Email",
+    "password": "Password",
+    "confirm_password": "Confirm Password",
+    "forgot_password": "Forgot password?",
+    "no_account": "Don't have an account?",
+    "have_account": "Already have an account?",
+    "select_role": "Select your role",
+    "student": "Student",
+    "company": "Company",
+    "administration": "Administration"
+  },
+  
+"dashboard": {
+  "welcome": "Dashboard",
+  "students": "Students",
+  "companies": "Companies",
+  "applications": "Applications",
+  "offers": "Offers",
+  "validations": "Validations",
+  "pending": "Pending",
+  "validated": "Validated",
+  "rejected": "Rejected",
+  "actions": "Actions",
+  "search": "Search",
+  "filter": "Filter",
+  "export": "Export",
+  "settings": "Settings",
+  "profile": "Profile",
+  "notifications": "Notifications",
+  "messages": "Messages",
+  "chat": "Chat",
+  "logout": "Logout"
+}
+}

@@ -46,6 +46,7 @@ def create_default_permissions(user):
                     can_manage_conventions=True,
                     can_manage_co_dept_heads=True,
                     can_add_signature=True,
+                    can_add_stamp=True,
                     can_manage_university_profile=True
                 )
             else:  # co_dept_head
@@ -55,6 +56,7 @@ def create_default_permissions(user):
                     can_manage_conventions=True,
                     can_manage_co_dept_heads=False,
                     can_add_signature=True,
+                    can_add_stamp=True,
                     can_manage_university_profile=False
                 )
         else:

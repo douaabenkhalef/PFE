@@ -108,6 +108,8 @@ path('activity-logs/company/', views.get_company_activity_logs, name='company-ac
     path('dept-head/validated-validations/', views.dept_head_validated_validations, name='dept-head-validated'),
     path('stamp/university/<str:application_id>/', views.add_university_stamp, name='add-university-stamp'),
     path('stamp/status/<str:application_id>/', views.get_stamp_status, name='stamp-status'),
+    path('admin/university-users-status/', views.get_university_users_status, name='university-users-status'),
+    path('auth/me/', views.get_current_user, name='get-current-user'),
     
     
 

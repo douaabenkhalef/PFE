@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import traceback
 from django.conf import settings
 import os
-from .permissions_utils import get_user_permissions, update_user_permissions
+from .permissions_utils import get_user_permissions, update_user_permissions, check_permission
 
 from reportlab.lib.pagesizes import A4, letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
@@ -307,6 +307,7 @@ def login(request):
         student = Student.objects(user=user).first()
         if student:
             user_data['full_name'] = student.full_name
+            user_data['university'] = student.university  # 🔥 AJOUTE CETTE LIGNE
     elif user.role == 'company':
         company = Company.objects(user=user).first()
         if company:
@@ -315,6 +316,7 @@ def login(request):
         admin = Admin.objects(user=user).first()
         if admin:
             user_data['full_name'] = admin.full_name
+            user_data['university'] = admin.university  # 🔥 AJOUTE CETTE LIGNE
 
     return Response({
         'success': True,
@@ -323,7 +325,6 @@ def login(request):
         'user': user_data,
         'redirect_url': redirect_urls.get(user.role, '/dashboard'),
     })
-
 
 
 
@@ -1916,7 +1917,6 @@ def co_dept_pending_validations(request):
             offer = app.offer
             company = offer.company if offer else None
             
-            # Construire l'URL de la convention si elle existe
             convention_url = None
             if app.convention_pdf:
                 convention_url = f'/api/co-dept/download-convention/{str(app.id)}/'
@@ -2060,6 +2060,13 @@ def co_dept_download_cv(request, application_id):
 @role_required(allowed_roles=['admin'], allowed_sub_roles=['co_dept_head'])
 def co_dept_validate_application(request, application_id):
     try:
+        # Vérifier les permissions
+        if not check_permission(request.user, 'can_manage_conventions'):
+            return Response({
+                'success': False, 
+                'error': "Vous n'avez pas la permission de valider des conventions. Veuillez contacter le Department Head pour obtenir les droits nécessaires."
+            }, status=status.HTTP_403_FORBIDDEN)
+        
         application = Application.objects(id=application_id).first()
         if not application:
             return Response({'success': False, 'error': 'Candidature non trouvée'}, status=404)
@@ -2097,25 +2104,16 @@ def co_dept_validate_application(request, application_id):
             }
         )
         
-        # LOG ACTIVITY - Generate Convention (implicitly done)
-        log_activity(
-            user=request.user,
-            action_type='generate_convention',
-            target_type='convention',
-            target_id=str(application.id),
-            target_name=f"{application.student.full_name} - {application.offer.title}"
-        )
-        
         send_convention_validated_email(application, co_dept)
         
         Notification.objects.create(
             recipient=application.student.user,
-            message=f" Félicitations ! Votre stage '{application.offer.title}' a été validé par {co_dept.full_name}. Votre convention de stage est disponible.",
+            message=f"✅ Félicitations ! Votre stage '{application.offer.title}' a été validé par {co_dept.full_name}. Votre convention de stage est disponible.",
             related_id=str(application.id)
         )
         Notification.objects.create(
             recipient=application.offer.company.user,
-            message=f" La candidature de {application.student.full_name} pour '{application.offer.title}' a été validée par l'université {co_dept.university}.",
+            message=f"✅ La candidature de {application.student.full_name} pour '{application.offer.title}' a été validée par l'université {co_dept.university}.",
             related_id=str(application.id)
         )
         
@@ -2126,7 +2124,7 @@ def co_dept_validate_application(request, application_id):
         })
         
     except Exception as e:
-        print(f" Erreur: {str(e)}")
+        print(f"❌ Erreur: {str(e)}")
         return Response({'success': False, 'error': str(e)}, status=500)
 
 
@@ -2135,6 +2133,13 @@ def co_dept_validate_application(request, application_id):
 @role_required(allowed_roles=['admin'], allowed_sub_roles=['co_dept_head'])
 def co_dept_reject_application(request, application_id):
     try:
+        # Vérifier les permissions
+        if not check_permission(request.user, 'can_manage_conventions'):
+            return Response({
+                'success': False, 
+                'error': "Vous n'avez pas la permission de refuser des conventions. Veuillez contacter le Department Head pour obtenir les droits nécessaires."
+            }, status=status.HTTP_403_FORBIDDEN)
+        
         rejection_reason = request.data.get('rejection_reason', '').strip()
         if not rejection_reason:
             return Response({'success': False, 'error': 'La raison du refus est obligatoire'}, status=400)
@@ -2177,12 +2182,12 @@ def co_dept_reject_application(request, application_id):
         
         Notification.objects.create(
             recipient=application.student.user,
-            message=f" Votre stage '{application.offer.title}' a été refusé par {co_dept.full_name}. Motif: {rejection_reason[:100]}...",
+            message=f"❌ Votre stage '{application.offer.title}' a été refusé par {co_dept.full_name}. Motif: {rejection_reason[:100]}...",
             related_id=str(application.id)
         )
         Notification.objects.create(
             recipient=application.offer.company.user,
-            message=f" La candidature de {application.student.full_name} pour '{application.offer.title}' a été refusée par l'université.",
+            message=f"❌ La candidature de {application.student.full_name} pour '{application.offer.title}' a été refusée par l'université.",
             related_id=str(application.id)
         )
         
@@ -2228,20 +2233,14 @@ def dept_head_pending_validations(request):
             return Response({'success': False, 'error': 'Profil Department Head non trouvé'}, status=404)
         
         dept_head_university = dept_head.university
-        print(f" Department Head: {dept_head.full_name}")
-        print(f" Université: {dept_head_university}")
         
         students = Student.objects(university=dept_head_university)
         student_ids = [str(s.id) for s in students]
-        
-        print(f" Étudiants trouvés: {len(student_ids)}")
         
         applications = Application.objects(
             student__in=student_ids,
             status='accepted_by_company'
         ).order_by('-applied_at')
-        
-        print(f" Candidatures trouvées: {applications.count()}")
         
         result = []
         for app in applications:
@@ -2249,7 +2248,6 @@ def dept_head_pending_validations(request):
             offer = app.offer
             company = offer.company if offer else None
             
-            # Construire l'URL de la convention si elle existe
             convention_url = None
             if app.convention_pdf:
                 convention_url = f'/api/dept-head/download-convention/{str(app.id)}/'
@@ -2585,6 +2583,7 @@ def get_company_activity_logs(request):
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
 
+
 @api_view(['GET'])
 @jwt_authenticated
 @role_required(allowed_roles=['admin'], allowed_sub_roles=['admin'])
@@ -2609,11 +2608,7 @@ def get_dept_head_activity_logs(request):
         # Ajouter le dept head lui-même
         co_dept_ids.append(str(request.user.id))
         
-        print(f"=== Dept Head Activity Logs ===")
-        print(f"Dept Head: {dept_head.full_name} - {dept_head.university}")
-        print(f"Co Dept Heads trouvés: {len(co_dept_ids)}")
-        
-        # Récupérer TOUS les logs (plus de filtre action_type)
+        # Récupérer TOUS les logs
         logs = ActivityLog.objects(
             user_id__in=co_dept_ids
         ).order_by('-created_at')
@@ -2689,9 +2684,6 @@ def get_dept_head_activity_logs(request):
             action = log.action_type
             stats['by_type'][action] = stats['by_type'].get(action, 0) + 1
         
-        print(f"Logs trouvés: {len(result)}")
-        print(f"Signatures: {stats['signatures_count']}")
-        
         return Response({
             'success': True,
             'logs': result,
@@ -2717,6 +2709,7 @@ def check_user_exists(request):
     except Exception as e:
         return Response({'exists': False, 'error': str(e)})
 
+
 def generate_internship_agreement_pdf(application, admin_user):
     """Génère une convention de stage avec signature et cachet importé"""
     from reportlab.lib.pagesizes import A4
@@ -2727,7 +2720,6 @@ def generate_internship_agreement_pdf(application, admin_user):
     from django.core.files.base import ContentFile
     from io import BytesIO
     import base64
-    from PIL import Image as PILImage
     import io
     
     buffer = BytesIO()
@@ -2869,6 +2861,7 @@ def generate_internship_agreement_pdf(application, admin_user):
     pdf_content.name = f"convention_{application.student.full_name}_{application.offer.company.company_name}.pdf"
     return pdf_content
 
+
 @api_view(['POST'])
 @jwt_authenticated
 @role_required(allowed_roles=['admin'], allowed_sub_roles=['admin', 'co_dept_head'])
@@ -2877,6 +2870,13 @@ def add_university_signature(request, application_id):
     Department Head ou Co Department Head - Ajoute la signature de l'université
     """
     try:
+        # 🔥 AJOUT DE LA VÉRIFICATION DES PERMISSIONS POUR LA SIGNATURE
+        if not check_permission(request.user, 'can_add_signature'):
+            return Response({
+                'success': False, 
+                'error': "Vous n'avez pas la permission d'ajouter une signature. Veuillez contacter le Department Head pour obtenir les droits nécessaires."
+            }, status=status.HTTP_403_FORBIDDEN)
+        
         application = Application.objects(id=application_id).first()
         if not application:
             return Response({'success': False, 'error': 'Application not found'}, status=404)
@@ -2900,11 +2900,9 @@ def add_university_signature(request, application_id):
         application.university_signed_by = admin_profile.full_name
         application.signature_status = 'university_signed'
         
-        # ============ RÉGÉNÉRER LE PDF AVEC LA SIGNATURE ============
-        # Générer un nouveau PDF qui inclut la signature
+        # RÉGÉNÉRER LE PDF AVEC LA SIGNATURE
         new_pdf = generate_internship_agreement_pdf(application, admin_profile)
         application.convention_pdf = new_pdf
-        # ============================================================
         
         application.save()
         
@@ -2940,7 +2938,6 @@ def generate_convention_from_template(request, application_id):
         if not application:
             return Response({'success': False, 'error': 'Candidature non trouvée'}, status=404)
         
-        
         user = request.user
         if user.role == 'admin':
             admin = Admin.objects(user=user).first()
@@ -2957,16 +2954,11 @@ def generate_convention_from_template(request, application_id):
         else:
             return Response({'success': False, 'error': 'Non autorisé - Rôle incorrect'}, status=403)
         
-       
         if application.status not in ['accepted_by_company', 'validated_by_co_dept']:
             return Response({'success': False, 'error': f'Impossible de générer la convention - Statut actuel: {application.status}'}, status=400)
         
-        
         pdf_content = generate_convention_pdf_template(application)
-        
-       
         pdf_data = pdf_content.read()
-        
         
         from django.core.files.base import ContentFile
         application.convention_pdf = ContentFile(pdf_data, name=f"convention_{application.student.full_name}_{application.offer.company.company_name}.pdf")
@@ -3253,6 +3245,8 @@ def generate_convention_pdf_template(application):
     pdf_content = ContentFile(buffer.getvalue())
     pdf_content.name = f"convention_{application.student.full_name}_{application.offer.company.company_name}.pdf"
     return pdf_content
+
+
 # ==================== PERMISSIONS MANAGEMENT ENDPOINTS ====================
 
 @api_view(['GET'])
@@ -3326,6 +3320,7 @@ def get_co_dept_heads_list(request):
                         'can_manage_conventions': permissions.can_manage_conventions if permissions else True,
                         'can_manage_co_dept_heads': permissions.can_manage_co_dept_heads if permissions else False,
                         'can_add_signature': permissions.can_add_signature if permissions else True,
+                        'can_add_stamp': permissions.can_add_stamp if permissions else True,  # 🔥 AJOUTER CETTE LIGNE
                         'can_manage_university_profile': permissions.can_manage_university_profile if permissions else False,
                     }
                 })
@@ -3400,25 +3395,25 @@ def update_co_dept_head_permissions(request, user_id):
         if not dept_head:
             return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
         
-        # Chercher le co dept head (sans vérifier pending_admin_id)
+        # Chercher le co dept head
         co_dept = User.objects(id=user_id, role='admin', sub_role='co_dept_head').first()
         if not co_dept:
             return Response({'success': False, 'error': 'Co Dept Head not found'}, status=404)
         
-        # Vérifier par université au lieu de pending_admin_id
+        # Vérifier par université
         co_dept_admin = Admin.objects(user=co_dept).first()
         if not co_dept_admin:
-            # Si pas de profil Admin, créer un temporaire pour vérification
             return Response({'success': False, 'error': 'Co Dept Head admin profile not found'}, status=404)
         
         if co_dept_admin.university != dept_head.university:
-            return Response({'success': False, 'error': f'Unauthorized - Different university. Co Dept Head: {co_dept_admin.university}, Your university: {dept_head.university}'}, status=403)
+            return Response({'success': False, 'error': f'Unauthorized - Different university'}, status=403)
         
         # Mettre à jour les permissions
         permissions_data = {
             'can_manage_conventions': request.data.get('can_manage_conventions', True),
             'can_manage_co_dept_heads': request.data.get('can_manage_co_dept_heads', False),
             'can_add_signature': request.data.get('can_add_signature', True),
+            'can_add_stamp': request.data.get('can_add_stamp', True),  # 🔥 AJOUTER CETTE LIGNE
             'can_manage_university_profile': request.data.get('can_manage_university_profile', False),
         }
         
@@ -3438,7 +3433,6 @@ def update_co_dept_head_permissions(request, user_id):
         
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
-
 # ==================== DELETE ENDPOINTS ====================
 
 @api_view(['DELETE'])
@@ -3620,6 +3614,7 @@ def get_approved_co_dept_heads(request):
                     'can_manage_conventions': permissions.can_manage_conventions if permissions else True,
                     'can_manage_co_dept_heads': permissions.can_manage_co_dept_heads if permissions else False,
                     'can_add_signature': permissions.can_add_signature if permissions else True,
+                    'can_add_stamp': permissions.can_add_stamp if permissions else True,  # 🔥 AJOUTER CETTE LIGNE
                     'can_manage_university_profile': permissions.can_manage_university_profile if permissions else False,
                 }
             })
@@ -3628,7 +3623,6 @@ def get_approved_co_dept_heads(request):
         
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
-
 
 # ==================== STUDENT MANAGEMENT ENDPOINTS ====================
 
@@ -3943,63 +3937,6 @@ def get_placement_statistics(request):
 
 @api_view(['POST'])
 @jwt_authenticated
-@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin', 'co_dept_head'])
-def add_university_signature(request, application_id):
-    """
-    Department Head ou Co Department Head - Ajoute la signature de l'université
-    """
-    try:
-        application = Application.objects(id=application_id).first()
-        if not application:
-            return Response({'success': False, 'error': 'Application not found'}, status=404)
-        
-        admin_profile = Admin.objects(user=request.user).first()
-        if not admin_profile:
-            return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
-        
-        if application.student.university != admin_profile.university:
-            return Response({'success': False, 'error': 'Unauthorized'}, status=403)
-        
-        if application.status != 'validated_by_co_dept':
-            return Response({'success': False, 'error': 'Convention not validated yet'}, status=400)
-        
-        signature_data = request.data.get('signature', '')
-        if not signature_data:
-            return Response({'success': False, 'error': 'Signature data required'}, status=400)
-        
-        application.university_signature = signature_data
-        application.university_signature_date = datetime.now()
-        application.university_signed_by = admin_profile.full_name
-        application.signature_status = 'university_signed'
-        
-        # ============ RÉGÉNÉRER LE PDF AVEC LA SIGNATURE ============
-        # Générer un nouveau PDF qui inclut la signature
-        new_pdf = generate_internship_agreement_pdf(application, admin_profile)
-        application.convention_pdf = new_pdf
-        # ============================================================
-        
-        application.save()
-        
-        log_activity(
-            user=request.user,
-            action_type='add_signature',
-            target_type='convention',
-            target_id=str(application.id),
-            target_name=f"{application.student.full_name} - {application.offer.title}",
-            details={'signature_type': 'university', 'signed_by': admin_profile.full_name}
-        )
-        
-        return Response({
-            'success': True,
-            'message': 'University signature added successfully',
-            'signed_by': admin_profile.full_name,
-            'signature_status': application.signature_status
-        })
-        
-    except Exception as e:
-        return Response({'success': False, 'error': str(e)}, status=500)
-@api_view(['POST'])
-@jwt_authenticated
 @role_required(allowed_roles=['company'])
 def add_company_signature(request, application_id):
     """
@@ -4143,7 +4080,8 @@ def get_signature_status(request, application_id):
         
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
-    
+
+
 @api_view(['GET'])
 @jwt_authenticated
 @role_required(allowed_roles=['admin'], allowed_sub_roles=['admin'])
@@ -4216,7 +4154,8 @@ def dept_head_validated_validations(request):
         print(f" Erreur: {str(e)}")
         traceback.print_exc()
         return Response({'success': False, 'error': str(e)}, status=500)
-    
+
+
 @api_view(['POST'])
 @jwt_authenticated
 @role_required(allowed_roles=['admin'], allowed_sub_roles=['admin', 'co_dept_head'])
@@ -4225,6 +4164,13 @@ def add_university_stamp(request, application_id):
     Department Head ou Co Department Head - Ajoute le cachet de l'université
     """
     try:
+        # Vérifier les permissions pour ajouter le cachet
+        if not check_permission(request.user, 'can_add_stamp'):
+            return Response({
+                'success': False, 
+                'error': "Vous n'avez pas la permission d'ajouter le cachet. Veuillez contacter le Department Head pour obtenir les droits nécessaires."
+            }, status=status.HTTP_403_FORBIDDEN)
+        
         application = Application.objects(id=application_id).first()
         if not application:
             return Response({'success': False, 'error': 'Application not found'}, status=404)
@@ -4246,6 +4192,11 @@ def add_university_stamp(request, application_id):
         application.university_stamp = stamp_data
         application.university_stamp_date = datetime.now()
         application.stamp_status = 'stamped'
+        
+        # 🔥 RÉGÉNÉRER LE PDF AVEC LE CACHET (même si signature pas encore ajoutée)
+        new_pdf = generate_internship_agreement_pdf(application, admin_profile)
+        application.convention_pdf = new_pdf
+        
         application.save()
         
         log_activity(
@@ -4266,56 +4217,7 @@ def add_university_stamp(request, application_id):
         
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
-    
-@api_view(['POST'])
-@jwt_authenticated
-@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin', 'co_dept_head'])
-def add_university_stamp(request, application_id):
-    """
-    Department Head ou Co Department Head - Ajoute le cachet de l'université
-    """
-    try:
-        application = Application.objects(id=application_id).first()
-        if not application:
-            return Response({'success': False, 'error': 'Application not found'}, status=404)
-        
-        admin_profile = Admin.objects(user=request.user).first()
-        if not admin_profile:
-            return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
-        
-        if application.student.university != admin_profile.university:
-            return Response({'success': False, 'error': 'Unauthorized'}, status=403)
-        
-        if application.status != 'validated_by_co_dept':
-            return Response({'success': False, 'error': 'Convention not validated yet'}, status=400)
-        
-        stamp_data = request.data.get('stamp', '')
-        if not stamp_data:
-            return Response({'success': False, 'error': 'Stamp data required'}, status=400)
-        
-        application.university_stamp = stamp_data
-        application.university_stamp_date = datetime.now()
-        application.stamp_status = 'stamped'
-        application.save()
-        
-        log_activity(
-            user=request.user,
-            action_type='add_stamp',
-            target_type='convention',
-            target_id=str(application.id),
-            target_name=f"{application.student.full_name} - {application.offer.title}",
-            details={'stamp_type': 'university', 'added_by': admin_profile.full_name}
-        )
-        
-        return Response({
-            'success': True,
-            'message': 'University stamp added successfully',
-            'added_by': admin_profile.full_name,
-            'stamp_status': application.stamp_status
-        })
-        
-    except Exception as e:
-        return Response({'success': False, 'error': str(e)}, status=500)
+
 @api_view(['GET'])
 @jwt_authenticated
 def get_stamp_status(request, application_id):
@@ -4353,6 +4255,109 @@ def get_stamp_status(request, application_id):
             'stamp_added_by': application.stamp_added_by,
             'stamp_date': application.university_stamp_date.strftime('%d/%m/%Y %H:%M') if application.university_stamp_date else None,
         })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+    
+    
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin', 'co_dept_head'])
+def get_university_users_status(request):
+    """
+    Récupère la liste des utilisateurs (admins et co dept heads) de la même université
+    avec leur statut en ligne/hors ligne
+    """
+    try:
+        admin_profile = Admin.objects(user=request.user).first()
+        if not admin_profile:
+            return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
+        
+        university = admin_profile.university
+        
+        # Récupérer tous les admins (Department Heads) de la même université
+        admins = Admin.objects(university=university)
+        
+        users_list = []
+        for admin in admins:
+            if admin.user:
+                is_online = admin.user.is_online()
+                last_activity_str = "En ligne" if is_online else "Hors ligne"
+                if admin.user.last_activity and not is_online:
+                    last_activity_str = f"Dernière activité: {admin.user.last_activity.strftime('%H:%M')}"
+                
+                users_list.append({
+                    'id': str(admin.user.id),
+                    'username': admin.user.username,
+                    'email': admin.user.email,
+                    'full_name': admin.full_name,
+                    'role': admin.user.role,
+                    'sub_role': admin.user.sub_role,
+                    'is_online': is_online,
+                    'last_activity': admin.user.last_activity.strftime('%Y-%m-%d %H:%M:%S') if admin.user.last_activity else None,
+                    'status_text': last_activity_str,
+                    'avatar': admin.full_name[0].upper() if admin.full_name else admin.user.username[0].upper()
+                })
+        
+        return Response({
+            'success': True,
+            'university': university,
+            'users': users_list,
+            'online_count': sum(1 for u in users_list if u['is_online']),
+            'total_count': len(users_list)
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+    
+    # backend/api/views.py - AJOUTER CET ENDPOINT
+
+@api_view(['GET'])
+@jwt_authenticated
+def get_current_user(request):
+    """
+    Récupère les informations de l'utilisateur connecté
+    """
+    try:
+        user = request.user
+        user_data = {
+            'id': str(user.id),
+            'username': user.username,
+            'email': user.email,
+            'role': user.role,
+            'sub_role': user.sub_role,
+            'status': user.status,
+        }
+        
+        # Ajouter les permissions si elles existent
+        permissions = get_user_permissions(user)
+        if permissions:
+            user_data['permissions'] = {
+                'can_manage_conventions': permissions.can_manage_conventions,
+                'can_manage_co_dept_heads': permissions.can_manage_co_dept_heads,
+                'can_add_signature': permissions.can_add_signature,
+                'can_add_stamp': permissions.can_add_stamp if hasattr(permissions, 'can_add_stamp') else True,
+                'can_manage_university_profile': permissions.can_manage_university_profile,
+            }
+        
+        # Ajouter les infos spécifiques selon le rôle
+        if user.role == 'student':
+            student = Student.objects(user=user).first()
+            if student:
+                user_data['full_name'] = student.full_name
+                user_data['university'] = student.university
+        elif user.role == 'company':
+            company = Company.objects(user=user).first()
+            if company:
+                user_data['company_name'] = company.company_name
+        elif user.role == 'admin':
+            admin = Admin.objects(user=user).first()
+            if admin:
+                user_data['full_name'] = admin.full_name
+                user_data['university'] = admin.university
+        
+        return Response({'success': True, 'user': user_data})
         
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)

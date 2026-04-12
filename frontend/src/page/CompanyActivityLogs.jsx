@@ -1,14 +1,15 @@
 // frontend/src/page/CompanyActivityLogs.jsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { 
   Activity, Eye, Filter, Calendar, RefreshCw, 
   CheckCircle, XCircle, Clock, FileText, UserPlus, 
   UserMinus, Briefcase, Trash2, Users, Search,
-  ArrowLeft
+  ArrowLeft, User, Building2, UserCog, LogOut
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import './StudentDashboard.css';
 
 const API = 'http://localhost:8000/api';
 const authHeaders = () => ({
@@ -75,7 +76,7 @@ const ActivityLogCard = ({ log }) => {
 };
 
 export default function CompanyActivityLogs() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState({});
@@ -86,6 +87,10 @@ export default function CompanyActivityLogs() {
     end_date: ''
   });
   const [showFilters, setShowFilters] = useState(false);
+
+  const isCompanyManager = user?.sub_role === 'company_manager';
+  const initials = (user?.full_name || user?.email || "U")
+    .split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -124,154 +129,212 @@ export default function CompanyActivityLogs() {
     { value: 'reject_hiring_manager', label: 'Refus Hiring Manager' }
   ];
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black">
-      <nav className="bg-white/10 backdrop-blur-lg border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate('/company-manager/dashboard')}
-                className="flex items-center gap-2 text-white/70 hover:text-white transition"
-              >
-                <ArrowLeft size={18} />
-                Retour
-              </button>
-              <span className="text-white/30">|</span>
-              <div className="flex items-center gap-3">
-                <Activity className="w-6 h-6 text-purple-400" />
-                <h1 className="text-xl font-bold text-white">Contrôle d'Activité</h1>
-              </div>
+    <div className="min-h-screen flex">
+      {/* Sidebar - always visible, inline (no blur overlay) */}
+      <div className="w-64 bg-gradient-to-b from-[#1a0840] to-[#0e0c27] h-full fixed left-0 top-0 overflow-y-auto border-r border-purple-500/30">
+        <div className="p-4 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
+              {initials}
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-white/80">{user?.company_name}</span>
-              <span className="text-white/60 text-sm bg-white/10 px-3 py-1 rounded-full">Company Manager</span>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white/60 text-sm">Total actions</p>
-                <p className="text-2xl font-bold text-white">{stats.total_actions || 0}</p>
-              </div>
-              <Activity className="w-8 h-8 text-purple-400 opacity-60" />
-            </div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white/60 text-sm">7 derniers jours</p>
-                <p className="text-2xl font-bold text-white">{stats.last_7_days || 0}</p>
-              </div>
-              <Calendar className="w-8 h-8 text-blue-400 opacity-60" />
-            </div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white/60 text-sm">Créations offre</p>
-                <p className="text-2xl font-bold text-white">{stats.by_type?.create_offer || 0}</p>
-              </div>
-              <Briefcase className="w-8 h-8 text-green-400 opacity-60" />
-            </div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white/60 text-sm">Candidatures traitées</p>
-                <p className="text-2xl font-bold text-white">
-                  {(stats.by_type?.accept_application || 0) + (stats.by_type?.reject_application || 0)}
-                </p>
-              </div>
-              <Users className="w-8 h-8 text-yellow-400 opacity-60" />
+            <div>
+              <p className="text-white font-medium text-sm">{user?.full_name || user?.email}</p>
+              <p className="text-white/50 text-xs">{user?.email}</p>
             </div>
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20 mb-6">
+        <div className="p-4">
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+            <input
+              type="text"
+              placeholder="Search"
+              className="w-full bg-white/10 border border-white/20 rounded-lg pl-9 pr-3 py-2 text-white text-sm placeholder:text-white/40 focus:outline-none focus:border-purple-500"
+            />
+          </div>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto p-3">
+          <div>
+            <p className="text-xs text-purple-300/60 uppercase tracking-wider px-3 mb-2">Control & Management</p>
+            <div className="space-y-1">
+              <Link to="/company/profile" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:bg-white/10">
+                <User size={16} /> My Profile
+              </Link>
+              <Link to="/company/company-profile" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:bg-white/10">
+                <Building2 size={16} /> Company Profile
+              </Link>
+              <Link to="/company/manage-offers" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:bg-white/10">
+                <Briefcase size={16} /> Manage offers
+              </Link>
+              <Link to="/company/applications" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:bg-white/10">
+                <FileText size={16} /> Student Application
+              </Link>
+              {isCompanyManager && (
+                <>
+                  <Link to="/company-manager/manage-hiring-managers" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:bg-white/10">
+                    <UserCog size={16} /> Manage Hiring Managers
+                  </Link>
+                  <Link to="/company-manager/activity-logs" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm bg-purple-600/30 text-purple-300 border border-purple-500/30">
+                    <Activity size={16} /> Control Hiring Manager Activity
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        </nav>
+
+        <div className="p-4 border-t border-white/10">
           <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 text-white/70 hover:text-white transition"
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm text-red-300 hover:bg-red-500/20 transition"
           >
-            <Filter size={16} />
-            {showFilters ? 'Masquer les filtres' : 'Afficher les filtres'}
+            <LogOut size={16} />
+            <span>Logout</span>
           </button>
-          
-          {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-              <div>
-                <label className="block text-white/70 text-sm mb-2">Type d'action</label>
-                <select
-                  value={filters.action_type}
-                  onChange={(e) => setFilters(prev => ({ ...prev, action_type: e.target.value }))}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
-                >
-                  <option value="">Tous</option>
-                  {actionTypes.map(at => (
-                    <option key={at.value} value={at.value}>{at.label}</option>
-                  ))}
-                </select>
+        </div>
+      </div>
+
+      {/* Main content area - background from CSS (radial gradient) */}
+      <div className="ml-64 flex-1 min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Back button */}
+          <button
+            onClick={() => navigate('/company-manager/dashboard')}
+            className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
+          >
+            <ArrowLeft size={18} />
+            Retour au tableau de bord
+          </button>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white/60 text-sm">Total actions</p>
+                  <p className="text-2xl font-bold text-white">{stats.total_actions || 0}</p>
+                </div>
+                <Activity className="w-8 h-8 text-purple-400 opacity-60" />
               </div>
-              <div>
-                <label className="block text-white/70 text-sm mb-2">Date début</label>
-                <input
-                  type="date"
-                  value={filters.start_date}
-                  onChange={(e) => setFilters(prev => ({ ...prev, start_date: e.target.value }))}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
-                />
+            </div>
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white/60 text-sm">7 derniers jours</p>
+                  <p className="text-2xl font-bold text-white">{stats.last_7_days || 0}</p>
+                </div>
+                <Calendar className="w-8 h-8 text-blue-400 opacity-60" />
               </div>
-              <div>
-                <label className="block text-white/70 text-sm mb-2">Date fin</label>
-                <input
-                  type="date"
-                  value={filters.end_date}
-                  onChange={(e) => setFilters(prev => ({ ...prev, end_date: e.target.value }))}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
-                />
+            </div>
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white/60 text-sm">Créations offre</p>
+                  <p className="text-2xl font-bold text-white">{stats.by_type?.create_offer || 0}</p>
+                </div>
+                <Briefcase className="w-8 h-8 text-green-400 opacity-60" />
               </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white/60 text-sm">Candidatures traitées</p>
+                  <p className="text-2xl font-bold text-white">
+                    {(stats.by_type?.accept_application || 0) + (stats.by_type?.reject_application || 0)}
+                  </p>
+                </div>
+                <Users className="w-8 h-8 text-yellow-400 opacity-60" />
+              </div>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20 mb-6">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2 text-white/70 hover:text-white transition"
+            >
+              <Filter size={16} />
+              {showFilters ? 'Masquer les filtres' : 'Afficher les filtres'}
+            </button>
+            
+            {showFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div>
+                  <label className="block text-white/70 text-sm mb-2">Type d'action</label>
+                  <select
+                    value={filters.action_type}
+                    onChange={(e) => setFilters(prev => ({ ...prev, action_type: e.target.value }))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                  >
+                    <option value="">Tous</option>
+                    {actionTypes.map(at => (
+                      <option key={at.value} value={at.value}>{at.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-white/70 text-sm mb-2">Date début</label>
+                  <input
+                    type="date"
+                    value={filters.start_date}
+                    onChange={(e) => setFilters(prev => ({ ...prev, start_date: e.target.value }))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-white/70 text-sm mb-2">Date fin</label>
+                  <input
+                    type="date"
+                    value={filters.end_date}
+                    onChange={(e) => setFilters(prev => ({ ...prev, end_date: e.target.value }))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Actions header */}
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-white">Historique des actions</h2>
+            <button
+              onClick={fetchLogs}
+              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm transition"
+            >
+              <RefreshCw size={14} />
+              Actualiser
+            </button>
+          </div>
+
+          {/* Logs list */}
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
+            </div>
+          ) : logs.length === 0 ? (
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-12 text-center border border-white/20">
+              <Activity className="w-16 h-16 text-white/30 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">Aucune activité enregistrée</h3>
+              <p className="text-white/60">Les actions des hiring managers apparaîtront ici.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {logs.map(log => (
+                <ActivityLogCard key={log.id} log={log} />
+              ))}
             </div>
           )}
         </div>
-
-        {/* Actions header */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-white">Historique des actions</h2>
-          <button
-            onClick={fetchLogs}
-            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm transition"
-          >
-            <RefreshCw size={14} />
-            Actualiser
-          </button>
-        </div>
-
-        {/* Logs list */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
-          </div>
-        ) : logs.length === 0 ? (
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-12 text-center border border-white/20">
-            <Activity className="w-16 h-16 text-white/30 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">Aucune activité enregistrée</h3>
-            <p className="text-white/60">Les actions des hiring managers apparaîtront ici.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {logs.map(log => (
-              <ActivityLogCard key={log.id} log={log} />
-            ))}
-          </div>
-        )}
-      </main>
+      </div>
     </div>
   );
 }

@@ -29,14 +29,18 @@ export const AuthProvider = ({ children }) => {
     const userEmail = localStorage.getItem("user_email");
     const userFullName = localStorage.getItem("user_full_name");
     const userCompanyName = localStorage.getItem("user_company_name");
+    const userUniversity = localStorage.getItem("user_university");
+    const userId = localStorage.getItem("user_id");
 
     if (token && userRole) {
       setUser({
+        id: userId,
         role: userRole,
         sub_role: userSubRole,
         email: userEmail,
         full_name: userFullName,
         company_name: userCompanyName,
+        university: userUniversity,
         status: true,
       });
       setIsAuthenticated(true);
@@ -54,6 +58,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("user_role", response.user.role);
         localStorage.setItem("user_sub_role", response.user.sub_role || "");
         localStorage.setItem("user_email", response.user.email);
+        localStorage.setItem("user_id", response.user.id);
         
         if (response.user.full_name) {
           localStorage.setItem("user_full_name", response.user.full_name);
@@ -61,8 +66,20 @@ export const AuthProvider = ({ children }) => {
         if (response.user.company_name) {
           localStorage.setItem("user_company_name", response.user.company_name);
         }
+        if (response.user.university) {
+          localStorage.setItem("user_university", response.user.university);
+        }
         
-        setUser(response.user);
+        setUser({
+          id: response.user.id,
+          role: response.user.role,
+          sub_role: response.user.sub_role,
+          email: response.user.email,
+          full_name: response.user.full_name,
+          company_name: response.user.company_name,
+          university: response.user.university,
+          status: true,
+        });
         setIsAuthenticated(true);
         
         let redirectUrl = "/login";
@@ -147,6 +164,7 @@ export const AuthProvider = ({ children }) => {
           localStorage.setItem("user_role", response.user.role);
           localStorage.setItem("user_sub_role", response.user.sub_role || "");
           localStorage.setItem("user_email", response.user.email);
+          localStorage.setItem("user_id", response.user.id);
           
           if (response.user.full_name) {
             localStorage.setItem("user_full_name", response.user.full_name);
@@ -154,8 +172,20 @@ export const AuthProvider = ({ children }) => {
           if (response.user.company_name) {
             localStorage.setItem("user_company_name", response.user.company_name);
           }
+          if (response.user.university) {
+            localStorage.setItem("user_university", response.user.university);
+          }
           
-          setUser(response.user);
+          setUser({
+            id: response.user.id,
+            role: response.user.role,
+            sub_role: response.user.sub_role,
+            email: response.user.email,
+            full_name: response.user.full_name,
+            company_name: response.user.company_name,
+            university: response.user.university,
+            status: true,
+          });
           setIsAuthenticated(true);
         }
         
@@ -213,6 +243,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("user_email");
     localStorage.removeItem("user_full_name");
     localStorage.removeItem("user_company_name");
+    localStorage.removeItem("user_university");
+    localStorage.removeItem("user_id");
     setUser(null);
     setIsAuthenticated(false);
     setPendingEmail(null);

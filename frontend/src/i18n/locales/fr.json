@@ -1,0 +1,91 @@
+{
+  "common": {
+    "login": "Se connecter",
+    "signup": "S'inscrire",
+    "logout": "Déconnexion",
+    "dashboard": "Tableau de bord",
+    "language": "Langue",
+    "french": "Français",
+    "english": "Anglais",
+    "company": "Entreprise"
+  },
+  "nav": {
+    "home": "Accueil",
+    "companies": "Entreprises",
+    "services": "Services",
+    "contact": "Contact",
+    "search": "Rechercher..."
+  },
+  "home": {
+    "welcome": "BIENVENUE",
+    "welcome_back": "BIENVENUE",
+    "title": "University Stage",
+    "subtitle": "facilite l'organisation des offres en listes catégorisées selon les critères de recherche des étudiants, tout en permettant la consultation immédiate des CV joints.",
+    "get_started": "Commencer",
+    "about_us": "À propos",
+    "top_companies": "Entreprises",
+    "top_companies_subtitle": "Les entreprises populaires offrant des stages",
+    "see_all": "Voir tout",
+    "our_services": "Nos services",
+    "our_services_subtitle": "Découvrez nos services",
+    "learn_more": "EN SAVOIR PLUS",
+    "no_companies": "Aucune entreprise pour le moment.",
+    "loading_companies": "Chargement des entreprises..."
+  },
+  "services": {
+    "explore_offers": {
+      "title": "Explorer les offres",
+      "desc": "Les étudiants peuvent consulter les offres d'entreprise, rechercher à l'aide de filtres et postuler aux stages."
+    },
+    "student_applications": {
+      "title": "Candidatures étudiants",
+      "desc": "Les étudiants peuvent facilement soumettre leurs candidatures et télécharger leurs CV via notre plateforme intuitive."
+    },
+    "admin_validation": {
+      "title": "Validation administrative",
+      "desc": "Les administrateurs examinent et valident les candidatures des étudiants avec des outils de gestion puissants."
+    }
+  },
+  "footer": {
+    "contact_us": "Contactez-nous",
+    "rights": "Tous droits réservés.",
+    "privacy_policy": "Politique de confidentialité",
+    "terms": "Conditions d'utilisation"
+  },
+  "auth": {
+    "login_title": "Connexion",
+    "signup_title": "Inscription",
+    "email": "Email",
+    "password": "Mot de passe",
+    "confirm_password": "Confirmer le mot de passe",
+    "forgot_password": "Mot de passe oublié ?",
+    "no_account": "Pas encore de compte ?",
+    "have_account": "Déjà un compte ?",
+    "select_role": "Sélectionnez votre rôle",
+    "student": "Étudiant",
+    "company": "Entreprise",
+    "administration": "Administration"
+  },
+  
+"dashboard": {
+  "welcome": "Tableau de bord",
+  "students": "Étudiants",
+  "companies": "Entreprises",
+  "applications": "Candidatures",
+  "offers": "Offres",
+  "validations": "Validations",
+  "pending": "En attente",
+  "validated": "Validé",
+  "rejected": "Refusé",
+  "actions": "Actions",
+  "search": "Rechercher",
+  "filter": "Filtrer",
+  "export": "Exporter",
+  "settings": "Paramètres",
+  "profile": "Profil",
+  "notifications": "Notifications",
+  "messages": "Messages",
+  "chat": "Chat",
+  "logout": "Déconnexion"
+}
+}

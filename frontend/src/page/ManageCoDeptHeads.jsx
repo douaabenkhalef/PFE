@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Users, Trash2, Edit2, Save, X, CheckCircle, XCircle,
   ArrowLeft, Shield, GraduationCap, Mail, Calendar, Settings,
-  UserCheck, FileText, Signature
+  UserCheck, FileText, Signature, Stamp
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -134,6 +134,13 @@ const CoDeptHeadCard = ({ manager, onUpdatePermissions, onDelete }) => {
             description="Signer les conventions de stage"
             checked={permissions.can_add_signature}
             onChange={(e) => setPermissions(prev => ({ ...prev, can_add_signature: e.target.checked }))}
+            disabled={!isEditing}
+          />
+          <PermissionCheckbox
+            label="Ajouter le cachet"
+            description="Apposer le cachet officiel de l'université"
+            checked={permissions.can_add_stamp}
+            onChange={(e) => setPermissions(prev => ({ ...prev, can_add_stamp: e.target.checked }))}
             disabled={!isEditing}
           />
           <PermissionCheckbox

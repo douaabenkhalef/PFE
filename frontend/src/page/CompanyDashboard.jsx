@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Briefcase, Bell, CheckCheck, X, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Bell, CheckCheck, X, FileText, CheckCircle, XCircle, Clock, Briefcase, MapPin, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
+import CompanySidebar from '../components/CompanySidebar';
+import './StudentDashboard.css';
 
 const API = 'http://localhost:8000/api';
 
@@ -11,7 +13,6 @@ const authHeaders = () => ({
   'Content-Type': 'application/json',
   Authorization: `Bearer ${token()}`,
 });
-
 
 const NOTIFICATION_ICONS = {
   'application_accepted': { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10' },
@@ -80,7 +81,6 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
           </button>
         )}
       </div>
-
       <div className="sd-notif-list">
         {notifications.length === 0 ? (
           <div className="sd-notif-empty">
@@ -99,7 +99,6 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
           ))
         )}
       </div>
-
       {notifications.length > 0 && (
         <div className="sd-notif-footer">
           <button onClick={onClose}>Fermer</button>
@@ -109,13 +108,61 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
   );
 };
 
+const MapPinIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z" />
+    <circle cx="12" cy="10" r="3" />
+  </svg>
+);
+
+const PhoneIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.67A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 8.09a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 15z" />
+  </svg>
+);
+
+const MailIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+    <polyline points="22,6 12,13 2,6" />
+  </svg>
+);
+
+// Static data for Top Internships (matching the picture)
+const staticTopOffers = [
+  {
+    id: 1,
+    title: "Cyber Security Internship",
+    internship_type: "Security",
+    wilaya: "Algiers",
+    applicants_count: 50,
+  },
+  {
+    id: 2,
+    title: "Web Dev Internship",
+    internship_type: "Development",
+    wilaya: "Oran",
+    applicants_count: 50,
+  },
+  {
+    id: 3,
+    title: "Artificial Intelligence Internship",
+    internship_type: "AI/ML",
+    wilaya: "Constantine",
+    applicants_count: 50,
+  },
+];
+
 const CompanyDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef(null);
+  const [activeSection, setActiveSection] = useState('home');
+  const homeRef = useRef(null);
+  const internshipsRef = useRef(null);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -165,7 +212,7 @@ const CompanyDashboard = () => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, [fetchNotifications]);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -177,79 +224,180 @@ const CompanyDashboard = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Intersection observer to update active section (underline)
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.dataset.section);
+          }
+        });
+      },
+      { threshold: 0.4, rootMargin: '-50px 0px -50px 0px' }
+    );
+
+    const homeElement = homeRef.current;
+    const internshipsElement = internshipsRef.current;
+    if (homeElement) observer.observe(homeElement);
+    if (internshipsElement) observer.observe(internshipsElement);
+
+    return () => {
+      if (homeElement) observer.unobserve(homeElement);
+      if (internshipsElement) observer.unobserve(internshipsElement);
+    };
+  }, []);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
+  const scrollTo = (id, ref) => {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActiveSection(id);
+  };
+
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-indigo-900">
-      <nav className="bg-white/10 backdrop-blur-lg border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
-              <Briefcase className="w-8 h-8 text-white" />
-              <h1 className="text-2xl font-bold text-white">Company Dashboard</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link
-                to="/company/manage-offers"
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold transition shadow-lg"
-              >
-                Manage Offers
-              </Link>
-              <Link
-                to="/company/applications"
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold transition shadow-lg"
-              >
-                Applications
-              </Link>
+    <div className="min-h-screen">
+      {sidebarOpen && <CompanySidebar user={user} onLogout={handleLogout} onClose={() => setSidebarOpen(false)} />}
 
-             
-              <div className="relative" ref={notifRef}>
-                <button
-                  className="relative p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"
-                  onClick={() => setNotifOpen(!notifOpen)}
-                  aria-label="Notifications"
-                >
-                  <Bell className="w-5 h-5 text-white" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </button>
-
-                {notifOpen && (
-                  <NotificationsDropdown
-                    notifications={notifications}
-                    onClose={() => setNotifOpen(false)}
-                    onMarkRead={markNotificationRead}
-                    onMarkAllRead={markAllNotificationsRead}
-                    onNavigate={navigateToApplication}
-                  />
-                )}
-              </div>
-
-              <span className="text-white/80">{user?.company_name}</span>
-              <span className="text-white/50 text-sm">Hiring Manager</span>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-lg transition"
-              >
-                Logout
-              </button>
-            </div>
+      <nav className="sd-navbar" style={{ borderBottom: 'none' }}>
+        <div className="sd-navbar-left">
+          <button className="sd-hamburger" onClick={() => setSidebarOpen(true)}>
+            <span /><span /><span />
+          </button>
+          <a className="sd-logo" href="/">UnivStage</a>
+        </div>
+        <ul className="sd-nav-links">
+          <li><a href="#home" className={activeSection === 'home' ? 'active' : ''} onClick={e => { e.preventDefault(); scrollTo('home', homeRef); }}>Home</a></li>
+          <li><a href="#internships" className={activeSection === 'internships' ? 'active' : ''} onClick={e => { e.preventDefault(); scrollTo('internships', internshipsRef); }}>Top Internships</a></li>
+        </ul>
+        <div className="sd-navbar-right">
+          <div className="sd-notif-wrapper" ref={notifRef}>
+            <button className="sd-icon-btn relative" onClick={() => setNotifOpen(!notifOpen)}>
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="sd-badge-count">{unreadCount > 9 ? '9+' : unreadCount}</span>
+              )}
+            </button>
+            {notifOpen && (
+              <NotificationsDropdown
+                notifications={notifications}
+                onClose={() => setNotifOpen(false)}
+                onMarkRead={markNotificationRead}
+                onMarkAllRead={markAllNotificationsRead}
+                onNavigate={navigateToApplication}
+              />
+            )}
           </div>
+          <button className="sd-icon-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          </button>
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h2 className="text-3xl font-bold text-white mb-2">Welcome, {user?.company_name}</h2>
-        <p className="text-white/60">Use the Manage Offers button to create and manage internship offers.</p>
+      <main className="sd-main">
+        <section className="sd-hero is-visible" id="home" ref={homeRef} data-section="home" style={{ minHeight: 'auto', padding: '60px 5% 40px' }}>
+          <div className="sd-hero-container">
+            <div className="sd-hero-content">
+              <h1>
+                Welcome<br />
+                <span className="name-gradient">
+                  {user?.full_name?.split(" ")[0] || user?.company_name || "User"}
+                </span>
+              </h1>
+              <p>from {user?.company_name}</p>
+              <p style={{ marginTop: '1rem', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                your centralized platform for managing internship programs. Our portal empowers both operational 
+                and strategic users with intuitive tools to post opportunities, review candidates.
+              </p>
+            </div>
+            <div className="sd-hero-image">
+              <img src="/images/company-hero.png" alt="Company dashboard" onError={e => e.target.style.display = 'none'} />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+            </div>
+          </div>
+        </section>
+
+        <section className="sd-section" id="internships" ref={internshipsRef} data-section="internships">
+          <div className="sd-section-header">
+            <div>
+              <h2 className="sd-section-title"><span className="t-pink">Top </span><span className="t-purple">Internships</span></h2>
+              <p className="sd-section-subtitle">The three top Internships in our Company</p>
+            </div>
+            <Link to="/company/manage-offers" className="sd-see-all-btn">See All →</Link>
+          </div>
+
+          <div className="sd-internships-grid">
+            {staticTopOffers.map(offer => (
+              <div key={offer.id} className="sd-internship-card">
+                <div className="sd-intern-img">
+                  <Briefcase size={40} className="text-white/30" />
+                  <div className="sd-intern-top-badges">
+                    <span className="sd-badge-type">{offer.internship_type}</span>
+                  </div>
+                </div>
+                <div className="sd-intern-info">
+                  <div className="sd-intern-title">{offer.title}</div>
+                  <div className="sd-intern-meta-row">
+                    <div className="sd-intern-applicants"><Users size={12} /> {offer.applicants_count}+ Students</div>
+                  </div>
+                  <div className="sd-intern-rep">
+                    <div className="sd-intern-rep-avatar">📍</div>
+                    <span className="sd-intern-rep-name">{offer.wilaya}</span>
+                  </div>
+                  <div className="sd-intern-footer">
+                    <Link to="/company/manage-offers" className="sd-enroll-btn">Manage</Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </main>
+
+      <footer className="footer">
+        <div className="footer-grid">
+          <div className="footer-brand">
+            <div className="footer-brand-logo">🎓 UnivStage</div>
+            <p>
+              Connecting students with professional opportunities and
+              empowering the next generation of innovators.
+            </p>
+          </div>
+          <div className="footer-contact">
+            <h4>Contact Us</h4>
+            <ul>
+              <li><MapPinIcon />123 University Ave, Campus Center, CA 94000</li>
+              <li><PhoneIcon />+1 (555) 123-4567</li>
+              <li><MailIcon />internships@university.edu</li>
+            </ul>
+          </div>
+        </div>
+        <div className="footer-bottom">
+          <p>© 2026 UnivStage. All rights reserved.</p>
+          <div className="footer-socials">
+            <a href="#!" aria-label="Facebook">f</a>
+            <a href="#!" aria-label="Twitter">𝕏</a>
+            <a href="#!" aria-label="LinkedIn">in</a>
+            <a href="#!" aria-label="Instagram">◎</a>
+          </div>
+          <div className="footer-bottom-links">
+            <a href="#!">Privacy Policy</a>
+            <span>|</span>
+            <a href="#!">Terms of Service</a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

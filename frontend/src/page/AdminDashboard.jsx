@@ -1,15 +1,20 @@
+// frontend/src/page/AdminDashboard.jsx
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
+
 import { 
   CheckCircle, XCircle, Clock, Mail, User, Shield, 
   GraduationCap, FileText, Eye, Check, X, Loader2,
   Building2, MapPin, Calendar, Code, BookOpen, Award, Github, Globe,
-  BarChart3, Users, PenTool, Download
+  BarChart3, Users, PenTool, Download, Bell
 } from "lucide-react";
 import toast from "react-hot-toast";
 import SignaturePad from "../components/SignaturePad";
 import PendingValidationsList from "../components/PendingValidationsList";
+import UniversityUsersStatus from "../components/UniversityUsersStatus";
+import ChatWidget from "../components/ChatWidget";
+import PrivateChat from "../components/PrivateChat";
 
 const API = 'http://localhost:8000/api';
 const authHeaders = () => ({
@@ -25,6 +30,10 @@ const AdminDashboard = () => {
   const [processing, setProcessing] = useState(false);
   const [activeTab, setActiveTab] = useState('co_dept_heads');
   const [validationsTab, setValidationsTab] = useState('pending');
+  
+  // État pour le chat privé
+  const [privateChatOpen, setPrivateChatOpen] = useState(false);
+  const [selectedChatUser, setSelectedChatUser] = useState(null);
 
   useEffect(() => {
     fetchPendingCoDeptHeads();
@@ -94,6 +103,16 @@ const AdminDashboard = () => {
     } finally {
       setProcessing(false);
     }
+  };
+
+  const handleStartPrivateChat = (targetUser) => {
+    setSelectedChatUser(targetUser);
+    setPrivateChatOpen(true);
+  };
+
+  const handleClosePrivateChat = () => {
+    setPrivateChatOpen(false);
+    setSelectedChatUser(null);
   };
 
   const handleLogout = () => {
@@ -190,6 +209,17 @@ const AdminDashboard = () => {
             <FileText className="w-4 h-4" />
             Conventions
           </button>
+          <button
+            onClick={() => setActiveTab('team')}
+            className={`px-6 py-3 text-sm font-medium transition-all rounded-t-lg flex items-center gap-2 ${
+              activeTab === 'team'
+                ? 'bg-purple-600 text-white'
+                : 'text-white/60 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            Équipe
+          </button>
         </div>
       </div>
 
@@ -261,7 +291,6 @@ const AdminDashboard = () => {
 
         {activeTab === 'validations' && (
           <>
-            {/* Sous-onglets */}
             <div className="flex gap-2 mb-6 border-b border-white/20 pb-2">
               <button
                 onClick={() => setValidationsTab('pending')}
@@ -285,7 +314,6 @@ const AdminDashboard = () => {
               </button>
             </div>
 
-            {/* Contenu des sous-onglets */}
             {validationsTab === 'pending' && (
               <PendingValidationsList
                 fetchEndpoint="/dept-head/pending-validations/"
@@ -309,7 +337,32 @@ const AdminDashboard = () => {
             )}
           </>
         )}
+
+        {activeTab === 'team' && (
+          <div>
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-white mb-2">Équipe universitaire</h2>
+              <p className="text-white/60">Visualisez les membres de votre université et leur statut en ligne</p>
+            </div>
+            <UniversityUsersStatus onStartPrivateChat={handleStartPrivateChat} />
+          </div>
+        )}
       </main>
+      
+      {/* Chat de groupe */}
+      {user?.university && (
+        <ChatWidget university={user.university} />
+      )}
+      
+      {/* Chat privé */}
+      {privateChatOpen && selectedChatUser && (
+        <PrivateChat
+          university={user?.university || "Université"}
+          currentUser={user}
+          targetUser={selectedChatUser}
+          onClose={handleClosePrivateChat}
+        />
+      )}
     </div>
   );
 };

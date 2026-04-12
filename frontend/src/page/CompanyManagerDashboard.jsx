@@ -1,17 +1,18 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useAuth } from "../context/AuthContext";
-import { useNavigate, Link } from "react-router-dom";
-import { CheckCircle, XCircle, Clock, Mail, User, Briefcase, Bell, CheckCheck, X, FileText, Activity, Users, Settings } from "lucide-react";
-import toast from "react-hot-toast";
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate, Link } from 'react-router-dom';
+import { CheckCircle, XCircle, Clock, Mail, User, Briefcase, Bell, CheckCheck, X, FileText, Users } from 'lucide-react';
+import toast from 'react-hot-toast';
+import CompanySidebar from '../components/CompanySidebar';
+import './StudentDashboard.css';
 
-const API = "http://localhost:8000/api";
+const API = 'http://localhost:8000/api';
 
-const token = () => localStorage.getItem("access_token");
+const token = () => localStorage.getItem('access_token');
 const authHeaders = () => ({
-  "Content-Type": "application/json",
+  'Content-Type': 'application/json',
   Authorization: `Bearer ${token()}`,
 });
-
 
 const NOTIFICATION_ICONS = {
   'application_accepted': { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10' },
@@ -80,7 +81,6 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
           </button>
         )}
       </div>
-
       <div className="sd-notif-list">
         {notifications.length === 0 ? (
           <div className="sd-notif-empty">
@@ -99,7 +99,6 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
           ))
         )}
       </div>
-
       {notifications.length > 0 && (
         <div className="sd-notif-footer">
           <button onClick={onClose}>Fermer</button>
@@ -109,18 +108,38 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
   );
 };
 
+const MapPinIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z" />
+    <circle cx="12" cy="10" r="3" />
+  </svg>
+);
+
+const PhoneIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.67A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 8.09a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 15z" />
+  </svg>
+);
+
+const MailIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+    <polyline points="22,6 12,13 2,6" />
+  </svg>
+);
+
 const CompanyManagerDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [pendingHiringManagers, setPendingHiringManagers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
-  const [message, setMessage] = useState(null);
-
-  
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [topOffers, setTopOffers] = useState([]);
+  const [loadingOffers, setLoadingOffers] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef(null);
+  const [activeSection, setActiveSection] = useState('home');
+  const homeRef = useRef(null);
+  const internshipsRef = useRef(null);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -166,12 +185,27 @@ const CompanyManagerDashboard = () => {
     setNotifOpen(false);
   };
 
+  const fetchTopOffers = async () => {
+    setLoadingOffers(true);
+    try {
+      const res = await fetch(`${API}/company/offers/?limit=3`, { headers: authHeaders() });
+      const data = await res.json();
+      if (data.success) {
+        setTopOffers(data.offers || []);
+      }
+    } catch (err) {
+      console.error("Erreur chargement offres:", err);
+    } finally {
+      setLoadingOffers(false);
+    }
+  };
+
   useEffect(() => {
-    fetchPendingHiringManagers();
     fetchNotifications();
+    fetchTopOffers();
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, [fetchNotifications]);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -183,401 +217,174 @@ const CompanyManagerDashboard = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const showMsg = (type, text) => {
-    setMessage({ type, text });
-    setTimeout(() => setMessage(null), 4000);
-  };
-
-  const fetchPendingHiringManagers = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API}/company/pending-hiring-managers/`, {
-        headers: { Authorization: `Bearer ${token()}` },
-      });
-      const data = await res.json();
-      if (data.success) {
-        setPendingHiringManagers(data.hiring_managers);
-      } else {
-        showMsg("error", "Failed to load pending hiring managers.");
-      }
-    } catch {
-      showMsg("error", "Server connection error.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleApprove = async (managerId, managerName) => {
-    setProcessing(true);
-    try {
-      const res = await fetch(`${API}/company/approve-hiring-manager/${managerId}/`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token()}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        showMsg("success", `${managerName} has been approved.`);
-        fetchPendingHiringManagers();
-      } else {
-        showMsg("error", data.message || "Approval failed.");
-      }
-    } catch {
-      showMsg("error", "Server connection error.");
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handleReject = async (managerId, managerName) => {
-    setProcessing(true);
-    try {
-      const res = await fetch(`${API}/company/reject-hiring-manager/${managerId}/`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token()}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        showMsg("success", `${managerName} has been rejected and deleted.`);
-        fetchPendingHiringManagers();
-      } else {
-        showMsg("error", data.message || "Rejection failed.");
-      }
-    } catch {
-      showMsg("error", "Server connection error.");
-    } finally {
-      setProcessing(false);
-    }
-  };
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      entries => entries.forEach(e => {
+        if (e.isIntersecting) setActiveSection(e.target.dataset.section);
+      }),
+      { threshold: 0.35 }
+    );
+    if (homeRef.current) obs.observe(homeRef.current);
+    if (internshipsRef.current) obs.observe(internshipsRef.current);
+    return () => obs.disconnect();
+  }, []);
 
   const handleLogout = () => {
     logout();
-    navigate("/login");
+    navigate('/login');
+  };
+
+  const scrollTo = (id, ref) => {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActiveSection(id);
   };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-indigo-900">
-      <style>
-        {`
-          .sd-notif-dropdown {
-            position: absolute;
-            top: calc(100% + 8px);
-            right: -80px;
-            width: 360px;
-            max-width: calc(100vw - 20px);
-            background: linear-gradient(145deg, #1a0840, #0e0c27);
-            border: 1px solid rgba(141,35,212,0.40);
-            border-radius: 16px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.60);
-            z-index: 2000;
-            overflow: hidden;
-          }
-          .sd-notif-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 14px 18px;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-            font-size: 0.88rem;
-            font-weight: 600;
-            color: #fff;
-          }
-          .sd-notif-unread-badge {
-            background: linear-gradient(135deg, #F75AFA, #8E2FFB);
-            border-radius: 20px;
-            padding: 2px 8px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            color: white;
-          }
-          .sd-notif-clear {
-            background: transparent;
-            border: none;
-            color: rgba(247,90,250,0.80);
-            font-size: 0.72rem;
-            cursor: pointer;
-            font-family: 'Poppins', sans-serif;
-            transition: color 0.2s;
-          }
-          .sd-notif-clear:hover {
-            color: #F75AFA;
-          }
-          .sd-notif-list {
-            max-height: 400px;
-            overflow-y: auto;
-            scrollbar-width: thin;
-          }
-          .sd-notif-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            padding: 12px 16px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            transition: background 0.2s;
-            position: relative;
-          }
-          .sd-notif-item:hover {
-            background: rgba(255,255,255,0.04);
-          }
-          .sd-notif-item.unread {
-            background: rgba(141,35,212,0.08);
-          }
-          .sd-notif-icon {
-            flex-shrink: 0;
-            width: 28px;
-            height: 28px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          .sd-notif-body {
-            flex: 1;
-            min-width: 0;
-          }
-          .sd-notif-body p {
-            font-size: 0.8rem;
-            color: rgba(255,255,255,0.88);
-            line-height: 1.45;
-            margin-bottom: 4px;
-            word-break: break-word;
-          }
-          .sd-notif-time {
-            font-size: 0.65rem;
-            color: rgba(255,255,255,0.35);
-            display: block;
-          }
-          .sd-notif-unread-dot {
-            position: absolute;
-            top: 50%;
-            right: 12px;
-            transform: translateY(-50%);
-            width: 8px;
-            height: 8px;
-            background: #F75AFA;
-            border-radius: 50%;
-            box-shadow: 0 0 6px rgba(247,90,250,0.6);
-          }
-          .sd-notif-mark-read {
-            position: absolute;
-            top: 50%;
-            right: 12px;
-            transform: translateY(-50%);
-            background: rgba(255,255,255,0.1);
-            border: none;
-            border-radius: 6px;
-            padding: 4px;
-            cursor: pointer;
-            color: rgba(255,255,255,0.6);
-            transition: all 0.2s;
-          }
-          .sd-notif-mark-read:hover {
-            background: rgba(247,90,250,0.2);
-            color: #F75AFA;
-          }
-          .sd-notif-empty {
-            text-align: center;
-            padding: 32px 20px;
-          }
-          .sd-notif-empty p {
-            font-size: 0.85rem;
-            color: rgba(255,255,255,0.4);
-            margin-bottom: 4px;
-          }
-          .sd-notif-footer {
-            padding: 10px 18px;
-            border-top: 1px solid rgba(255,255,255,0.08);
-            text-align: center;
-          }
-          .sd-notif-footer button {
-            background: transparent;
-            border: none;
-            color: rgba(247,90,250,0.75);
-            font-size: 0.78rem;
-            cursor: pointer;
-            font-family: 'Poppins', sans-serif;
-            transition: color 0.2s;
-          }
-          .sd-notif-footer button:hover {
-            color: #F75AFA;
-          }
-          .sd-badge-count {
-            position: absolute;
-            top: -4px;
-            right: -6px;
-            min-width: 18px;
-            height: 18px;
-            background: linear-gradient(135deg, #F75AFA, #8E2FFB);
-            border-radius: 50px;
-            font-size: 0.6rem;
-            font-weight: 700;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 4px;
-            pointer-events: none;
-          }
-          .sd-notif-wrapper {
-            position: relative;
-          }
-        `}
-      </style>
+    <div className="min-h-screen">
+      {sidebarOpen && <CompanySidebar user={user} onLogout={handleLogout} onClose={() => setSidebarOpen(false)} />}
 
-      <nav className="bg-white/10 backdrop-blur-lg border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
-              <Briefcase className="w-8 h-8 text-white" />
-              <h1 className="text-2xl font-bold text-white">Company Manager Dashboard</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link
-                to="/company/manage-offers"
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold transition shadow-lg"
-              >
-                Manage Offers
-              </Link>
-              <Link
-                to="/company/applications"
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold transition shadow-lg"
-              >
-                Applications
-              </Link>
-
-              {/* Bouton Contrôle d'Activité */}
-              <Link
-                to="/company-manager/activity-logs"
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition shadow-lg flex items-center gap-2"
-              >
-                <Activity size={16} />
-                Contrôle d'Activité
-              </Link>
-
-              {/* Bouton Gérer Hiring Managers */}
-              <Link
-                to="/company-manager/manage-hiring-managers"
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-semibold transition shadow-lg flex items-center gap-2"
-              >
-                <Users size={16} />
-                Gérer Hiring Managers
-              </Link>
-
-              {/* Notification Bell */}
-              <div className="sd-notif-wrapper" ref={notifRef}>
-                <button
-                  className="relative p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"
-                  onClick={() => setNotifOpen(!notifOpen)}
-                  aria-label="Notifications"
-                >
-                  <Bell className="w-5 h-5 text-white" />
-                  {unreadCount > 0 && (
-                    <span className="sd-badge-count">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </button>
-
-                {notifOpen && (
-                  <NotificationsDropdown
-                    notifications={notifications}
-                    onClose={() => setNotifOpen(false)}
-                    onMarkRead={markNotificationRead}
-                    onMarkAllRead={markAllNotificationsRead}
-                    onNavigate={navigateToApplication}
-                  />
-                )}
-              </div>
-
-              <span className="text-white/80">{user?.company_name}</span>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-lg transition"
-              >
-                Logout
-              </button>
-            </div>
+      <nav className="sd-navbar" style={{ borderBottom: 'none' }}>
+        <div className="sd-navbar-left">
+          <button className="sd-hamburger" onClick={() => setSidebarOpen(true)}>
+            <span /><span /><span />
+          </button>
+          <a className="sd-logo" href="/">UnivStage</a>
+        </div>
+        <ul className="sd-nav-links">
+          <li><a href="#home" className={activeSection === 'home' ? 'active' : ''} onClick={e => { e.preventDefault(); scrollTo('home', homeRef); }}>Home</a></li>
+          <li><a href="#internships" className={activeSection === 'internships' ? 'active' : ''} onClick={e => { e.preventDefault(); scrollTo('internships', internshipsRef); }}>Top Internships</a></li>
+        </ul>
+        <div className="sd-navbar-right">
+          <div className="sd-notif-wrapper" ref={notifRef}>
+            <button className="sd-icon-btn relative" onClick={() => setNotifOpen(!notifOpen)}>
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="sd-badge-count">{unreadCount > 9 ? '9+' : unreadCount}</span>
+              )}
+            </button>
+            {notifOpen && (
+              <NotificationsDropdown
+                notifications={notifications}
+                onClose={() => setNotifOpen(false)}
+                onMarkRead={markNotificationRead}
+                onMarkAllRead={markAllNotificationsRead}
+                onNavigate={navigateToApplication}
+              />
+            )}
           </div>
+          <button className="sd-icon-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          </button>
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {message && (
-          <div
-            className={`mb-6 p-4 rounded-lg border text-sm font-medium ${
-              message.type === "success"
-                ? "bg-green-500/15 border-green-500 text-green-300"
-                : "bg-red-500/15 border-red-500 text-red-300"
-            }`}
-          >
-            {message.text}
+      <main className="sd-main">
+        <section className="sd-hero" id="home" ref={homeRef} data-section="home" style={{ minHeight: 'auto', padding: '60px 5% 40px' }}>
+          <div className="sd-hero-container">
+            <div className="sd-hero-content">
+              <h1>
+                Welcome<br />
+                <span className="name-gradient">
+                  {user?.full_name?.split(" ")[0] || user?.company_name || "Manager"}
+                </span>
+              </h1>
+              <p>from {user?.company_name}</p>
+              <p style={{ marginTop: '1rem', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                your centralized platform for managing internship programs. Our portal empowers both operational 
+                and strategic users with intuitive tools to post opportunities, review candidates.
+              </p>
+            </div>
+            <div className="sd-hero-image">
+              <img src="/images/company-hero.png" alt="Company Manager" onError={e => e.target.style.display = 'none'} />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+            </div>
           </div>
-        )}
+        </section>
 
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-white mb-2">Pending Hiring Managers</h2>
-          <p className="text-white/60">Approve or reject Hiring Manager registration requests.</p>
-        </div>
-
-        {pendingHiringManagers.length === 0 ? (
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-12 text-center border border-white/20">
-            <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">No pending requests</h3>
-            <p className="text-white/60">All hiring managers have been processed.</p>
+        <section className="sd-section" id="internships" ref={internshipsRef} data-section="internships">
+          <div className="sd-section-header">
+            <div>
+              <h2 className="sd-section-title"><span className="t-pink">Top </span><span className="t-purple">Internships</span></h2>
+              <p className="sd-section-subtitle">Your most recent internship offers</p>
+            </div>
+            <Link to="/company/manage-offers" className="sd-see-all-btn">See All →</Link>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {pendingHiringManagers.map((manager) => (
-              <div
-                key={manager.id}
-                className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:border-purple-500 transition-all"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
-                      <User className="w-6 h-6 text-purple-400" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">{manager.username}</h3>
-                      <p className="text-white/60 text-sm">{manager.company_name}</p>
+
+          {loadingOffers ? (
+            <div className="sd-loading"><div className="sd-spinner" /><p>Chargement des offres…</p></div>
+          ) : topOffers.length === 0 ? (
+            <div className="sd-empty"><Briefcase size={40} className="mx-auto mb-3 opacity-30" /><p>Aucune offre de stage pour le moment.</p></div>
+          ) : (
+            <div className="sd-internships-grid">
+              {topOffers.map(offer => (
+                <div key={offer.id} className="sd-internship-card">
+                  <div className="sd-intern-img">
+                    <Briefcase size={40} className="text-white/30" />
+                    <div className="sd-intern-top-badges">
+                      <span className="sd-badge-type">{offer.internship_type}</span>
                     </div>
                   </div>
-                  <Clock className="w-5 h-5 text-yellow-400" />
+                  <div className="sd-intern-info">
+                    <div className="sd-intern-title">{offer.title}</div>
+                    <div className="sd-intern-meta-row">
+                      <div className="sd-intern-applicants"><Users size={12} /> {offer.applicants_count || 0} applicants</div>
+                    </div>
+                    <div className="sd-intern-rep">
+                      <div className="sd-intern-rep-avatar">📍</div>
+                      <span className="sd-intern-rep-name">{offer.wilaya}</span>
+                    </div>
+                    <div className="sd-intern-footer">
+                      <Link to={`/company/manage-offers?edit=${offer.id}`} className="sd-enroll-btn">Manage</Link>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-white/60 text-sm mb-4">
-                  <Mail className="w-4 h-4" />
-                  <span>{manager.email}</span>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => handleApprove(manager.id, manager.username)}
-                    disabled={processing}
-                    className="flex-1 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    <CheckCircle className="w-4 h-4" /> Approve
-                  </button>
-                  <button
-                    onClick={() => handleReject(manager.id, manager.username)}
-                    disabled={processing}
-                    className="flex-1 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    <XCircle className="w-4 h-4" /> Reject
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </section>
       </main>
+
+      <footer className="footer">
+        <div className="footer-grid">
+          <div className="footer-brand">
+            <div className="footer-brand-logo">🎓 UnivStage</div>
+            <p>
+              Connecting students with professional opportunities and
+              empowering the next generation of innovators.
+            </p>
+          </div>
+          <div className="footer-contact">
+            <h4>Contact Us</h4>
+            <ul>
+              <li><MapPinIcon />123 University Ave, Campus Center, CA 94000</li>
+              <li><PhoneIcon />+1 (555) 123-4567</li>
+              <li><MailIcon />internships@university.edu</li>
+            </ul>
+          </div>
+        </div>
+        <div className="footer-bottom">
+          <p>© 2026 UnivStage. All rights reserved.</p>
+          <div className="footer-socials">
+            <a href="#!" aria-label="Facebook">f</a>
+            <a href="#!" aria-label="Twitter">𝕏</a>
+            <a href="#!" aria-label="LinkedIn">in</a>
+            <a href="#!" aria-label="Instagram">◎</a>
+          </div>
+          <div className="footer-bottom-links">
+            <a href="#!">Privacy Policy</a>
+            <span>|</span>
+            <a href="#!">Terms of Service</a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

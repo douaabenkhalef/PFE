@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Eye, CheckCircle, XCircle, Clock,
+  Eye, CheckCircle, XCircle, Clock,
   User, Mail, MapPin, BookOpen, Award, Code, Github,
   Globe, FileText, Loader2, AlertCircle, CheckCircle2, X,
-  Download, Building2, Calendar
+  Download, Building2, Calendar, ArrowLeft,
+  Search, Briefcase, UserCog, Activity, LogOut
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import './StudentDashboard.css';
 
 const API = 'http://localhost:8000/api';
 const auth = () => ({
@@ -268,7 +270,6 @@ function ApplicationModal({ app, onClose, onAccept, onReject, onGenerateConventi
             </div>
           )}
 
-          {/* Bouton Générer Convention */}
           {app.status === 'accepted_by_company' && (
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
               <p className="text-blue-300 text-sm font-medium mb-3 flex items-center gap-2">
@@ -286,7 +287,6 @@ function ApplicationModal({ app, onClose, onAccept, onReject, onGenerateConventi
             </div>
           )}
 
-          {/* Convention déjà générée */}
           {conventionUrl && (
             <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
               <p className="text-green-300 text-sm font-medium mb-3 flex items-center gap-2">
@@ -356,12 +356,17 @@ function ApplicationModal({ app, onClose, onAccept, onReject, onGenerateConventi
 }
 
 export default function CompanyApplications() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState(null);
   const [selected, setSelected] = useState(null);
   const [filter, setFilter] = useState('all');
+
+  const isCompanyManager = user?.sub_role === 'company_manager';
+  const initials = (user?.full_name || user?.email || "U")
+    .split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
 
   const showMsg = (type, text) => {
     setMsg({ type, text });
@@ -431,56 +436,129 @@ export default function CompanyApplications() {
     validated_by_co_dept: applications.filter((a) => a.status === 'validated_by_co_dept').length,
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const dashboardPath = isCompanyManager ? '/company-manager/dashboard' : '/company/dashboard';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-indigo-900">
-      <nav className="bg-white/10 backdrop-blur-lg border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-14 gap-4">
-            <Link to={user?.sub_role === 'company_manager' ? '/company-manager/dashboard' : '/company/dashboard'} className="flex items-center gap-2 text-white/70 hover:text-white transition text-sm">
-              <ArrowLeft size={16} /> Retour
-            </Link>
-            <span className="text-white/30">|</span>
-            <h1 className="text-lg font-bold text-white">Candidatures reçues</h1>
+    <div className="min-h-screen flex">
+      {/* Sidebar - always visible, inline (no blur overlay) */}
+      <div className="w-64 bg-gradient-to-b from-[#1a0840] to-[#0e0c27] h-full fixed left-0 top-0 overflow-y-auto border-r border-purple-500/30">
+        <div className="p-4 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
+              {initials}
+            </div>
+            <div>
+              <p className="text-white font-medium text-sm">{user?.full_name || user?.email}</p>
+              <p className="text-white/50 text-xs">{user?.email}</p>
+            </div>
           </div>
         </div>
-      </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Msg msg={msg} onClose={() => setMsg(null)} />
-
-        <div className="flex gap-2 mb-6 flex-wrap">
-          <button onClick={() => setFilter('all')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'all' ? 'bg-white/20 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>Toutes ({counts.all})</button>
-          <button onClick={() => setFilter('pending')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'pending' ? 'bg-yellow-600 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>En attente ({counts.pending})</button>
-          <button onClick={() => setFilter('accepted_by_company')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'accepted_by_company' ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>Acceptées ({counts.accepted_by_company})</button>
-          <button onClick={() => setFilter('validated_by_co_dept')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'validated_by_co_dept' ? 'bg-green-600 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>Validées ({counts.validated_by_co_dept})</button>
-          <button onClick={() => setFilter('rejected_by_company')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'rejected_by_company' ? 'bg-red-600 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>Refusées ({counts.rejected_by_company})</button>
+        <div className="p-4">
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+            <input
+              type="text"
+              placeholder="Search"
+              className="w-full bg-white/10 border border-white/20 rounded-lg pl-9 pr-3 py-2 text-white text-sm placeholder:text-white/40 focus:outline-none focus:border-purple-500"
+            />
+          </div>
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-24 text-white/50"><Loader2 size={24} className="animate-spin mr-3" /> Chargement...</div>
-        ) : filtered.length === 0 ? (
-          <div className="bg-white/5 rounded-xl p-16 text-center border border-white/10"><Clock size={40} className="mx-auto mb-3 text-white/20" /><p className="text-white/50">Aucune candidature trouvée.</p></div>
-        ) : (
-          <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-white/10 text-white/50 text-xs uppercase">
-                <tr><th className="px-4 py-3 text-left">Étudiant</th><th className="px-4 py-3 text-left">Offre</th><th className="px-4 py-3 text-left">Date</th><th className="px-4 py-3 text-left">Statut</th><th className="px-4 py-3 text-left">Actions</th></tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {filtered.map((app) => (
-                  <tr key={app.id} className="hover:bg-white/5 transition">
-                    <td className="px-4 py-3"><p className="font-semibold text-white">{app.student_name}</p><p className="text-white/40 text-xs">{app.student_email}</p></td>
-                    <td className="px-4 py-3"><p className="text-white">{app.offer_title}</p><p className="text-white/40 text-xs">{app.offer_type}</p></td>
-                    <td className="px-4 py-3 text-white/60">{app.applied_at ? new Date(app.applied_at).toLocaleDateString() : '—'}</td>
-                    <td className="px-4 py-3"><StatusBadge status={app.status} /></td>
-                    <td className="px-4 py-3"><button onClick={() => setSelected(app)} className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 text-xs font-medium transition"><Eye size={14} /> Détails</button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <nav className="flex-1 overflow-y-auto p-3">
+          <div>
+            <p className="text-xs text-purple-300/60 uppercase tracking-wider px-3 mb-2">Control & Management</p>
+            <div className="space-y-1">
+              <Link to="/company/profile" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:bg-white/10">
+                <User size={16} /> My Profile
+              </Link>
+              <Link to="/company/company-profile" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:bg-white/10">
+                <Building2 size={16} /> Company Profile
+              </Link>
+              <Link to="/company/manage-offers" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:bg-white/10">
+                <Briefcase size={16} /> Manage offers
+              </Link>
+              <Link to="/company/applications" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm bg-purple-600/30 text-purple-300 border border-purple-500/30">
+                <FileText size={16} /> Student Application
+              </Link>
+              {isCompanyManager && (
+                <>
+                  <Link to="/company-manager/manage-hiring-managers" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:bg-white/10">
+                    <UserCog size={16} /> Manage Hiring Managers
+                  </Link>
+                  <Link to="/company-manager/activity-logs" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:bg-white/10">
+                    <Activity size={16} /> Control Hiring Manager Activity
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
-        )}
-      </main>
+        </nav>
+
+        <div className="p-4 border-t border-white/10">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm text-red-300 hover:bg-red-500/20 transition"
+          >
+            <LogOut size={16} />
+            <span>Logout</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main content area - background from CSS (radial gradient) */}
+      <div className="ml-64 flex-1 min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Back button */}
+          <button
+            onClick={() => navigate(dashboardPath)}
+            className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
+          >
+            <ArrowLeft size={18} />
+            Retour au tableau de bord
+          </button>
+
+          <Msg msg={msg} onClose={() => setMsg(null)} />
+
+          <div className="flex gap-2 mb-6 flex-wrap">
+            <button onClick={() => setFilter('all')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'all' ? 'bg-white/20 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>Toutes ({counts.all})</button>
+            <button onClick={() => setFilter('pending')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'pending' ? 'bg-yellow-600 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>En attente ({counts.pending})</button>
+            <button onClick={() => setFilter('accepted_by_company')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'accepted_by_company' ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>Acceptées ({counts.accepted_by_company})</button>
+            <button onClick={() => setFilter('validated_by_co_dept')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'validated_by_co_dept' ? 'bg-green-600 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>Validées ({counts.validated_by_co_dept})</button>
+            <button onClick={() => setFilter('rejected_by_company')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'rejected_by_company' ? 'bg-red-600 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>Refusées ({counts.rejected_by_company})</button>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-24 text-white/50"><Loader2 size={24} className="animate-spin mr-3" /> Chargement...</div>
+          ) : filtered.length === 0 ? (
+            <div className="bg-white/5 rounded-xl p-16 text-center border border-white/10"><Clock size={40} className="mx-auto mb-3 text-white/20" /><p className="text-white/50">Aucune candidature trouvée.</p></div>
+          ) : (
+            <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-white/10 text-white/50 text-xs uppercase">
+                  <tr><th className="px-4 py-3 text-left">Étudiant</th><th className="px-4 py-3 text-left">Offre</th><th className="px-4 py-3 text-left">Date</th><th className="px-4 py-3 text-left">Statut</th><th className="px-4 py-3 text-left">Actions</th></tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {filtered.map((app) => (
+                    <tr key={app.id} className="hover:bg-white/5 transition">
+                      <td className="px-4 py-3"><p className="font-semibold text-white">{app.student_name}</p><p className="text-white/40 text-xs">{app.student_email}</p></td>
+                      <td className="px-4 py-3"><p className="text-white">{app.offer_title}</p><p className="text-white/40 text-xs">{app.offer_type}</p></td>
+                      <td className="px-4 py-3 text-white/60">{app.applied_at ? new Date(app.applied_at).toLocaleDateString() : '—'}</td>
+                      <td className="px-4 py-3"><StatusBadge status={app.status} /></td>
+                      <td className="px-4 py-3"><button onClick={() => setSelected(app)} className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 text-xs font-medium transition"><Eye size={14} /> Détails</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
 
       {selected && (
         <ApplicationModal
