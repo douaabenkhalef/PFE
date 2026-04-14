@@ -1,3 +1,4 @@
+// frontend/src/page/AuthPage.jsx
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -24,7 +25,6 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { VALIDATION_MESSAGES, extractErrors } from "../utils/messages";
 import "./AuthPage.css";
-
 
 const FormError = ({ messages }) => {
   if (!messages || messages.length === 0) return null;
@@ -59,7 +59,6 @@ const FormError = ({ messages }) => {
   );
 };
 
-
 const PendingBanner = ({ message }) => (
   <div
     style={{
@@ -79,7 +78,6 @@ const PendingBanner = ({ message }) => (
     <span>{message}</span>
   </div>
 );
-
 
 const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) => {
   const [code, setCode] = useState(['', '', '', '', '', '']);
@@ -109,7 +107,7 @@ const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) 
     e.preventDefault();
     const fullCode = code.join('');
     if (fullCode.length !== 6) {
-      setLocalError('Le code de vérification doit contenir exactement 6 chiffres.');
+      setLocalError('The verification code must contain exactly 6 digits.');
       return;
     }
     setLocalError('');
@@ -118,7 +116,7 @@ const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) 
     try {
       await onVerify(email, fullCode);
     } catch (err) {
-      
+      // handled by parent
     } finally {
       setIsLoading(false);
     }
@@ -140,11 +138,11 @@ const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) 
         if (result.success) {
           setCode(['', '', '', '', '', '']);
         } else {
-          setLocalError(result.message || 'Erreur lors du renvoi');
+          setLocalError(result.message || 'Error resending code');
         }
       }
     } catch (error) {
-      setLocalError('Erreur de connexion');
+      setLocalError('Connection error');
     }
   };
   
@@ -154,12 +152,12 @@ const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) 
         <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
           <Mail className="w-8 h-8 text-purple-400" />
         </div>
-        <h3 className="text-white text-xl font-semibold">Vérification par email</h3>
+        <h3 className="text-white text-xl font-semibold">Email Verification</h3>
         <p className="text-white/60 text-sm mt-2">
-          Un code de vérification a été envoyé à <strong>{email}</strong>
+          A verification code has been sent to <strong>{email}</strong>
         </p>
         <p className="text-white/40 text-xs mt-1">
-          Valable 15 minutes
+          Valid for 15 minutes
         </p>
       </div>
       
@@ -203,7 +201,7 @@ const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) 
           disabled={isLoading || loading}
           className="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold text-white transition disabled:opacity-50"
         >
-          {isLoading || loading ? "Vérification..." : "Vérifier le code"}
+          {isLoading || loading ? "Verifying..." : "Verify Code"}
         </button>
         
         <div className="text-center">
@@ -212,7 +210,7 @@ const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) 
             onClick={handleResend}
             className="text-purple-400 text-sm hover:underline"
           >
-            Renvoyer le code
+            Resend code
           </button>
         </div>
         
@@ -221,9 +219,24 @@ const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) 
           onClick={onBack}
           className="w-full py-2 text-white/60 text-sm hover:text-white transition"
         >
-          ← Retour au formulaire
+          ← Back to form
         </button>
       </form>
+    </div>
+  );
+};
+
+const InputGroup = ({ icon, label, type, value, onChange, required, placeholder }) => {
+  return (
+    <div className="input-group">
+      {icon && <span className="icon">{icon}</span>}
+      <input 
+        type={type} 
+        placeholder={placeholder || label} 
+        value={value} 
+        onChange={onChange} 
+        required={required} 
+      />
     </div>
   );
 };
@@ -294,19 +307,19 @@ const AuthPage = () => {
 
   const validatePassword = (password) => {
     if (password.length < 8) {
-      return 'Le mot de passe doit contenir au moins 8 caractères.';
+      return 'Password must be at least 8 characters.';
     }
     if (/^\d+$/.test(password)) {
-      return 'Le mot de passe ne peut pas être composé uniquement de chiffres.';
+      return 'Password cannot be only digits.';
     }
     if (!/[A-Z]/.test(password)) {
-      return 'Le mot de passe doit contenir au moins une lettre majuscule.';
+      return 'Password must contain at least one uppercase letter.';
     }
     if (!/[a-z]/.test(password)) {
-      return 'Le mot de passe doit contenir au moins une lettre minuscule.';
+      return 'Password must contain at least one lowercase letter.';
     }
     if (!/[0-9]/.test(password)) {
-      return 'Le mot de passe doit contenir au moins un chiffre.';
+      return 'Password must contain at least one number.';
     }
     return null;
   };
@@ -329,10 +342,9 @@ const AuthPage = () => {
   ];
 
   const educationLevels = ["Licence","Master 1","Master 2","Ingénieur","Doctorat"];
-
   const industries = [
-    "Informatique","Télécoms","Finance","Commerce","Industrie","Énergie",
-    "BTP","Services","Conseil","Marketing","Santé","Autre",
+    "IT","Telecom","Finance","Commerce","Industry","Energy",
+    "Construction","Services","Consulting","Marketing","Health","Other",
   ];
 
   const { login, registerStudent, registerCompany, registerAdmin, completeSignup } = useAuth();
@@ -507,13 +519,13 @@ const AuthPage = () => {
         navigate(result.redirectUrl);
       } else if (result.pending) {
         if (result.sub_role === 'company_manager') {
-          setCompanyPending("Votre compte a été créé et est en attente d'approbation. Veuillez attendre qu'un administrateur active votre compte.");
+          setCompanyPending("Your account has been created and is pending approval. Please wait for an administrator to activate your account.");
         } else if (result.sub_role === 'hiring_manager') {
-          setCompanyPending("Votre compte a été créé et est en attente d'approbation. Veuillez attendre que votre Company Manager active votre compte.");
+          setCompanyPending("Your account has been created and is pending approval. Please wait for your Company Manager to activate your account.");
         } else if (result.sub_role === 'admin') {
-          setAdminPending("Votre compte a été créé et est en attente d'approbation. Veuillez attendre qu'un administrateur supérieur active votre compte.");
+          setAdminPending("Your account has been created and is pending approval. Please wait for a superior administrator to activate your account.");
         } else if (result.sub_role === 'co_dept_head') {
-          setAdminPending("Votre compte a été créé et est en attente d'approbation. Veuillez attendre que le Department Head de votre université active votre compte.");
+          setAdminPending("Your account has been created and is pending approval. Please wait for the Department Head of your university to activate your account.");
         } else {
           setCompanyPending(result.message);
         }
@@ -530,10 +542,10 @@ const AuthPage = () => {
         if (errorMessages.length > 0) {
           setOtpError(errorMessages[0]);
         } else {
-          setOtpError("Code invalide. Veuillez réessayer.");
+          setOtpError("Invalid code. Please try again.");
         }
       } else {
-        setOtpError("Code invalide. Veuillez réessayer.");
+        setOtpError("Invalid code. Please try again.");
       }
     }
   };
@@ -594,6 +606,7 @@ const AuthPage = () => {
           </div>
         </motion.div>
 
+        {/* Login Form */}
         <div className={`form-section ${isLogin ? "form-visible" : "form-hidden"}`}>
           <h2 className="form-title">Login</h2>
           <form onSubmit={handleLogin} className="input-stack">
@@ -624,7 +637,7 @@ const AuthPage = () => {
                 onClick={() => navigate('/forgot-password')}
                 className="text-purple-400 text-sm hover:underline"
               >
-                Mot de passe oublié ?
+                Forgot password?
               </button>
             </div>
             
@@ -635,6 +648,7 @@ const AuthPage = () => {
           </form>
         </div>
 
+        {/* Signup Form */}
         <div className={`form-section right ${!isLogin ? "form-visible" : "form-hidden"}`}>
           <h2 className="form-title">Sign Up</h2>
 
@@ -876,7 +890,7 @@ const AuthPage = () => {
                               placeholder="Enter the company name as registered"
                               required />
                             <div style={{ fontSize: "12px", color: "#9ca3af", marginTop: "-10px", marginBottom: "10px" }}>
-                              ⓘ Entrez le nom exact de l'entreprise du Company Manager
+                              ⓘ Enter the exact company name of the Company Manager
                             </div>
                           </>
                         )}
@@ -964,7 +978,7 @@ const AuthPage = () => {
                               placeholder="Enter the university name as registered"
                               required />
                             <div style={{ fontSize: "12px", color: "#9ca3af", marginTop: "-10px", marginBottom: "10px" }}>
-                              ⓘ Entrez le nom exact de l'université du Department Head
+                              ⓘ Enter the exact university name of the Department Head
                             </div>
                           </>
                         )}
@@ -991,12 +1005,5 @@ const AuthPage = () => {
     </div>
   );
 };
-
-const InputGroup = ({ icon, label, type, value, onChange, required }) => (
-  <div className="input-group">
-    {icon && <span className="icon">{icon}</span>}
-    <input type={type} placeholder={label} value={value} onChange={onChange} required={required} />
-  </div>
-);
 
 export default AuthPage;

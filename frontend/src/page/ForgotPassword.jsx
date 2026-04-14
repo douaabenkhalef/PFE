@@ -1,3 +1,4 @@
+// frontend/src/page/ForgotPassword.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
@@ -16,19 +17,19 @@ const ForgotPassword = () => {
 
   const validatePassword = (password) => {
     if (password.length < 8) {
-      return 'Le mot de passe doit contenir au moins 8 caractères.';
+      return 'Password must be at least 8 characters.';
     }
     if (/^\d+$/.test(password)) {
-      return 'Le mot de passe ne peut pas être composé uniquement de chiffres.';
+      return 'Password cannot be only digits.';
     }
     if (!/[A-Z]/.test(password)) {
-      return 'Le mot de passe doit contenir au moins une lettre majuscule.';
+      return 'Password must contain at least one uppercase letter.';
     }
     if (!/[a-z]/.test(password)) {
-      return 'Le mot de passe doit contenir au moins une lettre minuscule.';
+      return 'Password must contain at least one lowercase letter.';
     }
     if (!/[0-9]/.test(password)) {
-      return 'Le mot de passe doit contenir au moins un chiffre.';
+      return 'Password must contain at least one number.';
     }
     return null;
   };
@@ -60,7 +61,7 @@ const ForgotPassword = () => {
     setEmailError('');
     
     if (!email) {
-      setEmailError('L\'email est requis.');
+      setEmailError('Email is required.');
       return;
     }
     
@@ -77,7 +78,7 @@ const ForgotPassword = () => {
       
       if (data.success) {
         if (data.email_exists === false || (data.success === false && data.message === 'Aucun compte trouvé avec cet email.')) {
-          setEmailError(data.message || 'Aucun compte trouvé avec cet email.');
+          setEmailError(data.message || 'No account found with this email.');
           setLoading(false);
           return;
         }
@@ -85,13 +86,13 @@ const ForgotPassword = () => {
         if (data.success) {
           setStep('otp');
         } else {
-          setEmailError(data.message || 'Erreur lors de l\'envoi du code');
+          setEmailError(data.message || 'Error sending code');
         }
       } else {
-        setEmailError(data.message || 'Erreur lors de l\'envoi du code');
+        setEmailError(data.message || 'Error sending code');
       }
     } catch (error) {
-      setEmailError('Erreur de connexion au serveur');
+      setEmailError('Connection error');
     } finally {
       setLoading(false);
     }
@@ -105,7 +106,7 @@ const ForgotPassword = () => {
     const fullCode = code.join('');
     
     if (fullCode.length !== 6) {
-      setOtpError('Le code de vérification doit contenir exactement 6 chiffres.');
+      setOtpError('The verification code must contain exactly 6 digits.');
       return;
     }
     
@@ -116,7 +117,7 @@ const ForgotPassword = () => {
     }
     
     if (newPassword !== confirmPassword) {
-      setPasswordError('Les mots de passe ne correspondent pas.');
+      setPasswordError('Passwords do not match.');
       return;
     }
     
@@ -140,14 +141,14 @@ const ForgotPassword = () => {
         setStep('success');
       } else {
         if (data.code_invalid) {
-          setOtpError(data.message);
+          setOtpError(data.message || 'Invalid code. Please try again.');
           setCode(['', '', '', '', '', '']);
         } else {
-          setPasswordError(data.message);
+          setPasswordError(data.message || 'Error resetting password');
         }
       }
     } catch (error) {
-      setOtpError('Erreur de connexion au serveur');
+      setOtpError('Connection error');
     } finally {
       setLoading(false);
     }
@@ -181,12 +182,13 @@ const ForgotPassword = () => {
       
       if (data.success && data.email_exists !== false) {
         setCode(['', '', '', '', '', '']);
+        setOtpError('');
       } else {
-        setOtpError('Aucun compte trouvé avec cet email.');
+        setOtpError('No account found with this email.');
         setStep('email');
       }
     } catch (error) {
-      setOtpError('Erreur de connexion');
+      setOtpError('Connection error');
     } finally {
       setLoading(false);
     }
@@ -202,15 +204,15 @@ const ForgotPassword = () => {
               className="mb-4 text-white/60 hover:text-white transition flex items-center gap-2"
             >
               <ArrowLeft size={20} />
-              Retour
+              Back
             </button>
             <div className="text-center mb-8">
               <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Lock className="w-8 h-8 text-purple-400" />
               </div>
-              <h2 className="text-2xl font-bold text-white">Mot de passe oublié ?</h2>
+              <h2 className="text-2xl font-bold text-white">Forgot Password?</h2>
               <p className="text-white/60 mt-2">
-                Entrez votre email et nous vous enverrons un code de réinitialisation
+                Enter your email and we'll send you a reset code
               </p>
             </div>
 
@@ -237,7 +239,7 @@ const ForgotPassword = () => {
                 disabled={loading}
                 className="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold text-white transition disabled:opacity-50"
               >
-                {loading ? 'Envoi...' : 'Envoyer le code'}
+                {loading ? 'Sending...' : 'Send Code'}
               </button>
             </form>
           </>
@@ -250,24 +252,24 @@ const ForgotPassword = () => {
               className="mb-4 text-white/60 hover:text-white transition flex items-center gap-2"
             >
               <ArrowLeft size={20} />
-              Retour
+              Back
             </button>
             <div className="text-center mb-8">
               <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Mail className="w-8 h-8 text-purple-400" />
               </div>
-              <h2 className="text-2xl font-bold text-white">Vérification</h2>
+              <h2 className="text-2xl font-bold text-white">Verification</h2>
               <p className="text-white/60 mt-2">
-                Un code a été envoyé à <strong>{email}</strong>
+                A code has been sent to <strong>{email}</strong>
               </p>
               <p className="text-white/40 text-xs mt-1">
-                Valable 15 minutes
+                Valid for 15 minutes
               </p>
             </div>
 
             <form onSubmit={handleVerifyOTP} className="space-y-6">
               <div>
-                <label className="text-white/80 text-sm block mb-2">Code de vérification (6 chiffres)</label>
+                <label className="text-white/80 text-sm block mb-2">Verification code (6 digits)</label>
                 <div className="flex justify-center gap-3">
                   {code.map((digit, index) => (
                     <input
@@ -286,12 +288,12 @@ const ForgotPassword = () => {
               </div>
 
               <div>
-                <label className="text-white/80 text-sm block mb-2">Nouveau mot de passe</label>
+                <label className="text-white/80 text-sm block mb-2">New Password</label>
                 <div className="border-b border-white/20 py-3 flex items-center">
                   <Lock className="w-5 h-5 text-white/60" />
                   <input
                     type="password"
-                    placeholder="Nouveau mot de passe"
+                    placeholder="New Password"
                     value={newPassword}
                     onChange={(e) => {
                       setNewPassword(e.target.value);
@@ -302,17 +304,17 @@ const ForgotPassword = () => {
                   />
                 </div>
                 <p className="text-white/40 text-xs mt-1">
-                  Min. 8 caractères, 1 majuscule, 1 minuscule, 1 chiffre
+                  Min. 8 characters, 1 uppercase, 1 lowercase, 1 number
                 </p>
               </div>
 
               <div>
-                <label className="text-white/80 text-sm block mb-2">Confirmer le mot de passe</label>
+                <label className="text-white/80 text-sm block mb-2">Confirm Password</label>
                 <div className="border-b border-white/20 py-3 flex items-center">
                   <Lock className="w-5 h-5 text-white/60" />
                   <input
                     type="password"
-                    placeholder="Confirmer le mot de passe"
+                    placeholder="Confirm Password"
                     value={confirmPassword}
                     onChange={(e) => {
                       setConfirmPassword(e.target.value);
@@ -331,7 +333,7 @@ const ForgotPassword = () => {
                 disabled={loading}
                 className="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold text-white transition disabled:opacity-50"
               >
-                {loading ? 'Réinitialisation...' : 'Réinitialiser le mot de passe'}
+                {loading ? 'Resetting...' : 'Reset Password'}
               </button>
 
               <div className="text-center">
@@ -340,7 +342,7 @@ const ForgotPassword = () => {
                   onClick={handleResendCode}
                   className="text-purple-400 text-sm hover:underline"
                 >
-                  Renvoyer le code
+                  Resend code
                 </button>
               </div>
             </form>
@@ -352,15 +354,15 @@ const ForgotPassword = () => {
             <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-10 h-10 text-green-400" />
             </div>
-            <h2 className="text-2xl font-bold text-white mb-2">Mot de passe réinitialisé !</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">Password Reset!</h2>
             <p className="text-white/60 mb-6">
-              Votre mot de passe a été modifié avec succès. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.
+              Your password has been successfully changed. You can now log in with your new password.
             </p>
             <button
               onClick={() => navigate('/login')}
               className="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold text-white transition"
             >
-              Se connecter
+              Back to Login
             </button>
           </div>
         )}
