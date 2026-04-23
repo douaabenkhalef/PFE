@@ -18,10 +18,11 @@ from reportlab.lib import colors
 from reportlab.pdfgen import canvas
 from io import BytesIO
 from django.core.files.base import ContentFile
+from mongoengine.connection import get_db
 
 from .models import (
     User, Student, Company, Admin, InternshipOffer, Application, 
-    OTPVerification, PendingApproval, Notification, ActivityLog
+    OTPVerification, PendingApproval,UserPermission, Notification, ActivityLog
 )
 from .serializers import (
     StudentRegistrationSerializer,
@@ -278,6 +279,7 @@ def register_admin(request):
 def login(request):
     email = request.data.get('email')
     password = request.data.get('password')
+    
     if not email or not password:
         return Response({'success': False, 'errors': {'non_field_errors': ['Email and password required.']}},
                         status=status.HTTP_400_BAD_REQUEST)
@@ -291,23 +293,44 @@ def login(request):
         return Response({'success': False, 'errors': {'non_field_errors': ['Account pending approval.']}},
                         status=status.HTTP_403_FORBIDDEN)
 
+    # 🔥 التحقق من 2FA
+    if user.two_fa_enabled:
+        # إنشاء كود OTP
+        temp_data = {
+            'action': 'login_2fa',
+            'user_id': str(user.id),
+            'email': email
+        }
+        code = create_otp_verification(email, temp_data)
+        send_otp_email(email, code, "login_2fa")
+        
+        return Response({
+            'success': True,
+            'requires_2fa': True,
+            'message': 'Verification code sent to your email',
+            'email': email
+        })
+
+    # إذا لم يكن 2FA مفعلاً، سجل الدخول مباشرة
     token = create_token(user)
     redirect_urls = {
         'student': '/student/dashboard',
         'company': '/company/dashboard',
-        'admin':   '/admin/dashboard',
+        'admin': '/admin/dashboard',
     }
+    
     user_data = {
         'id': str(user.id),
         'email': user.email,
         'role': user.role,
         'sub_role': user.sub_role,
     }
+    
     if user.role == 'student':
         student = Student.objects(user=user).first()
         if student:
             user_data['full_name'] = student.full_name
-            user_data['university'] = student.university  # 🔥 AJOUTE CETTE LIGNE
+            user_data['university'] = student.university
     elif user.role == 'company':
         company = Company.objects(user=user).first()
         if company:
@@ -316,7 +339,7 @@ def login(request):
         admin = Admin.objects(user=user).first()
         if admin:
             user_data['full_name'] = admin.full_name
-            user_data['university'] = admin.university  # 🔥 AJOUTE CETTE LIGNE
+            user_data['university'] = admin.university
 
     return Response({
         'success': True,
@@ -325,7 +348,6 @@ def login(request):
         'user': user_data,
         'redirect_url': redirect_urls.get(user.role, '/dashboard'),
     })
-
 
 
 @api_view(['POST'])
@@ -714,6 +736,39 @@ def reset_password(request):
     user.set_password(new_password)
     user.save()
     return Response({'success': True, 'message': 'Password reset successfully'})
+
+
+@api_view(['POST'])
+@jwt_authenticated
+def change_password(request):
+    """
+    Change password for the currently authenticated user.
+    Body: { current_password, new_password }
+    """
+    current_password = request.data.get('current_password', '').strip()
+    new_password     = request.data.get('new_password', '').strip()
+
+    if not current_password or not new_password:
+        return Response({'success': False, 'error': 'Both current and new passwords are required'}, status=400)
+
+    user = request.user
+    if not user.check_password(current_password):
+        return Response({'success': False, 'error': 'Current password is incorrect'}, status=400)
+
+    # Basic validation
+    if len(new_password) < 8:
+        return Response({'success': False, 'error': 'Password must be at least 8 characters'}, status=400)
+    if new_password.isdigit():
+        return Response({'success': False, 'error': 'Password cannot be all digits'}, status=400)
+    if not any(c.isupper() for c in new_password):
+        return Response({'success': False, 'error': 'Password must contain at least one uppercase letter'}, status=400)
+    if not any(c.islower() for c in new_password):
+        return Response({'success': False, 'error': 'Password must contain at least one lowercase letter'}, status=400)
+    if not any(c.isdigit() for c in new_password):
+        return Response({'success': False, 'error': 'Password must contain at least one digit'}, status=400)
+
+    user.set_password(new_password)
+    return Response({'success': True, 'message': 'Password changed successfully'})
 
 
 
@@ -1450,8 +1505,24 @@ def company_applications(request):
 
     offers = InternshipOffer.objects(company=company)
     offer_ids = [str(o.id) for o in offers]
+    
+    # Récupérer les applications
     applications = Application.objects(offer__in=offer_ids).order_by('-applied_at')
-    serializer = ApplicationSerializer(applications, many=True)
+    
+    # Filtrer les applications avec des étudiants valides
+    valid_applications = []
+    for app in applications:
+        try:
+            # Vérifier si l'étudiant existe
+            if app.student:
+                # Forcer l'accès pour vérifier
+                _ = app.student.full_name
+                valid_applications.append(app)
+        except Exception as e:
+            print(f"⚠️ Skipping application {app.id} due to error: {e}")
+            continue
+    
+    serializer = ApplicationSerializer(valid_applications, many=True)
     return Response({'success': True, 'applications': serializer.data})
 
 
@@ -1468,6 +1539,15 @@ def respond_to_application(request, application_id):
         if not app:
             return Response({'error': 'Application not found'}, status=404)
         
+        # Vérifier si le student existe
+        try:
+            if not app.student:
+                return Response({'error': 'Student no longer exists'}, status=404)
+            # Forcer l'accès
+            _ = app.student.full_name
+        except Exception as e:
+            return Response({'error': f'Invalid student reference: {str(e)}'}, status=404)
+        
         if str(app.offer.company.id) != str(company.id):
             return Response({'error': 'Unauthorized'}, status=403)
 
@@ -1482,7 +1562,6 @@ def respond_to_application(request, application_id):
             app.company_notes = reason
             app.status = 'rejected_by_company'
             
-            # LOG ACTIVITY - Reject Application
             log_activity(
                 user=request.user,
                 action_type='reject_application',
@@ -1500,7 +1579,6 @@ def respond_to_application(request, application_id):
             app.status = 'accepted_by_company'
             app.company_response_date = datetime.now()
             
-            # LOG ACTIVITY - Accept Application
             log_activity(
                 user=request.user,
                 action_type='accept_application',
@@ -1516,13 +1594,12 @@ def respond_to_application(request, application_id):
 
         app.save()
 
+        # Envoyer les emails et notifications
         send_company_response_email(app.student.user.email, app.offer.title, new_status)
 
         if new_status == 'accepted':
             student = app.student
             student_university = student.university
-            
-            print(f" Recherche d'admin pour l'université: {student_university}")
             
             dept_head_admins = Admin.objects(university=student_university)
             admin_list = []
@@ -1530,13 +1607,11 @@ def respond_to_application(request, application_id):
             for admin in dept_head_admins:
                 if admin.user and admin.user.role == 'admin' and admin.user.sub_role == 'admin' and admin.user.status:
                     admin_list.append(admin)
-                    print(f" Department Head trouvé: {admin.full_name} ({admin.user.email})")
             
             if not admin_list:
                 for admin in dept_head_admins:
                     if admin.user and admin.user.role == 'admin' and admin.user.sub_role == 'co_dept_head' and admin.user.status:
                         admin_list.append(admin)
-                        print(f" Co Department Head trouvé: {admin.full_name} ({admin.user.email})")
             
             for admin in admin_list:
                 admin_user = admin.user
@@ -1552,35 +1627,31 @@ def respond_to_application(request, application_id):
                     
                     Notification.objects.create(
                         recipient=admin_user,
-                        message=f" Nouvelle convention à valider : {student.full_name} - {app.offer.title}",
+                        message=f"📋 Nouvelle convention à valider : {student.full_name} - {app.offer.title}",
                         related_id=str(app.id)
                     )
-                    print(f" Notification envoyée à {admin_user.email}")
-            
-            if not admin_list:
-                print(f" AUCUN admin trouvé pour l'université: {student_university}")
             
             Notification.objects.create(
                 recipient=app.student.user,
-                message=f" Votre candidature pour '{app.offer.title}' a été acceptée par {company.company_name}. En attente de validation par votre université.",
+                message=f"✅ Votre candidature pour '{app.offer.title}' a été acceptée par {company.company_name}. En attente de validation par votre université.",
                 related_id=str(app.id)
             )
         
         else:
             Notification.objects.create(
                 recipient=app.student.user,
-                message=f" Votre candidature pour '{app.offer.title}' a été refusée par {company.company_name}.",
+                message=f"❌ Votre candidature pour '{app.offer.title}' a été refusée par {company.company_name}.",
                 related_id=str(app.id)
             )
 
         return Response({'success': True, 'message': f'Application {new_status} successfully.'})
 
     except Exception as e:
-        print(f" Erreur: {str(e)}")
+        print(f"❌ Erreur: {str(e)}")
         traceback.print_exc()
         return Response({'error': str(e)}, status=500)
 
-
+        
 @api_view(['GET'])
 @jwt_authenticated
 @role_required(allowed_roles=['company'])
@@ -4359,5 +4430,1897 @@ def get_current_user(request):
         
         return Response({'success': True, 'user': user_data})
         
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+# ==================== STUDENT PROFILE MANAGEMENT ENDPOINTS ====================
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['student'])
+def get_student_public_profile(request, student_id=None):
+    """
+    Récupère le profil public d'un étudiant (visible par tous)
+    """
+    try:
+        if student_id:
+            student = Student.objects(id=student_id).first()
+        else:
+            student = Student.objects(user=request.user).first()
+        
+        if not student:
+            return Response({'success': False, 'error': 'Student not found'}, status=404)
+        
+        # Vérifier si l'utilisateur a accès aux informations privées
+        is_owner = str(request.user.id) == str(student.user.id)
+        
+        # Récupérer les paramètres de visibilité
+        visibility = getattr(student, 'profile_visibility', {})
+        
+        # Convertir les fichiers GridFS en URLs
+        profile_picture_url = None
+        cover_image_url = None
+        
+        if student.profile_picture:
+            try:
+                profile_picture_url = f"/media/{student.profile_picture.name}"
+            except:
+                profile_picture_url = None
+        
+        if student.cover_image:
+            try:
+                cover_image_url = f"/media/{student.cover_image.name}"
+            except:
+                cover_image_url = None
+        
+        response_data = {
+            'success': True,
+            'profile': {
+                'id': str(student.id),
+                'user_id': str(student.user.id),
+                'full_name': student.full_name,
+                'email': student.user.email,
+                'username': student.user.username,
+                'wilaya': student.wilaya,
+                'university': student.university,
+                'major': student.major,
+                'education_level': student.education_level,
+                'graduation_year': student.graduation_year,
+                'skills': student.skills,
+                'github': student.github,
+                'portfolio': student.portfolio,
+                'bio': getattr(student, 'bio', ''),
+                'phone': getattr(student, 'phone', ''),
+                'profile_picture': profile_picture_url,
+                'cover_image': cover_image_url,
+                'date_joined': student.user.created_at.strftime('%d/%m/%Y'),
+                'is_placed': student.is_placed,
+                'placed_company_name': student.placed_company.company_name if student.placed_company else None,
+                'placement_date': student.placement_date.strftime('%d/%m/%Y') if student.placement_date else None,
+                'applications_count': Application.objects(student=student).count(),
+                'accepted_applications': Application.objects(student=student, status='accepted_by_company').count(),
+                'validated_applications': Application.objects(student=student, status='validated_by_co_dept').count(),
+            },
+            'visibility': visibility,
+            'is_owner': is_owner
+        }
+        
+        # Si ce n'est pas le propriétaire, masquer les champs privés
+        if not is_owner:
+            if not visibility.get('email_visible', True):
+                response_data['profile']['email'] = None
+            if not visibility.get('phone_visible', True):
+                response_data['profile']['phone'] = None
+            if not visibility.get('wilaya_visible', True):
+                response_data['profile']['wilaya'] = None
+            if not visibility.get('university_visible', True):
+                response_data['profile']['university'] = None
+            if not visibility.get('skills_visible', True):
+                response_data['profile']['skills'] = []
+            if not visibility.get('contact_visible', True):
+                response_data['profile']['github'] = None
+                response_data['profile']['portfolio'] = None
+                response_data['profile']['linkedin'] = None
+        
+        return Response(response_data)
+        
+    except Exception as e:
+        print(f"Erreur get_student_public_profile: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['student'])
+def get_my_profile(request):
+    """Récupère le profil complet de l'étudiant connecté"""
+    try:
+        student = Student.objects(user=request.user).first()
+        if not student:
+            return Response({'success': False, 'error': 'Student profile not found'}, status=404)
+        
+        visibility = getattr(student, 'profile_visibility', {
+            'email_visible': True,
+            'phone_visible': True,
+            'wilaya_visible': True,
+            'university_visible': True,
+            'skills_visible': True,
+            'contact_visible': True,
+            'profile_public': True
+        })
+        
+        profile_picture_url = None
+        if student.profile_picture:
+            try:
+                file_id = student.profile_picture
+                if file_id and file_id != 'None' and len(file_id) > 5:
+                    profile_picture_url = f"{settings.MEDIA_URL}profile_picture/{file_id}/"
+                    print(f"✅ Profile picture URL: {profile_picture_url}")
+                else:
+                    print("⚠️ No valid profile picture ID")
+            except Exception as e:
+                print(f"Erreur lecture profile_picture: {e}")
+                profile_picture_url = None
+        
+        return Response({
+            'success': True,
+            'profile': {
+                'id': str(student.id),
+                'full_name': student.full_name,
+                'email': request.user.email,
+                'username': request.user.username,
+                'wilaya': student.wilaya,
+                'skills': student.skills,
+                'github': student.github,
+                'portfolio': student.portfolio,
+                'education_level': student.education_level,
+                'university': student.university,
+                'major': student.major,
+                'graduation_year': student.graduation_year,
+                'bio': getattr(student, 'bio', ''),
+                'phone': getattr(student, 'phone', ''),
+                'profile_picture': profile_picture_url,
+                'date_joined': request.user.created_at.strftime('%d/%m/%Y'),
+                'is_placed': student.is_placed,
+                'placed_company_name': student.placed_company.company_name if student.placed_company else None,
+            },
+            'visibility': visibility,
+            'is_owner': True
+        })
+        
+    except Exception as e:
+        print(f"Erreur get_my_profile: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=500)
+    
+
+        
+@api_view(['PUT'])
+@jwt_authenticated
+@role_required(allowed_roles=['student'])
+def update_my_profile(request):
+    """Met à jour le profil de l'étudiant connecté"""
+    try:
+        student = Student.objects(user=request.user).first()
+        if not student:
+            return Response({'success': False, 'error': 'Student profile not found'}, status=404)
+        
+        data = request.data
+        
+        print(f"📥 Données reçues pour mise à jour: {data}")
+        
+        # Champs modifiables (sans website, linkedin, twitter)
+        updatable_fields = [
+            'full_name', 'wilaya', 'skills', 'github', 'portfolio',
+            'education_level', 'university', 'major', 'graduation_year',
+            'bio', 'phone'
+        ]
+        
+        modified = False
+        
+        for field in updatable_fields:
+            if field in data and data[field] is not None:
+                if field == 'skills' and isinstance(data[field], list):
+                    setattr(student, field, data[field])
+                    modified = True
+                elif field == 'graduation_year':
+                    try:
+                        year = int(data[field])
+                        if year != getattr(student, field, None):
+                            setattr(student, field, year)
+                            modified = True
+                    except (ValueError, TypeError):
+                        pass
+                else:
+                    current_value = getattr(student, field, None)
+                    new_value = data[field]
+                    if current_value != new_value:
+                        setattr(student, field, new_value)
+                        modified = True
+        
+        # Mettre à jour le username si fourni
+        if 'username' in data and data['username']:
+            existing_user = User.objects(username=data['username']).first()
+            if existing_user and str(existing_user.id) != str(request.user.id):
+                return Response({'success': False, 'error': 'Username already taken'}, status=400)
+            if request.user.username != data['username']:
+                request.user.username = data['username']
+                request.user.save()
+                modified = True
+        
+        # Mettre à jour les paramètres de visibilité
+        if 'visibility' in data:
+            student.profile_visibility = data['visibility']
+            modified = True
+        
+        if modified:
+            student.save()
+            print("✅ Student saved successfully")
+        else:
+            print("⚠️ No changes to save")
+        
+        # Recharger le profil pour retourner les données à jour
+        profile_picture_url = None
+        if student.profile_picture:
+            try:
+                if student.profile_picture.name:
+                    profile_picture_url = f"{settings.MEDIA_URL}{student.profile_picture.name}"
+            except:
+                profile_picture_url = None
+        
+        return Response({
+            'success': True,
+            'message': 'Profile updated successfully',
+            'profile': {
+                'id': str(student.id),
+                'full_name': student.full_name,
+                'email': request.user.email,
+                'username': request.user.username,
+                'wilaya': student.wilaya,
+                'skills': student.skills,
+                'github': student.github,
+                'portfolio': student.portfolio,
+                'education_level': student.education_level,
+                'university': student.university,
+                'major': student.major,
+                'graduation_year': student.graduation_year,
+                'bio': getattr(student, 'bio', ''),
+                'phone': getattr(student, 'phone', ''),
+                'profile_picture': profile_picture_url,
+            }
+        })
+        
+    except Exception as e:
+        print(f"❌ Erreur update_my_profile: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+@jwt_authenticated
+@role_required(allowed_roles=['student'])
+@parser_classes([MultiPartParser, FormParser])
+def upload_profile_picture(request):
+    """Upload la photo de profil de l'étudiant"""
+    try:
+        from gridfs import GridFS
+        from mongoengine.connection import get_db
+        from bson import ObjectId
+        from datetime import datetime
+        import base64
+        
+        student = Student.objects(user=request.user).first()
+        if not student:
+            return Response({'success': False, 'error': 'Student profile not found'}, status=404)
+        
+        if 'profile_picture' not in request.FILES:
+            return Response({'success': False, 'error': 'No file provided'}, status=400)
+        
+        file = request.FILES['profile_picture']
+        
+        # Validation du fichier
+        if file.size > 5 * 1024 * 1024:
+            return Response({'success': False, 'error': 'File too large (max 5MB)'}, status=400)
+        
+        allowed_types = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif']
+        if file.content_type not in allowed_types:
+            return Response({'success': False, 'error': 'Invalid file type. Use JPEG, PNG or GIF'}, status=400)
+        
+        # 🔥 Utiliser la connexion MongoDB existante
+        db = get_db()
+        fs = GridFS(db)
+        
+        # Supprimer l'ancienne photo si elle existe
+        if student.profile_picture:
+            try:
+                old_id = ObjectId(student.profile_picture)
+                fs.delete(old_id)
+            except:
+                pass
+        
+        # قراءة محتوى الملف
+        file_content = file.read()
+        
+        # حفظ الملف في GridFS
+        file_id = fs.put(
+            file_content,
+            filename=file.name,
+            content_type=file.content_type,
+            metadata={
+                'user_id': str(request.user.id),
+                'uploaded_at': datetime.now().isoformat()
+            }
+        )
+        
+        # 🔥 تخزين ID الملف في حقل profile_picture (StringField)
+        student.profile_picture = str(file_id)
+        student.save()
+        
+        # بناء الرابط الصحيح
+        image_url = f"{settings.MEDIA_URL}profile_picture/{file_id}/"
+        
+        print(f"✅ Photo sauvegardée avec ID: {file_id}")
+        print(f"✅ URL: {image_url}")
+        
+        return Response({
+            'success': True,
+            'message': 'Profile picture uploaded successfully',
+            'url': image_url
+        })
+        
+    except Exception as e:
+        print(f"Erreur upload_profile_picture: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({'success': False, 'error': str(e)}, status=500)
+@api_view(['GET'])
+@jwt_authenticated
+def get_profile_by_username(request, username):
+    """Récupère le profil public d'un étudiant par son username"""
+    try:
+        user_obj = User.objects(username=username, role='student').first()
+        if not user_obj:
+            return Response({'success': False, 'error': 'User not found'}, status=404)
+        
+        student = Student.objects(user=user_obj).first()
+        if not student:
+            return Response({'success': False, 'error': 'Student profile not found'}, status=404)
+        
+        visibility = getattr(student, 'profile_visibility', {})
+        is_owner = str(request.user.id) == str(user_obj.id)
+        
+        profile_picture_url = None
+        if student.profile_picture:
+            try:
+                profile_picture_url = f"/media/{student.profile_picture.name}"
+            except:
+                profile_picture_url = None
+        
+        response_data = {
+            'success': True,
+            'profile': {
+                'id': str(student.id),
+                'full_name': student.full_name,
+                'username': user_obj.username,
+                'email': user_obj.email if visibility.get('email_visible', True) or is_owner else None,
+                'wilaya': student.wilaya if visibility.get('wilaya_visible', True) or is_owner else None,
+                'university': student.university if visibility.get('university_visible', True) or is_owner else None,
+                'major': student.major if visibility.get('major_visible', True) or is_owner else None,
+                'education_level': student.education_level if visibility.get('education_visible', True) or is_owner else None,
+                'graduation_year': student.graduation_year if visibility.get('graduation_visible', True) or is_owner else None,
+                'skills': student.skills if visibility.get('skills_visible', True) or is_owner else [],
+                'bio': getattr(student, 'bio', '') if visibility.get('bio_visible', True) or is_owner else None,
+                'phone': getattr(student, 'phone', '') if visibility.get('phone_visible', True) or is_owner else None,
+                'github': student.github if visibility.get('contact_visible', True) or is_owner else None,
+                'portfolio': student.portfolio if visibility.get('contact_visible', True) or is_owner else None,
+                'profile_picture': profile_picture_url,
+                'is_placed': student.is_placed,
+                'placed_company_name': student.placed_company.company_name if student.placed_company else None,
+                'date_joined': user_obj.created_at.strftime('%d/%m/%Y'),
+            },
+            'visibility': visibility,
+            'is_owner': is_owner
+        }
+        
+        return Response(response_data)
+        
+    except Exception as e:
+        print(f"Erreur get_profile_by_username: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=500)
+    
+
+@api_view(['GET'])
+def serve_profile_picture(request, file_id):
+    """Sert l'image de profil depuis GridFS"""
+    try:
+        from gridfs import GridFS
+        from mongoengine.connection import get_db
+        from bson import ObjectId
+        from django.http import HttpResponse
+        
+        db = get_db()
+        fs = GridFS(db)
+        
+        file_obj = fs.get(ObjectId(file_id))
+        
+        response = HttpResponse(file_obj.read(), content_type=file_obj.content_type)
+        response['Content-Disposition'] = f'inline; filename="{file_obj.filename}"'
+        return response
+        
+    except Exception as e:
+        print(f"Erreur serve_profile_picture: {e}")
+        return HttpResponse(status=404)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['student'])
+def get_my_cv(request):
+    """Récupère le CV actuel et l'historique des CVs de l'étudiant"""
+    try:
+        student = Student.objects(user=request.user).first()
+        if not student:
+            return Response({'success': False, 'error': 'Student profile not found'}, status=404)
+        
+        # CV actuel
+        current_cv = None
+        if student.cv_file:
+            try:
+                # Vérifier si le fichier existe
+                if student.cv_file and hasattr(student.cv_file, 'grid_id'):
+                    current_cv = {
+                        'id': str(student.cv_file.grid_id),
+                        'url': f'/api/student/cv/download/',  # URL relative
+                        'filename': getattr(student.cv_file, 'filename', 'cv.pdf'),
+                        'size': getattr(student.cv_file, 'length', None),
+                        'uploaded_at': student.created_at.strftime('%Y-%m-%d %H:%M:%S') if student.created_at else datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    }
+                    print(f"✅ CV actuel trouvé, ID: {student.cv_file.grid_id}")
+                else:
+                    print("⚠️ CV file exists but no grid_id")
+            except Exception as e:
+                print(f"❌ Erreur lecture CV: {e}")
+                current_cv = None
+        
+        # Historique des CVs
+        from .models import CvHistory
+        history = CvHistory.objects(student=student).order_by('-uploaded_at')
+        history_list = []
+        for cv in history:
+            try:
+                history_list.append({
+                    'id': str(cv.id),
+                    'url': f'/api/student/cv/download/{str(cv.id)}/',
+                    'filename': cv.filename or 'cv.pdf',
+                    'size': None,
+                    'uploaded_at': cv.uploaded_at.strftime('%Y-%m-%d %H:%M:%S') if cv.uploaded_at else datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                })
+                print(f"✅ CV historique trouvé: {cv.id}")
+            except Exception as e:
+                print(f"❌ Erreur lecture historique CV: {e}")
+        
+        return Response({
+            'success': True,
+            'cv': current_cv,
+            'history': history_list
+        })
+        
+    except Exception as e:
+        print(f"❌ Erreur get_my_cv: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=500)
+@api_view(['POST'])
+@jwt_authenticated
+@role_required(allowed_roles=['student'])
+@parser_classes([MultiPartParser, FormParser])
+def upload_cv(request):
+    """Upload un nouveau CV pour l'étudiant"""
+    try:
+        from gridfs import GridFS
+        from mongoengine.connection import get_db
+        from bson import ObjectId
+        from datetime import datetime
+        import gridfs
+        
+        student = Student.objects(user=request.user).first()
+        if not student:
+            return Response({'success': False, 'error': 'Student profile not found'}, status=404)
+        
+        if 'cv_file' not in request.FILES:
+            return Response({'success': False, 'error': 'No file provided'}, status=400)
+        
+        file = request.FILES['cv_file']
+        
+        print(f"📤 Uploading CV: {file.name}, size: {file.size}, type: {file.content_type}")
+        
+        # Validation
+        if file.content_type != 'application/pdf':
+            return Response({'success': False, 'error': 'Only PDF files are accepted'}, status=400)
+        
+        if file.size > 5 * 1024 * 1024:
+            return Response({'success': False, 'error': 'File too large (max 5MB)'}, status=400)
+        
+        # Sauvegarder l'ancien CV dans l'historique
+        from .models import CvHistory
+        
+        if student.cv_file:
+            try:
+                # Lire l'ancien fichier depuis GridFS
+                db = get_db()
+                fs = gridfs.GridFS(db)
+                
+                old_file_id = student.cv_file.grid_id if hasattr(student.cv_file, 'grid_id') else str(student.cv_file)
+                if old_file_id:
+                    old_file_obj = fs.get(ObjectId(old_file_id))
+                    old_file_content = old_file_obj.read()
+                    old_filename = file.name if file.name else 'cv.pdf'
+                    
+                    # Sauvegarder dans l'historique
+                    history_cv = CvHistory(
+                        student=student,
+                        filename=old_filename,
+                        uploaded_at=datetime.now()
+                    )
+                    
+                    # Sauvegarder le fichier dans GridFS pour l'historique
+                    new_file_id = fs.put(
+                        old_file_content,
+                        filename=old_filename,
+                        content_type='application/pdf',
+                        metadata={
+                            'user_id': str(request.user.id),
+                            'uploaded_at': datetime.now().isoformat(),
+                            'type': 'history'
+                        }
+                    )
+                    history_cv.file = new_file_id
+                    history_cv.save()
+                    print(f"📦 Old CV saved to history with ID: {new_file_id}")
+                    
+                    # Supprimer l'ancien fichier
+                    fs.delete(ObjectId(old_file_id))
+                    
+            except Exception as e:
+                print(f"⚠️ Erreur sauvegarde historique: {e}")
+        
+        # 🔥 Upload nouveau CV - CORRECTION IMPORTANTE
+        db = get_db()
+        fs = gridfs.GridFS(db)
+        
+        # Lire le contenu du fichier en bytes
+        file_content = file.read()
+        
+        # Sauvegarder dans GridFS - NE PAS convertir en string
+        file_id = fs.put(
+            file_content,
+            filename=file.name,
+            content_type='application/pdf',
+            metadata={
+                'user_id': str(request.user.id),
+                'uploaded_at': datetime.now().isoformat(),
+                'original_filename': file.name,
+                'size': file.size
+            }
+        )
+        
+        # 🔥 IMPORTANT: Assigner directement le fichier, pas un string
+        # Créer un nouveau FileField avec le contenu
+        from django.core.files.base import ContentFile
+        
+        # Réinitialiser le fichier pour le lire à nouveau
+        file.seek(0)
+        cv_content = ContentFile(file.read(), name=file.name)
+        
+        # Assigner au modèle
+        student.cv_file = cv_content
+        student.save()
+        
+        print(f"✅ CV uploaded successfully: {file.name} (ID: {file_id})")
+        
+        return Response({
+            'success': True,
+            'message': 'CV uploaded successfully',
+            'file_id': str(file_id)
+        })
+        
+    except Exception as e:
+        print(f"❌ Erreur upload_cv: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({'success': False, 'error': str(e)}, status=500)
+@api_view(['DELETE'])
+@jwt_authenticated
+@role_required(allowed_roles=['student'])
+def delete_cv(request):
+    """Supprime le CV actuel de l'étudiant"""
+    try:
+        from gridfs import GridFS
+        from mongoengine.connection import get_db
+        from bson import ObjectId
+        import gridfs
+        
+        student = Student.objects(user=request.user).first()
+        if not student:
+            return Response({'success': False, 'error': 'Student profile not found'}, status=404)
+        
+        if student.cv_file:
+            # Supprimer le fichier de GridFS
+            db = get_db()
+            fs = gridfs.GridFS(db)
+            
+            file_id = student.cv_file.grid_id
+            fs.delete(file_id)
+            
+            # Supprimer la référence
+            student.cv_file = None
+            student.save()
+            
+            print(f"🗑️ CV deleted: {file_id}")
+            
+        return Response({
+            'success': True,
+            'message': 'CV deleted successfully'
+        })
+        
+    except Exception as e:
+        print(f"❌ Erreur delete_cv: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=500)
+    
+@api_view(['POST'])
+@jwt_authenticated
+def enable_2fa(request):
+    """Enable two-factor authentication"""
+    try:
+        user = request.user
+        user.two_fa_enabled = True
+        user.save()
+        return Response({'success': True, 'message': '2FA enabled'})
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+@api_view(['POST'])
+@jwt_authenticated
+def disable_2fa(request):
+    """Disable two-factor authentication"""
+    try:
+        user = request.user
+        user.two_fa_enabled = False
+        user.save()
+        return Response({'success': True, 'message': '2FA disabled'})
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+
+@api_view(['POST'])
+@jwt_authenticated
+def add_recovery_email(request):
+    """Add recovery email with OTP verification"""
+    try:
+        recovery_email = request.data.get('recovery_email')
+        if not recovery_email:
+            return Response({'success': False, 'error': 'Email required'}, status=400)
+        
+        # Validate email format
+        if '@' not in recovery_email or '.' not in recovery_email:
+            return Response({'success': False, 'error': 'Invalid email address'}, status=400)
+        
+        user = request.user
+        
+        # Check if recovery email is same as primary email
+        if recovery_email == user.email:
+            return Response({'success': False, 'error': 'Recovery email cannot be the same as your primary email'}, status=400)
+        
+        # Store recovery email temporarily and send OTP
+        from .otp_utils import create_otp_verification, send_otp_email
+        
+        temp_data = {
+            'action': 'add_recovery_email',
+            'user_id': str(user.id),
+            'recovery_email': recovery_email
+        }
+        
+        code = create_otp_verification(recovery_email, temp_data)
+        
+        # Send OTP to the recovery email for verification
+        email_sent = send_otp_email(recovery_email, code, "recovery_email_verification")
+        
+        if not email_sent:
+            return Response({'success': False, 'error': 'Failed to send verification email'}, status=500)
+        
+        return Response({
+            'success': True, 
+            'message': 'Verification code sent to your recovery email',
+            'recovery_email': recovery_email
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['DELETE'])
+@jwt_authenticated
+def remove_recovery_email(request):
+    """Remove recovery email and send confirmation"""
+    try:
+        user = request.user
+        
+        if not user.recovery_email:
+            return Response({'success': False, 'error': 'No recovery email found'}, status=400)
+        
+        student = Student.objects(user=user).first()
+        user_name = student.full_name if student else user.username
+        
+        from .email_utils import send_recovery_email_removed_confirmation
+        send_recovery_email_removed_confirmation(
+            recipient=user.email,
+            name=user_name
+        )
+        
+        user.recovery_email = None
+        user.save()
+        
+        return Response({'success': True, 'message': 'Recovery email removed successfully'})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+@api_view(['GET'])
+@jwt_authenticated
+def security_status(request):
+    """Get security status"""
+    try:
+        user = request.user
+        return Response({
+            'success': True,
+            'two_fa_enabled': getattr(user, 'two_fa_enabled', False),
+            'recovery_email_exists': bool(getattr(user, 'recovery_email', None))
+        })
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['student'])
+def download_current_cv(request):
+    """Télécharge le CV actuel de l'étudiant"""
+    try:
+        from gridfs import GridFS
+        from mongoengine.connection import get_db
+        from bson import ObjectId
+        from django.http import HttpResponse
+        import gridfs
+        
+        student = Student.objects(user=request.user).first()
+        if not student:
+            return Response({'error': 'Student profile not found'}, status=404)
+        
+        if not student.cv_file:
+            return Response({'error': 'No CV found'}, status=404)
+        
+        db = get_db()
+        fs = gridfs.GridFS(db)
+        
+        # Récupérer l'ID du fichier
+        file_id = student.cv_file.grid_id
+        print(f"📥 Downloading CV with ID: {file_id}")
+        
+        file_obj = fs.get(file_id)
+        
+        response = HttpResponse(file_obj.read(), content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="{file_obj.filename}"'
+        return response
+        
+    except Exception as e:
+        print(f"❌ Erreur download_current_cv: {e}")
+        import traceback
+        traceback.print_exc()
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['student'])
+def download_cv_history(request, cv_id):
+    """Télécharge un CV de l'historique"""
+    try:
+        from gridfs import GridFS
+        from mongoengine.connection import get_db
+        from bson import ObjectId
+        from django.http import HttpResponse
+        from .models import CvHistory
+        
+        student = Student.objects(user=request.user).first()
+        if not student:
+            return Response({'error': 'Student profile not found'}, status=404)
+        
+        # Chercher dans l'historique
+        cv_history = CvHistory.objects(id=cv_id, student=student).first()
+        if not cv_history:
+            return Response({'error': 'CV not found in history'}, status=404)
+        
+        # Récupérer le fichier depuis GridFS
+        db = get_db()
+        fs = GridFS(db)
+        
+        file_id = str(cv_history.file)
+        file_obj = fs.get(ObjectId(file_id))
+        
+        # Créer la réponse HTTP avec le fichier PDF
+        response = HttpResponse(file_obj.read(), content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="{file_obj.filename}"'
+        return response
+        
+    except Exception as e:
+        print(f"❌ Erreur download_cv_history: {e}")
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['POST'])
+@jwt_authenticated
+def verify_recovery_email(request):
+    """Verify recovery email with OTP and save it"""
+    try:
+        email = request.data.get('email')
+        code = request.data.get('code')
+        
+        if not email or not code:
+            return Response({'success': False, 'error': 'Email and code required'}, status=400)
+        
+        from .otp_utils import verify_otp_code
+        
+        temp_data, error = verify_otp_code(email, code)
+        
+        if error:
+            return Response({'success': False, 'error': error, 'code_invalid': True}, status=400)
+        
+        if temp_data.get('action') != 'add_recovery_email':
+            return Response({'success': False, 'error': 'Invalid verification'}, status=400)
+        
+        user = User.objects(id=temp_data['user_id']).first()
+        if not user:
+            return Response({'success': False, 'error': 'User not found'}, status=404)
+        
+        recovery_email = temp_data['recovery_email']
+        
+        # Save recovery email
+        user.recovery_email = recovery_email
+        user.save()
+        
+        # Send confirmation email to primary email
+        from .email_utils import send_recovery_email_confirmation
+        student = Student.objects(user=user).first()
+        user_name = student.full_name if student else user.username
+        
+        send_recovery_email_confirmation(
+            recipient=user.email,
+            name=user_name,
+            recovery_email=recovery_email
+        )
+        
+        return Response({'success': True, 'message': 'Recovery email added successfully'})
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+@api_view(['POST'])
+def forgot_password_with_recovery(request):
+    """
+    Forgot password with recovery email support.
+    If user has recovery email, send OTP there instead of primary email.
+    """
+    email = request.data.get('email')
+    if not email:
+        return Response({'success': False, 'message': 'Email required'}, status=400)
+
+    user = User.objects(email=email).first()
+    if not user:
+        return Response({'success': False, 'message': 'No account found with that email.', 'email_exists': False},
+                        status=404)
+    
+    from .otp_utils import create_otp_verification, send_otp_email
+    
+    # Check if user has recovery email
+    if user.recovery_email:
+        # Send OTP to recovery email
+        target_email = user.recovery_email
+        action = 'reset_password_via_recovery'
+        
+        temp_data = {
+            'action': action,
+            'email': email,
+            'user_id': str(user.id),
+            'primary_email': email,
+            'recovery_email': target_email
+        }
+        
+        code = create_otp_verification(target_email, temp_data)
+        email_sent = send_otp_email(target_email, code, "reset_password")
+        
+        # Also send notification to primary email
+        from .email_utils import send_password_reset_via_recovery_email
+        student = Student.objects(user=user).first()
+        user_name = student.full_name if student else user.username
+        send_password_reset_via_recovery_email(target_email, user_name, email)
+        
+        return Response({
+            'success': True, 
+            'message': f'Reset code sent to your recovery email: {target_email[:3]}***{target_email[-10:]}',
+            'email': email,
+            'email_exists': True,
+            'using_recovery': True
+        })
+    else:
+        # No recovery email, send to primary email
+        temp_data = {'action': 'reset_password', 'email': email, 'user_id': str(user.id)}
+        code = create_otp_verification(email, temp_data)
+        email_sent = send_otp_email(email, code, "reset_password")
+        
+        if not email_sent:
+            return Response({'success': False, 'message': 'Failed to send email'}, status=500)
+
+        return Response({
+            'success': True, 
+            'message': 'Reset code sent to your email',
+            'email': email,
+            'email_exists': True,
+            'using_recovery': False
+        })
+
+
+# backend/api/views.py - أضف هذه الدوال بعد change_password
+
+@api_view(['POST'])
+@jwt_authenticated
+def initiate_password_change(request):
+    """
+    Étape 1: Envoie un OTP pour changer le mot de passe
+    """
+    try:
+        user = request.user
+        
+        # Déterminer l'email cible
+        if user.recovery_email:
+            target_email = user.recovery_email
+            using_recovery = True
+        else:
+            target_email = user.email
+            using_recovery = False
+        
+        # Créer l'OTP
+        from .otp_utils import create_otp_for_password_change
+        code = create_otp_for_password_change(str(user.id), target_email, user.email)
+        
+        # Envoyer l'email avec l'OTP
+        from .otp_utils import send_otp_email
+        email_sent = send_otp_email(target_email, code, "change_password")
+        
+        if not email_sent:
+            return Response({
+                'success': False, 
+                'message': "Impossible d'envoyer le code de vérification"
+            }, status=500)
+        
+        return Response({
+            'success': True,
+            'message': f"Code de vérification envoyé à {'votre email de récupération' if using_recovery else 'votre email'}",
+            'using_recovery': using_recovery,
+            'target_email_masked': target_email[:3] + '***' + target_email[-10:] if len(target_email) > 10 else target_email[:3] + '***'
+        })
+        
+    except Exception as e:
+        print(f"Erreur initiate_password_change: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+@jwt_authenticated
+def verify_and_change_password(request):
+    """
+    Étape 2: Vérifie l'OTP et change le mot de passe
+    Body: { code, new_password, confirm_password }
+    """
+    try:
+        code = request.data.get('code', '').strip()
+        new_password = request.data.get('new_password', '').strip()
+        confirm_password = request.data.get('confirm_password', '').strip()
+        
+        if not code:
+            return Response({'success': False, 'error': 'Code de vérification requis'}, status=400)
+        
+        if not new_password or not confirm_password:
+            return Response({'success': False, 'error': 'Nouveau mot de passe requis'}, status=400)
+        
+        if new_password != confirm_password:
+            return Response({'success': False, 'error': 'Les mots de passe ne correspondent pas'}, status=400)
+        
+        # Validation du mot de passe
+        if len(new_password) < 8:
+            return Response({'success': False, 'error': 'Le mot de passe doit contenir au moins 8 caractères'}, status=400)
+        if new_password.isdigit():
+            return Response({'success': False, 'error': 'Le mot de passe ne peut pas être composé uniquement de chiffres'}, status=400)
+        if not any(c.isupper() for c in new_password):
+            return Response({'success': False, 'error': 'Le mot de passe doit contenir au moins une majuscule'}, status=400)
+        if not any(c.islower() for c in new_password):
+            return Response({'success': False, 'error': 'Le mot de passe doit contenir au moins une minuscule'}, status=400)
+        if not any(c.isdigit() for c in new_password):
+            return Response({'success': False, 'error': 'Le mot de passe doit contenir au moins un chiffre'}, status=400)
+        
+        user = request.user
+        
+        # Chercher l'OTP
+        from .models import OTPVerification
+        from datetime import datetime
+        
+        # Chercher dans les deux emails possibles
+        otp = OTPVerification.objects(
+            code=code,
+            used=False,
+            expires_at__gte=datetime.now()
+        ).first()
+        
+        if not otp:
+            return Response({
+                'success': False, 
+                'error': 'Code invalide ou expiré. Veuillez demander un nouveau code.',
+                'code_invalid': True
+            }, status=400)
+        
+        # Vérifier que l'OTP correspond à l'utilisateur
+        temp_data = otp.data
+        if temp_data.get('action') != 'change_password' or temp_data.get('user_id') != str(user.id):
+            return Response({
+                'success': False, 
+                'error': 'Code invalide pour cet utilisateur',
+                'code_invalid': True
+            }, status=400)
+        
+        # Marquer l'OTP comme utilisé
+        otp.used = True
+        otp.save()
+        
+        # Changer le mot de passe
+        user.set_password(new_password)
+        
+        return Response({'success': True, 'message': 'Mot de passe changé avec succès'})
+        
+    except Exception as e:
+        print(f" Erreur verify_and_change_password: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+# ==================== CHAT SYSTEM ENDPOINTS ====================
+
+@api_view(['GET'])
+@jwt_authenticated
+def get_student_chat_groups(request):
+    """Récupère les groupes de chat pour un étudiant (ses internships)"""
+    try:
+        student = Student.objects(user=request.user).first()
+        if not student:
+            return Response({'success': False, 'error': 'Student not found'}, status=404)
+        
+        groups = []
+        
+        # Récupérer les applications acceptées/validées
+        applications = Application.objects(
+            student=student,
+            status__in=['accepted_by_company', 'validated_by_co_dept']
+        )
+        
+        seen_offers = set()
+        for app in applications:
+            if app.offer and app.offer.id not in seen_offers:
+                seen_offers.add(app.offer.id)
+                groups.append({
+                    'id': f"internship_{app.offer.id}",
+                    'name': f"Stage: {app.offer.title}",
+                    'type': 'internship',
+                    'offer_id': str(app.offer.id),
+                    'member_count': Application.objects(offer=app.offer, status__in=['accepted_by_company', 'validated_by_co_dept']).count()
+                })
+        
+        return Response({'success': True, 'groups': groups})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+def get_company_chat_groups(request):
+    """Récupère les groupes de chat pour une entreprise"""
+    try:
+        company = _get_user_company(request.user)
+        if not company:
+            return Response({'success': False, 'error': 'Company not found'}, status=404)
+        
+        groups = []
+        
+        # Groupe de l'équipe entreprise
+        hiring_managers_count = User.objects(
+            role='company',
+            sub_role='hiring_manager',
+            status=True,
+            pending_company_id=str(company.id)
+        ).count()
+        
+        groups.append({
+            'id': f"company_{company.id}",
+            'name': f"Équipe {company.company_name}",
+            'type': 'company',
+            'company_id': str(company.id),
+            'member_count': hiring_managers_count + 1  # +1 pour le company manager
+        })
+        
+        return Response({'success': True, 'groups': groups})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+def get_university_chat_groups(request, university):
+    """Récupère les groupes de chat pour une université"""
+    try:
+        groups = []
+        
+        admins_count = Admin.objects(university=university).count()
+        
+        groups.append({
+            'id': f"university_{university.replace(' ', '_')}",
+            'name': f"Équipe {university}",
+            'type': 'university',
+            'university': university,
+            'member_count': admins_count
+        })
+        
+        return Response({'success': True, 'groups': groups})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+@jwt_authenticated
+def create_chat_group(request):
+    """Crée un nouveau groupe de chat"""
+    try:
+        name = request.data.get('name')
+        if not name:
+            return Response({'success': False, 'error': 'Name required'}, status=400)
+        
+        group = {
+            'id': f"custom_{int(datetime.now().timestamp())}",
+            'name': name,
+            'type': 'custom',
+            'created_by': str(request.user.id),
+            'member_count': 1
+        }
+        
+        return Response({'success': True, 'group': group})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+def get_chat_users_students(request):
+    """Récupère les utilisateurs pour chat privé (étudiants du même stage)"""
+    try:
+        student = Student.objects(user=request.user).first()
+        if not student:
+            return Response({'success': False, 'error': 'Student not found'}, status=404)
+        
+        # Récupérer les autres étudiants du même stage
+        applications = Application.objects(
+            student=student,
+            status__in=['accepted_by_company', 'validated_by_co_dept']
+        )
+        
+        user_ids = set()
+        for app in applications:
+            if app.offer:
+                other_apps = Application.objects(
+                    offer=app.offer,
+                    status__in=['accepted_by_company', 'validated_by_co_dept']
+                )
+                for other in other_apps:
+                    if str(other.student.user.id) != str(request.user.id):
+                        user_ids.add(str(other.student.user.id))
+        
+        users = []
+        for uid in user_ids:
+            u = User.objects(id=uid).first()
+            if u:
+                s = Student.objects(user=u).first()
+                users.append({
+                    'id': str(u.id),
+                    'username': u.username,
+                    'email': u.email,
+                    'full_name': s.full_name if s else u.username,
+                    'is_online': u.is_online()
+                })
+        
+        return Response({'success': True, 'users': users})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+def get_chat_users_company(request):
+    """Récupère les utilisateurs pour chat privé (hiring managers de la même entreprise)"""
+    try:
+        company = _get_user_company(request.user)
+        if not company:
+            return Response({'success': False, 'error': 'Company not found'}, status=404)
+        
+        # Récupérer tous les hiring managers de l'entreprise
+        users = User.objects(
+            role='company',
+            sub_role='hiring_manager',
+            status=True,
+            pending_company_id=str(company.id)
+        )
+        
+        result = []
+        for u in users:
+            if str(u.id) != str(request.user.id):
+                result.append({
+                    'id': str(u.id),
+                    'username': u.username,
+                    'email': u.email,
+                    'full_name': u.username,
+                    'is_online': u.is_online()
+                })
+        
+        return Response({'success': True, 'users': result})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+def get_chat_users_university(request, university):
+    """Récupère les utilisateurs pour chat privé (membres de la même université)"""
+    try:
+        admins = Admin.objects(university=university)
+        
+        result = []
+        for admin in admins:
+            if admin.user and str(admin.user.id) != str(request.user.id):
+                result.append({
+                    'id': str(admin.user.id),
+                    'username': admin.user.username,
+                    'email': admin.user.email,
+                    'full_name': admin.full_name,
+                    'is_online': admin.user.is_online()
+                })
+        
+        return Response({'success': True, 'users': result})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+# أضف هذه الدوال في views.py
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['student'])
+def get_accepted_internships(request):
+    """Récupère les stages acceptés par l'étudiant pour les groupes de chat"""
+    try:
+        student = Student.objects(user=request.user).first()
+        if not student:
+            return Response({'success': False, 'error': 'Student not found'}, status=404)
+        
+        applications = Application.objects(
+            student=student,
+            status__in=['accepted_by_company', 'validated_by_co_dept']
+        )
+        
+        internships = []
+        for app in applications:
+            # 🔥 المفتاح: استخدم offer.id وليس application.id
+            internships.append({
+                'id': str(app.id),  # هذا هو application_id
+                'offer_id': str(app.offer.id),  # 🔥 هذا هو المطلوب للـ WebSocket
+                'title': app.offer.title,
+                'company_name': app.offer.company.company_name,
+                'status': app.status,
+                'members_count': Application.objects(offer=app.offer, status__in=['accepted_by_company', 'validated_by_co_dept']).count()
+            })
+        
+        return Response({'success': True, 'internships': internships})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['student'])
+def get_student_contacts(request):
+    """Récupère les contacts pour chat privé (co dept heads, company reps)"""
+    try:
+        student = Student.objects(user=request.user).first()
+        if not student:
+            return Response({'success': False, 'error': 'Student not found'}, status=404)
+        
+        contacts = []
+        
+        # Récupérer les co dept heads de la même université
+        admins = Admin.objects(university=student.university)
+        for admin in admins:
+            if admin.user and admin.user.status and admin.user.role == 'admin':
+                contacts.append({
+                    'id': str(admin.user.id),
+                    'username': admin.user.username,
+                    'email': admin.user.email,
+                    'full_name': admin.full_name,
+                    'role': 'admin',
+                    'is_online': admin.user.is_online()
+                })
+        
+        # Récupérer les responsables des entreprises où l'étudiant a postulé
+        applications = Application.objects(student=student)
+        for app in applications:
+            if app.offer and app.offer.company and app.offer.company.user:
+                company_user = app.offer.company.user
+                if company_user.status:
+                    contacts.append({
+                        'id': str(company_user.id),
+                        'username': company_user.username,
+                        'email': company_user.email,
+                        'full_name': app.offer.company.company_name,
+                        'role': 'company',
+                        'is_online': company_user.is_online()
+                    })
+        
+        # Enlever les doublons
+        seen = set()
+        unique_contacts = []
+        for contact in contacts:
+            if contact['id'] not in seen:
+                seen.add(contact['id'])
+                unique_contacts.append(contact)
+        
+        return Response({'success': True, 'users': unique_contacts})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['company'])
+def get_company_profile(request):
+    """Récupère le profil de l'entreprise connectée"""
+    try:
+        company = _get_user_company(request.user)
+        if not company:
+            return Response({'success': False, 'error': 'Company not found'}, status=404)
+        
+        # Récupérer les paramètres de visibilité
+        visibility = getattr(company, 'profile_visibility', {
+            'email_visible': True,
+            'phone_visible': True,
+            'location_visible': True,
+            'website_visible': True,
+            'industry_visible': True,
+            'description_visible': True,
+            'profile_public': True
+        })
+        
+        # URL du logo
+        logo_url = None
+        if company.logo:
+            try:
+                logo_url = f"/api/media/company_logo/{str(company.logo)}/"
+            except:
+                logo_url = None
+        
+        # Date d'inscription
+        created_at = company.user.created_at if company.user else None
+        date_joined = created_at.strftime('%d/%m/%Y') if created_at else None
+        
+        return Response({
+            'success': True,
+            'company': {
+                'id': str(company.id),
+                'company_name': company.company_name,
+                'description': company.description,
+                'location': company.location,
+                'website': company.website,
+                'industry': company.industry,
+                'phone': getattr(company, 'phone', ''),
+                'logo_url': logo_url,
+                'verified': company.verified,
+                'created_at': date_joined,
+            },
+            'visibility': visibility
+        })
+        
+    except Exception as e:
+        print(f"Erreur get_company_profile: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=500)
+# ==================== COMPANY PROFILE ENDPOINTS ====================
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['company'])
+def get_company_profile(request):
+    """Récupère le profil de l'entreprise connectée"""
+    try:
+        company = _get_user_company(request.user)
+        if not company:
+            return Response({'success': False, 'error': 'Company not found'}, status=404)
+        
+        visibility = getattr(company, 'profile_visibility', {
+            'email_visible': True,
+            'phone_visible': True,
+            'location_visible': True,
+            'website_visible': True,
+            'industry_visible': True,
+            'description_visible': True,
+            'profile_public': True
+        })
+        
+        # URL du logo
+        logo_url = None
+        if company.logo:
+            try:
+                logo_url = f"/api/media/company_logo/{company.logo}/"
+            except:
+                logo_url = None
+        
+        created_at = company.user.created_at if company.user else None
+        date_joined = created_at.strftime('%d/%m/%Y') if created_at else None
+        
+        return Response({
+            'success': True,
+            'company': {
+                'id': str(company.id),
+                'company_name': company.company_name,
+                'description': company.description,
+                'location': company.location,
+                'website': company.website,
+                'industry': company.industry,
+                'phone': getattr(company, 'phone', ''),
+                'logo_url': logo_url,
+                'verified': company.verified,
+                'created_at': date_joined,
+            },
+            'visibility': visibility
+        })
+        
+    except Exception as e:
+        print(f"Erreur get_company_profile: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+@api_view(['PUT'])
+@jwt_authenticated
+@role_required(allowed_roles=['company'])
+def update_company_profile(request):
+    """Met à jour le profil de l'entreprise"""
+    try:
+        company = _get_user_company(request.user)
+        if not company:
+            return Response({'success': False, 'error': 'Company not found'}, status=404)
+        
+        data = request.data
+        
+        print(f"📥 Données reçues pour mise à jour: {data}")
+        
+        # Champs modifiables
+        updatable_fields = ['company_name', 'description', 'location', 'website', 'industry', 'phone']
+        
+        modified = False
+        for field in updatable_fields:
+            if field in data and data[field] is not None:
+                current_value = getattr(company, field, None)
+                new_value = data[field]
+                if current_value != new_value:
+                    setattr(company, field, new_value)
+                    modified = True
+                    print(f"✅ Champ modifié: {field} = {new_value}")
+        
+        # Mettre à jour la visibilité
+        if 'visibility' in data:
+            company.profile_visibility = data['visibility']
+            modified = True
+        
+        if modified:
+            company.save()
+            print("✅ Company saved successfully")
+        else:
+            print("⚠️ No changes to save")
+        
+        return Response({'success': True, 'message': 'Profile updated successfully'})
+        
+    except Exception as e:
+        print(f"❌ Erreur update_company_profile: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+@api_view(['POST'])
+@jwt_authenticated
+@role_required(allowed_roles=['company'])
+@parser_classes([MultiPartParser, FormParser])
+def upload_company_logo(request):
+    """Upload le logo de l'entreprise - comme Student upload_profile_picture"""
+    try:
+        from gridfs import GridFS
+        from mongoengine.connection import get_db
+        from bson import ObjectId
+        from datetime import datetime
+        
+        company = _get_user_company(request.user)
+        if not company:
+            return Response({'success': False, 'error': 'Company not found'}, status=404)
+        
+        if 'logo' not in request.FILES:
+            return Response({'success': False, 'error': 'No file provided'}, status=400)
+        
+        file = request.FILES['logo']
+        
+        # Validation
+        if file.size > 5 * 1024 * 1024:
+            return Response({'success': False, 'error': 'File too large (max 5MB)'}, status=400)
+        
+        allowed_types = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif']
+        if file.content_type not in allowed_types:
+            return Response({'success': False, 'error': 'Invalid file type. Use JPEG, PNG or GIF'}, status=400)
+        
+        db = get_db()
+        fs = GridFS(db)
+        
+        # Supprimer l'ancien logo
+        if company.logo:
+            try:
+                old_id = ObjectId(company.logo)
+                fs.delete(old_id)
+            except:
+                pass
+        
+        # Lire le contenu du fichier
+        file_content = file.read()
+        
+        # Sauvegarder dans GridFS
+        file_id = fs.put(
+            file_content,
+            filename=file.name,
+            content_type=file.content_type,
+            metadata={
+                'user_id': str(request.user.id),
+                'uploaded_at': datetime.now().isoformat(),
+                'type': 'company_logo'
+            }
+        )
+        
+        # 🔥 تخزين ID الملف كـ StringField
+        company.logo = str(file_id)
+        company.save()
+        
+        # بناء الرابط الصحيح
+        image_url = f"/api/media/company_logo/{file_id}/"
+        
+        return Response({
+            'success': True,
+            'message': 'Logo uploaded successfully',
+            'url': image_url
+        })
+        
+    except Exception as e:
+        print(f"Erreur upload_company_logo: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+
+@api_view(['GET'])
+def serve_company_logo(request, file_id):
+    """Sert le logo de l'entreprise depuis GridFS"""
+    try:
+        from gridfs import GridFS
+        from mongoengine.connection import get_db
+        from bson import ObjectId
+        from django.http import HttpResponse
+        
+        db = get_db()
+        fs = GridFS(db)
+        
+        file_obj = fs.get(ObjectId(file_id))
+        
+        response = HttpResponse(file_obj.read(), content_type=file_obj.content_type)
+        response['Content-Disposition'] = f'inline; filename="{file_obj.filename}"'
+        return response
+        
+    except Exception as e:
+        print(f"Erreur serve_company_logo: {e}")
+        return HttpResponse(status=404)
+
+@api_view(['GET'])
+@jwt_authenticated
+def get_company_manager(request):
+    """Récupère le Company Manager d'une entreprise"""
+    company_name = request.query_params.get('company', '')
+    if not company_name:
+        return Response({'success': False, 'error': 'Company name required'}, status=400)
+    
+    try:
+        company = Company.objects(company_name=company_name).first()
+        if not company:
+            return Response({'success': False, 'error': 'Company not found'}, status=404)
+        
+        # Chercher le Company Manager
+        manager_user = User.objects(
+            role='company',
+            sub_role='company_manager',
+            status=True
+        ).first()
+        
+        manager_company = Company.objects(user=manager_user).first() if manager_user else None
+        if manager_company and manager_company.company_name == company_name:
+            return Response({
+                'success': True,
+                'manager': {
+                    'id': str(manager_user.id),
+                    'username': manager_user.username,
+                    'email': manager_user.email,
+                    'full_name': manager_user.username,
+                    'is_online': manager_user.is_online()
+                }
+            })
+        else:
+            return Response({'success': False, 'error': 'Company manager not found'}, status=404)
+            
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+@api_view(['POST'])
+@jwt_authenticated
+def enable_email_2fa(request):
+    """تفعيل 2FA عبر البريد الإلكتروني"""
+    try:
+        user = request.user
+        user.two_fa_enabled = True
+        user.save()
+        return Response({'success': True, 'message': '2FA via email enabled'})
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+@jwt_authenticated
+def disable_email_2fa(request):
+    """تعطيل 2FA عبر البريد الإلكتروني"""
+    try:
+        user = request.user
+        user.two_fa_enabled = False
+        user.save()
+        return Response({'success': True, 'message': '2FA via email disabled'})
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+def send_login_otp(request):
+    """إرسال OTP إلى البريد الإلكتروني عند تسجيل الدخول"""
+    try:
+        email = request.data.get('email')
+        if not email:
+            return Response({'success': False, 'error': 'Email required'}, status=400)
+        
+        user = User.objects(email=email).first()
+        if not user:
+            return Response({'success': False, 'error': 'User not found'}, status=404)
+        
+        # إنشاء كود OTP
+        temp_data = {
+            'action': 'login_2fa',
+            'user_id': str(user.id),
+            'email': email
+        }
+        
+        code = create_otp_verification(email, temp_data)
+        
+        # إرسال الكود عبر البريد
+        email_sent = send_otp_email(email, code, "login_2fa")
+        
+        if not email_sent:
+            return Response({'success': False, 'error': 'Failed to send email'}, status=500)
+        
+        return Response({
+            'success': True,
+            'message': 'Verification code sent to your email',
+            'email': email
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+def verify_login_otp(request):
+    """التحقق من OTP وإكمال تسجيل الدخول"""
+    try:
+        email = request.data.get('email')
+        code = request.data.get('code')
+        
+        if not email or not code:
+            return Response({'success': False, 'error': 'Email and code required'}, status=400)
+        
+        # التحقق من الكود
+        temp_data, error = verify_otp_code(email, code)
+        
+        if error:
+            return Response({'success': False, 'error': error, 'code_invalid': True}, status=400)
+        
+        if temp_data.get('action') != 'login_2fa':
+            return Response({'success': False, 'error': 'Invalid verification'}, status=400)
+        
+        user = User.objects(id=temp_data['user_id']).first()
+        if not user:
+            return Response({'success': False, 'error': 'User not found'}, status=404)
+        
+        # إنشاء التوكن وإكمال تسجيل الدخول
+        token = create_token(user)
+        
+        redirect_urls = {
+            'student': '/student/dashboard',
+            'company': '/company/dashboard',
+            'admin': '/admin/dashboard',
+        }
+        
+        user_data = {
+            'id': str(user.id),
+            'email': user.email,
+            'role': user.role,
+            'sub_role': user.sub_role,
+        }
+        
+        if user.role == 'student':
+            student = Student.objects(user=user).first()
+            if student:
+                user_data['full_name'] = student.full_name
+                user_data['university'] = student.university
+        elif user.role == 'company':
+            company = Company.objects(user=user).first()
+            if company:
+                user_data['company_name'] = company.company_name
+        elif user.role == 'admin':
+            admin = Admin.objects(user=user).first()
+            if admin:
+                user_data['full_name'] = admin.full_name
+                user_data['university'] = admin.university
+        
+        return Response({
+            'success': True,
+            'message': 'Login successful',
+            'token': token,
+            'user': user_data,
+            'redirect_url': redirect_urls.get(user.role, '/dashboard')
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+def send_2fa_code(request):
+    """إرسال كود 2FA إلى البريد الإلكتروني"""
+    try:
+        email = request.data.get('email')
+        if not email:
+            return Response({'success': False, 'error': 'Email required'}, status=400)
+        
+        user = User.objects(email=email).first()
+        if not user:
+            return Response({'success': False, 'error': 'User not found'}, status=404)
+        
+        # إنشاء كود OTP جديد
+        temp_data = {
+            'action': 'login_2fa',
+            'user_id': str(user.id),
+            'email': email
+        }
+        
+        code = create_otp_verification(email, temp_data)
+        
+        # إرسال الكود
+        email_sent = send_otp_email(email, code, "login_2fa")
+        
+        if not email_sent:
+            return Response({'success': False, 'error': 'Failed to send email'}, status=500)
+        
+        return Response({
+            'success': True,
+            'message': 'Verification code sent to your email'
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+@api_view(['POST'])
+def verify_2fa_code(request):
+    """التحقق من كود 2FA وإكمال تسجيل الدخول"""
+    try:
+        email = request.data.get('email')
+        code = request.data.get('code')
+        
+        if not email or not code:
+            return Response({'success': False, 'error': 'Email and code required'}, status=400)
+        
+        # التحقق من الكود
+        temp_data, error = verify_otp_code(email, code)
+        
+        if error:
+            return Response({'success': False, 'error': error, 'code_invalid': True}, status=400)
+        
+        if temp_data.get('action') != 'login_2fa':
+            return Response({'success': False, 'error': 'Invalid verification'}, status=400)
+        
+        user = User.objects(id=temp_data['user_id']).first()
+        if not user:
+            return Response({'success': False, 'error': 'User not found'}, status=404)
+        
+        # إنشاء التوكن
+        token = create_token(user)
+        
+        redirect_urls = {
+            'student': '/student/dashboard',
+            'company': '/company/dashboard',
+            'admin': '/admin/dashboard',
+        }
+        
+        user_data = {
+            'id': str(user.id),
+            'email': user.email,
+            'role': user.role,
+            'sub_role': user.sub_role,
+        }
+        
+        if user.role == 'student':
+            student = Student.objects(user=user).first()
+            if student:
+                user_data['full_name'] = student.full_name
+                user_data['university'] = student.university
+        elif user.role == 'company':
+            company = Company.objects(user=user).first()
+            if company:
+                user_data['company_name'] = company.company_name
+        elif user.role == 'admin':
+            admin = Admin.objects(user=user).first()
+            if admin:
+                user_data['full_name'] = admin.full_name
+                user_data['university'] = admin.university
+        
+        return Response({
+            'success': True,
+            'message': 'Login successful',
+            'token': token,
+            'user': user_data,
+            'redirect_url': redirect_urls.get(user.role, '/dashboard')
+        })
+        
+    except Exception as e:
+        print(f"❌ Erreur verify_2fa_code: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+@api_view(['GET'])
+@jwt_authenticated
+def get_2fa_status(request):
+    """الحصول على حالة 2FA للمستخدم"""
+    try:
+        user = request.user
+        return Response({
+            'success': True,
+            'two_fa_enabled': user.two_fa_enabled
+        })
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)

@@ -20,7 +20,9 @@ import DeptHeadActivityLogs from './page/DeptHeadActivityLogs';
 import ManageHiringManagers from './page/ManageHiringManagers';
 import ManageCoDeptHeads from './page/ManageCoDeptHeads';
 import ManageStudents from './page/ManageStudents';
-
+import StudentProfile from './page/StudentProfile';
+import MyCV from './page/MyCV';
+import CompanyProfile from './page/CompanyProfile';
 const ProtectedRoute = ({ children, allowedRoles, allowedSubRoles }) => {
   const { isAuthenticated, user, loading } = useAuth();
 
@@ -135,6 +137,32 @@ function App() {
               <ManageStudents />
             </ProtectedRoute>
           } />
+          <Route path="/student/profile" element={
+  <ProtectedRoute allowedRoles={['student']}>
+    <StudentProfile />
+  </ProtectedRoute>
+} />
+<Route path="/student/profile/:username" element={
+  <ProtectedRoute allowedRoles={['student', 'company', 'admin']}>
+    <StudentProfile />
+  </ProtectedRoute>
+} />
+<Route path="/student/cv" element={
+  <ProtectedRoute allowedRoles={['student']}>
+    <MyCV />
+  </ProtectedRoute>
+} />
+<Route path="/company/profile" element={
+  <ProtectedRoute allowedRoles={['company']} allowedSubRoles={['hiring_manager', 'company_manager']}>
+    <CompanyProfile />
+  </ProtectedRoute>
+} />
+
+<Route path="/company-manager/profile" element={
+  <ProtectedRoute allowedRoles={['company']} allowedSubRoles={['company_manager']}>
+    <CompanyProfile />
+  </ProtectedRoute>
+} />
           
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

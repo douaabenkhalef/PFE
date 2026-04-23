@@ -1,0 +1,591 @@
+/* frontend/src/page/MyCV.css */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
+/* ── Page wrapper ── */
+.mycv-page {
+  min-height: 100vh;
+  font-family: 'Poppins', sans-serif;
+  color: #fff;
+  background: transparent;
+}
+
+/* ── Navbar ── */
+.mycv-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
+  padding: 0 4%;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mycv-navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.mycv-hamburger {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.75);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 5px;
+}
+
+.mycv-hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 2px;
+}
+
+.mycv-logo {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+}
+
+/* ── Main container ── */
+.mycv-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 84px 5% 60px;
+}
+
+/* ── Header ── */
+.mycv-header {
+  margin-bottom: 2rem;
+}
+
+.mycv-header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.mycv-header-content h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.mycv-header-content p {
+  font-size: 0.80rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0.25rem 0 0;
+}
+
+/* 🔥 Two columns layout */
+.mycv-two-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.mycv-left-column,
+.mycv-right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Cards ── */
+.mycv-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(141, 35, 212, 0.2);
+  border-radius: 16px;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.mycv-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: white;
+}
+
+.mycv-card-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  flex: 1;
+}
+
+/* ── Current CV info ── */
+.mycv-current-info {
+  padding: 1.5rem;
+}
+
+.mycv-file-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.mycv-file-icon {
+  width: 60px;
+  height: 60px;
+  background: rgba(141, 35, 212, 0.2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c084fc;
+}
+
+.mycv-file-details {
+  flex: 1;
+}
+
+.mycv-filename {
+  color: white;
+  font-weight: 500;
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+}
+
+.mycv-filesize {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.mycv-current-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ── Empty state ── */
+.mycv-empty {
+  text-align: center;
+  padding: 2rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.mycv-empty svg {
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.mycv-empty p {
+  margin: 0.25rem 0;
+}
+
+/* ── Upload area ── */
+.mycv-upload-area {
+  padding: 1.5rem;
+}
+
+.mycv-file-input {
+  display: none;
+}
+
+.mycv-upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  border: 2px dashed rgba(141, 35, 212, 0.3);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.mycv-upload-label:hover {
+  border-color: #c084fc;
+  background: rgba(141, 35, 212, 0.1);
+  color: white;
+}
+
+.mycv-selected-file {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(141, 35, 212, 0.15);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  color: #c084fc;
+}
+
+.mycv-selected-file span {
+  flex: 1;
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mycv-remove-file {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 6px;
+  padding: 4px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.2s;
+}
+
+.mycv-remove-file:hover {
+  background: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+/* ── Buttons ── */
+.mycv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 9px 20px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+  font-family: 'Poppins', sans-serif;
+}
+
+.mycv-btn-primary {
+  background: linear-gradient(135deg, #B556D7, #8E2FFB);
+  color: white;
+  box-shadow: 0 3px 14px rgba(142, 47, 251, 0.3);
+}
+
+.mycv-btn-primary:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.mycv-btn-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.mycv-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.35);
+}
+
+.mycv-btn-success {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  width: 100%;
+  justify-content: center;
+}
+
+.mycv-btn-success:hover:not(:disabled) {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.mycv-btn-success:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.mycv-btn-full {
+  width: 100%;
+  justify-content: center;
+}
+
+/* ── History ── */
+.mycv-history-list {
+  padding: 0 1.5rem 1.5rem;
+}
+
+.mycv-history-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mycv-history-item:last-child {
+  border-bottom: none;
+}
+
+.mycv-history-icon {
+  width: 40px;
+  height: 40px;
+  background: rgba(141, 35, 212, 0.15);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c084fc;
+  flex-shrink: 0;
+}
+
+.mycv-history-info {
+  flex: 1;
+}
+
+.mycv-history-filename {
+  color: white;
+  font-size: 0.85rem;
+  margin: 0 0 0.25rem;
+}
+
+.mycv-history-date {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.7rem;
+  margin: 0;
+}
+
+.mycv-history-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.mycv-history-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.2s;
+}
+
+.mycv-history-btn:hover {
+  background: rgba(141, 35, 212, 0.3);
+  color: #c084fc;
+}
+
+/* ── Applications list (colonne de droite) ── */
+.mycv-applications-list {
+  padding: 0.5rem;
+}
+
+.mycv-application-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  transition: background 0.2s;
+}
+
+.mycv-application-item:hover {
+  background: rgba(141, 35, 212, 0.1);
+  border-radius: 12px;
+}
+
+.mycv-application-icon {
+  width: 45px;
+  height: 45px;
+  background: rgba(141, 35, 212, 0.15);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c084fc;
+  flex-shrink: 0;
+}
+
+.mycv-application-info {
+  flex: 1;
+}
+
+.mycv-application-title {
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0 0 4px;
+}
+
+.mycv-application-date {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.7rem;
+  margin: 0 0 2px;
+}
+
+.mycv-application-status {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.7rem;
+  margin: 0;
+}
+
+.mycv-application-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.mycv-app-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.2s;
+}
+
+.mycv-app-btn:hover {
+  background: rgba(141, 35, 212, 0.3);
+  color: #c084fc;
+}
+
+/* ── Modal d'aperçu ── */
+.mycv-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.mycv-modal {
+  background: #1e293b;
+  border: 1px solid rgba(141, 35, 212, 0.3);
+  border-radius: 20px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+}
+
+.mycv-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: rgba(141, 35, 212, 0.15);
+  border-bottom: 1px solid rgba(141, 35, 212, 0.2);
+}
+
+.mycv-modal-header h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.mycv-modal-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 28px;
+  cursor: pointer;
+  transition: color 0.2s;
+  line-height: 1;
+}
+
+.mycv-modal-close:hover {
+  color: #fff;
+}
+
+.mycv-modal-body {
+  flex: 1;
+  padding: 20px;
+  min-height: 400px;
+}
+
+.mycv-modal-iframe {
+  width: 100%;
+  height: 500px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mycv-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mycv-modal-cancel {
+  padding: 8px 20px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.mycv-modal-cancel:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.mycv-modal-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  background: linear-gradient(135deg, #B556D7, #8E2FFB);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.mycv-modal-confirm:hover {
+  opacity: 0.9;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .mycv-container {
+    padding: 80px 4% 40px;
+  }
+
+  .mycv-two-columns {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .mycv-current-actions {
+    flex-direction: column;
+  }
+
+  .mycv-btn {
+    justify-content: center;
+  }
+
+  .mycv-application-item {
+    flex-wrap: wrap;
+  }
+
+  .mycv-application-actions {
+    margin-left: auto;
+  }
+}

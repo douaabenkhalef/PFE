@@ -653,3 +653,117 @@ def send_convention_rejected_email(application, co_dept, rejection_reason):
     </html>
     """
     send_email(application.offer.company.user.email, company_subject, company_html)
+
+# backend/api/email_utils.py - أضف هذه الدوال في نهاية الملف
+
+def send_recovery_email_confirmation(recipient, name, recovery_email):
+    """
+    Envoie un email de confirmation pour l'ajout d'un email de récupération
+    """
+    frontend_url = config('FRONTEND_URL', default='http://localhost:5173')
+    
+    subject = "🔐 Confirmation - Email de récupération ajouté"
+    
+    html_content = f"""
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ text-align: center; padding: 20px; background: linear-gradient(135deg, #3b82f6, #2563eb); border-radius: 10px 10px 0 0; }}
+            .header h1 {{ color: white; margin: 0; }}
+            .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+            .info {{ background: #e8f4fd; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0; }}
+            .footer {{ text-align: center; margin-top: 20px; font-size: 12px; color: #666; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🔐 Email de récupération ajouté</h1>
+            </div>
+            <div class="content">
+                <p>Bonjour <strong>{name}</strong>,</p>
+                <p>Un email de récupération a été ajouté à votre compte.</p>
+                
+                <div class="info">
+                    <strong>📧 Email de récupération :</strong><br/>
+                    {recovery_email}
+                </div>
+                
+                <p>Cet email pourra être utilisé pour réinitialiser votre mot de passe si vous perdez l'accès à votre compte principal.</p>
+                
+                <p style="margin-top: 20px;">Si vous n'avez pas effectué cette action, veuillez contacter immédiatement le support.</p>
+                
+                <p style="margin-top: 20px;">Cordialement,<br>L'équipe de la plateforme de stages</p>
+            </div>
+            <div class="footer">
+                <p>Ceci est un email automatique, merci de ne pas y répondre.</p>
+            </div>
+        </div>
+    </html>
+    """
+    
+    text_content = f"""
+    🔐 Email de récupération ajouté
+    
+    Bonjour {name},
+    
+    Un email de récupération a été ajouté à votre compte.
+    
+    Email de récupération : {recovery_email}
+    
+    Cet email pourra être utilisé pour réinitialiser votre mot de passe si vous perdez l'accès à votre compte principal.
+    
+    Si vous n'avez pas effectué cette action, veuillez contacter immédiatement le support.
+    
+    Cordialement,
+    L'équipe de la plateforme de stages
+    """
+    
+    return send_email(recipient, subject, html_content, text_content)
+
+
+def send_recovery_email_removed_confirmation(recipient, name):
+    """
+    Envoie un email de confirmation pour la suppression de l'email de récupération
+    """
+    subject = "🔐 Confirmation - Email de récupération supprimé"
+    
+    html_content = f"""
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ text-align: center; padding: 20px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 10px 10px 0 0; }}
+            .header h1 {{ color: white; margin: 0; }}
+            .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+            .warning {{ background: #fff3cd; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; }}
+            .footer {{ text-align: center; margin-top: 20px; font-size: 12px; color: #666; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🔐 Email de récupération supprimé</h1>
+            </div>
+            <div class="content">
+                <p>Bonjour <strong>{name}</strong>,</p>
+                <p>L'email de récupération a été supprimé de votre compte.</p>
+                
+                <div class="warning">
+                    <strong>⚠️ Important :</strong><br/>
+                    Si vous n'avez pas effectué cette action, veuillez contacter immédiatement le support.
+                </div>
+                
+                <p style="margin-top: 20px;">Cordialement,<br>L'équipe de la plateforme de stages</p>
+            </div>
+            <div class="footer">
+                <p>Ceci est un email automatique, merci de ne pas y répondre.</p>
+            </div>
+        </div>
+    </html>
+    """
+    
+    return send_email(recipient, subject, html_content)

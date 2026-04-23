@@ -1,10 +1,13 @@
+// frontend/src/pages/CompanyDashboard.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Bell, CheckCheck, X, FileText, CheckCircle, XCircle, Clock, Briefcase, MapPin, Users } from 'lucide-react';
+import { Bell, CheckCheck, X, FileText, CheckCircle, XCircle, Clock, Briefcase, MapPin, Users, Building2, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CompanySidebar from '../components/CompanySidebar';
-import './StudentDashboard.css';
+import ChatWidget from '../components/ChatWidget';
+import PrivateChat from '../components/PrivateChat';
+//import '../pages/StudentDashboard.css';
 
 const API = 'http://localhost:8000/api';
 
@@ -128,31 +131,6 @@ const MailIcon = () => (
   </svg>
 );
 
-// Static data for Top Internships (matching the picture)
-const staticTopOffers = [
-  {
-    id: 1,
-    title: "Cyber Security Internship",
-    internship_type: "Security",
-    wilaya: "Algiers",
-    applicants_count: 50,
-  },
-  {
-    id: 2,
-    title: "Web Dev Internship",
-    internship_type: "Development",
-    wilaya: "Oran",
-    applicants_count: 50,
-  },
-  {
-    id: 3,
-    title: "Artificial Intelligence Internship",
-    internship_type: "AI/ML",
-    wilaya: "Constantine",
-    applicants_count: 50,
-  },
-];
-
 const CompanyDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -163,6 +141,53 @@ const CompanyDashboard = () => {
   const [activeSection, setActiveSection] = useState('home');
   const homeRef = useRef(null);
   const internshipsRef = useRef(null);
+  // 🔥 Supprimé contactRef
+
+  // États pour le chat privé
+  const [privateChatOpen, setPrivateChatOpen] = useState(false);
+  const [selectedChatUser, setSelectedChatUser] = useState(null);
+  
+  // États pour le Company Manager
+  const [companyManager, setCompanyManager] = useState(null);
+  const [loadingCompanyManager, setLoadingCompanyManager] = useState(true);
+
+  // Démarrer un chat privé avec le Company Manager
+  const handleStartPrivateChat = (targetUser) => {
+    setSelectedChatUser(targetUser);
+    setPrivateChatOpen(true);
+  };
+
+  const handleClosePrivateChat = () => {
+    setPrivateChatOpen(false);
+    setSelectedChatUser(null);
+  };
+
+  // جلب الـ Company Manager
+  const fetchCompanyManager = async () => {
+    setLoadingCompanyManager(true);
+    try {
+      const meRes = await fetch(`${API}/auth/me/`, { headers: authHeaders() });
+      const meData = await meRes.json();
+      
+      if (meData.success && meData.user) {
+        const companyName = meData.user.company_name;
+        
+        if (companyName) {
+          const managerRes = await fetch(`${API}/company/company-manager/?company=${encodeURIComponent(companyName)}`, {
+            headers: authHeaders()
+          });
+          const managerData = await managerRes.json();
+          if (managerData.success) {
+            setCompanyManager(managerData.manager);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Erreur chargement company manager:", err);
+    } finally {
+      setLoadingCompanyManager(false);
+    }
+  };
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -210,6 +235,7 @@ const CompanyDashboard = () => {
 
   useEffect(() => {
     fetchNotifications();
+    fetchCompanyManager();
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -224,7 +250,6 @@ const CompanyDashboard = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Intersection observer to update active section (underline)
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -239,6 +264,7 @@ const CompanyDashboard = () => {
 
     const homeElement = homeRef.current;
     const internshipsElement = internshipsRef.current;
+    // 🔥 Supprimé contactElement
     if (homeElement) observer.observe(homeElement);
     if (internshipsElement) observer.observe(internshipsElement);
 
@@ -260,9 +286,47 @@ const CompanyDashboard = () => {
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
+  // قائمة الـ Top Internships الثابتة
+  const staticTopOffers = [
+    {
+      id: 1,
+      title: "Cyber Security Internship",
+      internship_type: "Security",
+      wilaya: "Algiers",
+      applicants_count: 50,
+    },
+    {
+      id: 2,
+      title: "Web Dev Internship",
+      internship_type: "Development",
+      wilaya: "Oran",
+      applicants_count: 50,
+    },
+    {
+      id: 3,
+      title: "Artificial Intelligence Internship",
+      internship_type: "AI/ML",
+      wilaya: "Constantine",
+      applicants_count: 50,
+    },
+  ];
+
   return (
     <div className="min-h-screen">
       {sidebarOpen && <CompanySidebar user={user} onLogout={handleLogout} onClose={() => setSidebarOpen(false)} />}
+
+      {/* Chat de groupe pour l'entreprise */}
+      <ChatWidget companyMode={true} />
+      
+      {/* Chat privé avec Company Manager */}
+      {privateChatOpen && selectedChatUser && (
+        <PrivateChat
+          university={user?.company_name || "Entreprise"}
+          currentUser={user}
+          targetUser={selectedChatUser}
+          onClose={handleClosePrivateChat}
+        />
+      )}
 
       <nav className="sd-navbar" style={{ borderBottom: 'none' }}>
         <div className="sd-navbar-left">
@@ -274,6 +338,7 @@ const CompanyDashboard = () => {
         <ul className="sd-nav-links">
           <li><a href="#home" className={activeSection === 'home' ? 'active' : ''} onClick={e => { e.preventDefault(); scrollTo('home', homeRef); }}>Home</a></li>
           <li><a href="#internships" className={activeSection === 'internships' ? 'active' : ''} onClick={e => { e.preventDefault(); scrollTo('internships', internshipsRef); }}>Top Internships</a></li>
+          {/* 🔥 Supprimé le lien Contact */}
         </ul>
         <div className="sd-navbar-right">
           <div className="sd-notif-wrapper" ref={notifRef}>
@@ -313,7 +378,7 @@ const CompanyDashboard = () => {
               </h1>
               <p>from {user?.company_name}</p>
               <p style={{ marginTop: '1rem', fontSize: '0.95rem', lineHeight: '1.6' }}>
-                your centralized platform for managing internship programs. Our portal empowers both operational 
+                Your centralized platform for managing internship programs. Our portal empowers both operational 
                 and strategic users with intuitive tools to post opportunities, review candidates.
               </p>
             </div>
@@ -363,6 +428,9 @@ const CompanyDashboard = () => {
             ))}
           </div>
         </section>
+
+        {/* 🔥 Supprimé tout le section Company Manager pour chat privé */}
+
       </main>
 
       <footer className="footer">

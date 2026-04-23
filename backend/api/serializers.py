@@ -239,38 +239,86 @@ class ApplicationSerializer(serializers.Serializer):
     company_name = serializers.SerializerMethodField()
 
     def get_student_name(self, obj):
-        return obj.student.full_name if obj.student else None
+        try:
+            if obj.student:
+                return obj.student.full_name
+        except Exception as e:
+            print(f"⚠️ Error getting student name: {e}")
+        return "Compte supprimé"
 
     def get_student_email(self, obj):
-        try: return obj.student.user.email
-        except Exception: return None
+        try:
+            if obj.student and obj.student.user:
+                return obj.student.user.email
+        except Exception:
+            pass
+        return None
 
     def get_student_wilaya(self, obj):
-        return obj.student.wilaya if obj.student else None
+        try:
+            if obj.student:
+                return obj.student.wilaya
+        except Exception:
+            pass
+        return None
 
     def get_student_university(self, obj):
-        return obj.student.university if obj.student else None
+        try:
+            if obj.student:
+                return obj.student.university
+        except Exception:
+            pass
+        return None
 
     def get_student_major(self, obj):
-        return obj.student.major if obj.student else None
+        try:
+            if obj.student:
+                return obj.student.major
+        except Exception:
+            pass
+        return None
 
     def get_student_education_level(self, obj):
-        return obj.student.education_level if obj.student else None
+        try:
+            if obj.student:
+                return obj.student.education_level
+        except Exception:
+            pass
+        return None
 
     def get_student_graduation_year(self, obj):
-        return obj.student.graduation_year if obj.student else None
+        try:
+            if obj.student:
+                return obj.student.graduation_year
+        except Exception:
+            pass
+        return None
 
     def get_student_skills(self, obj):
-        return obj.student.skills if obj.student else []
+        try:
+            if obj.student:
+                return obj.student.skills
+        except Exception:
+            pass
+        return []
 
     def get_student_github(self, obj):
-        return obj.student.github if obj.student else None
+        try:
+            if obj.student:
+                return obj.student.github
+        except Exception:
+            pass
+        return None
 
     def get_student_portfolio(self, obj):
-        return obj.student.portfolio if obj.student else None
+        try:
+            if obj.student:
+                return obj.student.portfolio
+        except Exception:
+            pass
+        return None
 
     def get_cv_file_url(self, obj):
-        
         try:
             if obj.cv_file:
                 return f"/api/company/applications/{str(obj.id)}/cv/"
@@ -279,20 +327,44 @@ class ApplicationSerializer(serializers.Serializer):
         return None
 
     def get_offer_title(self, obj):
-        return obj.offer.title if obj.offer else None
+        try:
+            if obj.offer:
+                return obj.offer.title
+        except Exception:
+            pass
+        return "Offre supprimée"
 
     def get_offer_type(self, obj):
-        return obj.offer.internship_type if obj.offer else None
+        try:
+            if obj.offer:
+                return obj.offer.internship_type
+        except Exception:
+            pass
+        return None
 
     def get_offer_wilaya(self, obj):
-        return obj.offer.wilaya if obj.offer else None
+        try:
+            if obj.offer:
+                return obj.offer.wilaya
+        except Exception:
+            pass
+        return None
 
     def get_offer_duration(self, obj):
-        return obj.offer.duration if obj.offer else None
+        try:
+            if obj.offer:
+                return obj.offer.duration
+        except Exception:
+            pass
+        return None
 
     def get_company_name(self, obj):
-        try: return obj.offer.company.company_name
-        except Exception: return None
+        try:
+            if obj.offer and obj.offer.company:
+                return obj.offer.company.company_name
+        except Exception:
+            pass
+        return "Entreprise supprimée"
 
     def create(self, validated_data):
         from .models import Application

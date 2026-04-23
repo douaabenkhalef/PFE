@@ -15,7 +15,26 @@ urlpatterns = [
    
     path('auth/forgot-password/',    views.forgot_password,   name='forgot-password'),
     path('auth/reset-password/',     views.reset_password,    name='reset-password'),
-
+    path('auth/change-password/',    views.change_password,   name='change-password'),
+    path('auth/enable-2fa/', views.enable_2fa, name='enable-2fa'),
+    path('auth/disable-2fa/', views.disable_2fa, name='disable-2fa'),
+    path('auth/add-recovery-email/', views.add_recovery_email, name='add-recovery-email'),
+    path('auth/remove-recovery-email/', views.remove_recovery_email, name='remove-recovery-email'),
+    path('auth/security-status/', views.security_status, name='security-status'),
+    path('auth/verify-recovery-email/', views.verify_recovery_email, name='verify-recovery-email'),  
+    path('auth/forgot-password-recovery/', views.forgot_password_with_recovery, name='forgot-password-recovery'),
+    path('auth/initiate-password-change/', views.initiate_password_change, name='initiate-password-change'),
+    path('auth/verify-and-change-password/', views.verify_and_change_password, name='verify-and-change-password'),
+    # في api/urls.py
+    path('auth/send-2fa-code/', views.send_2fa_code, name='send-2fa-code'),
+    path('auth/verify-2fa-code/', views.verify_2fa_code, name='verify-2fa-code'),
+    # في api/urls.py
+    path('auth/enable-email-2fa/', views.enable_email_2fa, name='enable-email-2fa'),
+    path('auth/disable-email-2fa/', views.disable_email_2fa, name='disable-email-2fa'),
+    path('auth/send-login-otp/', views.send_login_otp, name='send-login-otp'),
+    path('auth/verify-login-otp/', views.verify_login_otp, name='verify-login-otp'),
+    path('auth/2fa-status/', views.get_2fa_status, name='2fa-status'),
+    
     
     path('student/dashboard/',                           views.student_dashboard, name='student-dashboard'),
     path('student/offers/search/',                       views.search_offers,     name='search-offers'),
@@ -24,7 +43,27 @@ urlpatterns = [
     path('student/generate-custom-cv/',                  views.generate_custom_cv, name='generate-custom-cv'),
     path('student/applications/',                        views.student_applications, name='student-applications'),
     path('student/applications/<str:application_id>/cv/', views.download_application_cv_student, name='student-download-cv'),
+    # Student Profile URLs
+    path('student/profile/me/', views.get_my_profile, name='my-profile'),
+    path('student/profile/update/', views.update_my_profile, name='update-profile'),
+    path('student/profile/upload-picture/', views.upload_profile_picture, name='upload-profile-picture'),
+    path('student/profile/by-username/<str:username>/', views.get_profile_by_username, name='profile-by-username'),
+    path('student/accepted-internships/', views.get_accepted_internships, name='accepted-internships'),
+    path('chat/contacts/student/', views.get_student_contacts, name='student-contacts'),
 
+# Chat System Endpoints
+    path('chat/groups/student/', views.get_student_chat_groups, name='student-chat-groups'),
+    path('chat/groups/company/', views.get_company_chat_groups, name='company-chat-groups'),
+    path('chat/groups/university/<str:university>/', views.get_university_chat_groups, name='university-chat-groups'),
+    path('chat/groups/create/', views.create_chat_group, name='create-chat-group'),
+    path('chat/users/students/', views.get_chat_users_students, name='chat-users-students'),
+    path('chat/users/company/', views.get_chat_users_company, name='chat-users-company'),
+    path('chat/users/university/<str:university>/', views.get_chat_users_university, name='chat-users-university'),
+
+# CV Management URLs
+path('student/cv/', views.get_my_cv, name='get-my-cv'),
+path('student/cv/upload/', views.upload_cv, name='upload-cv'),
+path('student/cv/delete/', views.delete_cv, name='delete-cv'),
     
     path('company/dashboard/',                                     views.company_dashboard, name='company-dashboard'),
     path('company/offers/',                                        views.list_offers, name='list-offers'),
@@ -38,7 +77,13 @@ urlpatterns = [
     path('company/applications/',                                  views.company_applications, name='company-applications'),
     path('company/applications/<str:application_id>/respond/',     views.respond_to_application, name='respond-application'),
     path('company/applications/<str:application_id>/cv/',          views.download_application_cv, name='download-cv'),
+    #path('company/company-manager/', views.get_company_manager, name='get-company-manager'),
 
+# Company Profile URLs
+   path('company/profile/', views.get_company_profile, name='get-company-profile'),
+   path('company/profile/update/', views.update_company_profile, name='update-company-profile'),
+   path('company/upload-logo/', views.upload_company_logo, name='upload-company-logo'),
+   path('media/company_logo/<str:file_id>/', views.serve_company_logo, name='serve-company-logo'),
    
     path('admin/dashboard/',                                           views.admin_dashboard, name='admin-dashboard'),
     path('admin/applications/<str:application_id>/validate/',          views.validate_application, name='validate-application'),
@@ -64,6 +109,9 @@ urlpatterns = [
     path('student/notifications/',                                     views.get_notifications, name='get-notifications'),
     path('student/notifications/<str:notification_id>/read/',          views.mark_notification_read, name='mark-notification-read'),
     path('student/notifications/read-all/',                            views.mark_all_notifications_read, name='mark-all-read'),
+    # Dans api/urls.py, ajoutez :
+    path('student/cv/download/', views.download_current_cv, name='download-current-cv'),
+    path('student/cv/download/<str:cv_id>/', views.download_cv_history, name='download-cv-history'),
 
 
    path('company/notifications/', views.get_notifications, name='company-notifications'),
