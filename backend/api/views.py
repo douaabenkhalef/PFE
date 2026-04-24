@@ -20,8 +20,9 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 
 from .models import (
-    User, Student, Company, Admin, InternshipOffer, Application, 
-    OTPVerification, PendingApproval, Notification, ActivityLog
+    User, Student, Company, Admin, InternshipOffer, Application,
+    OTPVerification, PendingApproval, Notification, ActivityLog, UserPermission,
+    CompanyProfile,
 )
 from .serializers import (
     StudentRegistrationSerializer,
@@ -890,6 +891,11 @@ def create_offer(request):
     company = _get_user_company(request.user)
     if not company:
         return Response({'success': False, 'message': 'Company profile not found.'}, status=404)
+    
+    # Permission check
+    perms = get_user_permissions(request.user)
+    if not perms or not perms.can_create_offer:
+        return Response({'success': False, 'error': 'You do not have permission to create offers.'}, status=403)
 
     required = ['title', 'description', 'wilaya', 'internship_type', 'duration', 'start_date', 'deadline']
     missing = [f for f in required if not request.data.get(f)]
@@ -999,6 +1005,11 @@ def update_offer(request, offer_id):
     company = _get_user_company(request.user)
     if not company:
         return Response({'success': False, 'message': 'Company profile not found.'}, status=404)
+    
+     # Permission check
+    perms = get_user_permissions(request.user)
+    if not perms or not perms.can_modify_offer:
+        return Response({'success': False, 'error': 'You do not have permission to modify offers.'}, status=403)
 
     try:
         offer = InternshipOffer.objects(id=offer_id, company=company).first()
@@ -1062,6 +1073,11 @@ def delete_offer(request, offer_id):
     company = _get_user_company(request.user)
     if not company:
         return Response({'success': False, 'message': 'Company profile not found.'}, status=404)
+    
+    # Permission check
+    perms = get_user_permissions(request.user)
+    if not perms or not perms.can_delete_offer:
+        return Response({'success': False, 'error': 'You do not have permission to delete offers.'}, status=403)
 
     try:
         offer = InternshipOffer.objects(id=offer_id, company=company).first()
@@ -1463,6 +1479,11 @@ def respond_to_application(request, application_id):
     if not company:
         return Response({'error': 'Company not found'}, status=404)
 
+         # Permission check
+    perms = get_user_permissions(request.user)
+    if not perms or not perms.can_manage_applications:
+        return Response({'success': False, 'error': 'You do not have permission to manage applications.'}, status=403)
+
     try:
         app = Application.objects(id=application_id).first()
         if not app:
@@ -1636,7 +1657,7 @@ def list_companies(request):
                 'company_name': company.company_name,
                 'description': company.description,
                 'sector': company.industry,
-                'logo': company.logo.url if company.logo else None,
+                'logo': company.logo if company.logo else None,
                 'students_applied': sum(Application.objects(offer__company=company).count())
             })
     return Response(companies)
@@ -3278,9 +3299,11 @@ def get_hiring_managers_list(request):
                 'created_at': hm.created_at.strftime('%d/%m/%Y'),
                 'permissions': {
                     'can_manage_applications': permissions.can_manage_applications if permissions else True,
+                    'can_manage_hiring_managers': permissions.can_manage_hiring_managers if permissions else False,
                     'can_create_offer': permissions.can_create_offer if permissions else True,
                     'can_modify_offer': permissions.can_modify_offer if permissions else True,
                     'can_delete_offer': permissions.can_delete_offer if permissions else True,
+                    'can_manage_company_profile': permissions.can_manage_company_profile if permissions else False,
                 }
             })
         
@@ -3320,7 +3343,7 @@ def get_co_dept_heads_list(request):
                         'can_manage_conventions': permissions.can_manage_conventions if permissions else True,
                         'can_manage_co_dept_heads': permissions.can_manage_co_dept_heads if permissions else False,
                         'can_add_signature': permissions.can_add_signature if permissions else True,
-                        'can_add_stamp': permissions.can_add_stamp if permissions else True,  # 🔥 AJOUTER CETTE LIGNE
+                        'can_add_stamp': permissions.can_add_stamp if permissions else True,
                         'can_manage_university_profile': permissions.can_manage_university_profile if permissions else False,
                     }
                 })
@@ -3351,7 +3374,7 @@ def update_hiring_manager_permissions(request, user_id):
         if not hiring_manager or hiring_manager.pending_company_id != str(company.id):
             return Response({'success': False, 'error': 'Hiring manager not found'}, status=404)
         
-        # Mettre à jour les permissions
+        # Mettre à jour les permissions — inline direct save
         permissions_data = {
             'can_manage_applications': request.data.get('can_manage_applications', True),
             'can_manage_hiring_managers': request.data.get('can_manage_hiring_managers', False),
@@ -3360,10 +3383,20 @@ def update_hiring_manager_permissions(request, user_id):
             'can_delete_offer': request.data.get('can_delete_offer', True),
             'can_manage_company_profile': request.data.get('can_manage_company_profile', False),
         }
-        
-        update_user_permissions(user_id, permissions_data)
-        
-        # Log l'activité
+
+        perm_obj = UserPermission.objects(user_id=user_id).first()
+        if not perm_obj:
+            perm_obj = UserPermission(user_id=user_id)
+        for field, value in permissions_data.items():
+            setattr(perm_obj, field, value)
+        from datetime import datetime as dt
+        perm_obj.updated_at = dt.now()
+        perm_obj.save()
+
+        if not hiring_manager.permissions or str(hiring_manager.permissions.id) != str(perm_obj.id):
+            hiring_manager.permissions = perm_obj
+            hiring_manager.save()
+
         log_activity(
             user=request.user,
             action_type='update_permissions',
@@ -3372,9 +3405,9 @@ def update_hiring_manager_permissions(request, user_id):
             target_name=hiring_manager.username,
             details={'permissions': permissions_data}
         )
-        
+
         return Response({'success': True, 'message': 'Permissions updated successfully'})
-        
+
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
 
@@ -3408,18 +3441,28 @@ def update_co_dept_head_permissions(request, user_id):
         if co_dept_admin.university != dept_head.university:
             return Response({'success': False, 'error': f'Unauthorized - Different university'}, status=403)
         
-        # Mettre à jour les permissions
+        # Mettre à jour les permissions — inline direct save
         permissions_data = {
             'can_manage_conventions': request.data.get('can_manage_conventions', True),
             'can_manage_co_dept_heads': request.data.get('can_manage_co_dept_heads', False),
             'can_add_signature': request.data.get('can_add_signature', True),
-            'can_add_stamp': request.data.get('can_add_stamp', True),  # 🔥 AJOUTER CETTE LIGNE
+            'can_add_stamp': request.data.get('can_add_stamp', True),
             'can_manage_university_profile': request.data.get('can_manage_university_profile', False),
         }
-        
-        update_user_permissions(user_id, permissions_data)
-        
-        # Log l'activité
+
+        perm_obj = UserPermission.objects(user_id=user_id).first()
+        if not perm_obj:
+            perm_obj = UserPermission(user_id=user_id)
+        for field, value in permissions_data.items():
+            setattr(perm_obj, field, value)
+        from datetime import datetime as dt
+        perm_obj.updated_at = dt.now()
+        perm_obj.save()
+
+        if not co_dept.permissions or str(co_dept.permissions.id) != str(perm_obj.id):
+            co_dept.permissions = perm_obj
+            co_dept.save()
+
         log_activity(
             user=request.user,
             action_type='update_permissions',
@@ -3428,9 +3471,9 @@ def update_co_dept_head_permissions(request, user_id):
             target_name=co_dept.username,
             details={'permissions': permissions_data}
         )
-        
+
         return Response({'success': True, 'message': 'Permissions updated successfully'})
-        
+
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
 # ==================== DELETE ENDPOINTS ====================
@@ -3612,7 +3655,7 @@ def get_approved_co_dept_heads(request):
                 'created_at': cd.created_at.strftime('%d/%m/%Y'),
                 'permissions': {
                     'can_manage_conventions': permissions.can_manage_conventions if permissions else True,
-                    'can_manage_co_dept_heads': permissions.can_manage_co_dept_heads if permissions else False,
+                    # 'can_manage_co_dept_heads': permissions.can_manage_co_dept_heads if permissions else False,
                     'can_add_signature': permissions.can_add_signature if permissions else True,
                     'can_add_stamp': permissions.can_add_stamp if permissions else True,  # 🔥 AJOUTER CETTE LIGNE
                     'can_manage_university_profile': permissions.can_manage_university_profile if permissions else False,
@@ -4335,7 +4378,7 @@ def get_current_user(request):
         if permissions:
             user_data['permissions'] = {
                 'can_manage_conventions': permissions.can_manage_conventions,
-                'can_manage_co_dept_heads': permissions.can_manage_co_dept_heads,
+                # 'can_manage_co_dept_heads': permissions.can_manage_co_dept_heads,
                 'can_add_signature': permissions.can_add_signature,
                 'can_add_stamp': permissions.can_add_stamp if hasattr(permissions, 'can_add_stamp') else True,
                 'can_manage_university_profile': permissions.can_manage_university_profile,
@@ -4361,3 +4404,240 @@ def get_current_user(request):
         
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
+    
+
+#   ===========UNIVERSITY PROFILE==============
+
+
+@api_view(['GET', 'POST'])
+@jwt_authenticated
+def university_profile(request):
+  
+    try:
+        user = request.user
+ 
+        # Only admin role (both dept head and co dept head) can access
+        if user.role != 'admin':
+            return Response({'success': False, 'error': 'Accès non autorisé'}, status=403)
+ 
+        # Get the university from the Admin profile
+        from .models import Admin as AdminProfile, UniversityProfile
+ 
+        try:
+            admin_profile = AdminProfile.objects.get(user=user)
+            university = admin_profile.university
+        except AdminProfile.DoesNotExist:
+            return Response({'success': False, 'error': 'Profil admin introuvable'}, status=404)
+ 
+        # Fetch or create university profile
+        try:
+            profile = UniversityProfile.objects.get(university=university)
+        except UniversityProfile.DoesNotExist:
+            profile = UniversityProfile(university=university)
+            profile.save()
+ 
+        if request.method == 'GET':
+            return Response({
+                'success': True,
+                'profile': {
+                    'university': profile.university,
+                    'name': profile.name,
+                    'description': profile.description,
+                    'email': profile.email,
+                    'phone': profile.phone,
+                    'address': profile.address,
+                    'wilaya': profile.wilaya,
+                    'website': profile.website,
+                    'linkedin': profile.linkedin,
+                    'logo': profile.logo,
+                    'cover_picture': profile.cover_picture,
+                    'faculties': profile.faculties,
+                    'updated_at': profile.updated_at.strftime('%d/%m/%Y') if profile.updated_at else '',
+                }
+            })
+ 
+        # POST: update profile
+        # Permission check: co_dept_head needs can_manage_university_profile
+        if user.sub_role == 'co_dept_head':
+            if user.permissions:
+                perm = user.permissions
+                if not perm.can_manage_university_profile:
+                    return Response({
+                        'success': False,
+                        'error': "Vous n'avez pas la permission de modifier le profil université."
+                    }, status=403)
+            else:
+                return Response({
+                    'success': False,
+                    'error': "Vous n'avez pas la permission de modifier le profil université."
+                }, status=403)
+ 
+        data = request.data
+ 
+        # Update fields
+        profile.name = data.get('name', profile.name)
+        profile.description = data.get('description', profile.description)
+        profile.email = data.get('email', profile.email)
+        profile.phone = data.get('phone', profile.phone)
+        profile.address = data.get('address', profile.address)
+        profile.wilaya = data.get('wilaya', profile.wilaya)
+        profile.website = data.get('website', profile.website)
+        profile.linkedin = data.get('linkedin', profile.linkedin)
+        profile.faculties = data.get('faculties', profile.faculties)
+ 
+        # Only update images if provided (non-empty string)
+        if data.get('logo'):
+            profile.logo = data['logo']
+        if data.get('cover_picture'):
+            profile.cover_picture = data['cover_picture']
+ 
+        from datetime import datetime
+        profile.updated_at = datetime.now()
+        profile.save()
+ 
+        # Log activity
+        try:
+            ActivityLog(
+                user_id=str(user.id),
+                user_email=user.email,
+                user_role=user.role,
+                user_sub_role=user.sub_role,
+                action_type='update_permissions',  # closest existing type
+                target_type='user',
+                target_id=str(profile.id),
+                target_name=f"University Profile: {university}",
+                details={'action': 'university_profile_updated'},
+                status='success',
+                ip_address=request.META.get('REMOTE_ADDR', '')
+            ).save()
+        except Exception:
+            pass
+ 
+        return Response({'success': True, 'message': 'Profil université mis à jour avec succès'})
+ 
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+
+
+#  ==============COMPANY PROFILE==============
+
+
+@api_view(['GET', 'POST'])
+@jwt_authenticated
+@role_required(allowed_roles=['company'])
+def get_company_profile(request):
+    try:
+        user = request.user
+        company = _get_user_company(user)
+        if not company:
+            return Response({'success': False, 'error': 'Company not found'}, status=404)
+
+        company_id = str(company.id)
+
+        # Fetch or create CompanyProfile
+        try:
+            profile = CompanyProfile.objects.get(company_id=company_id)
+        except CompanyProfile.DoesNotExist:
+            profile = CompanyProfile(
+                company_id=company_id,
+                name=company.company_name or '',
+                description=getattr(company, 'description', '') or '',
+                location=getattr(company, 'location', '') or '',
+                website=getattr(company, 'website', '') or '',
+                industry=getattr(company, 'industry', '') or '',
+                phone=getattr(company, 'phone', '') or '',
+                contact_email=getattr(company, 'contact_email', '') or '',
+                linkedin=getattr(company, 'linkedin', '') or '',
+                twitter=getattr(company, 'twitter', '') or '',
+                logo='',
+                cover_picture=getattr(company, 'cover_picture', '') or '',
+            )
+            profile.save()
+
+        if request.method == 'GET':
+            # Determine if user can edit
+            can_edit = False
+            if user.sub_role == 'company_manager':
+                can_edit = True
+            elif user.sub_role == 'hiring_manager':
+                perms = get_user_permissions(user)
+                can_edit = perms.can_manage_company_profile if perms else False
+
+            return Response({
+                'success': True,
+                'profile': {
+                    'company_id': profile.company_id,
+                    'name': profile.name,
+                    'description': profile.description,
+                    'phone': profile.phone,
+                    'contact_email': profile.contact_email,
+                    'location': profile.location,
+                    'website': profile.website,
+                    'linkedin': profile.linkedin,
+                    'twitter': profile.twitter,
+                    'industry': profile.industry,
+                    'logo': profile.logo,
+                    'cover_picture': profile.cover_picture,
+                    'updated_at': profile.updated_at.strftime('%d/%m/%Y') if profile.updated_at else '',
+                    'can_edit': can_edit, 
+                }
+            })
+        
+        # POST — permission check
+        if user.sub_role == 'company_manager':
+            pass  # always allowed
+        elif user.sub_role == 'hiring_manager':
+            perms = get_user_permissions(user)
+            if not (perms and perms.can_manage_company_profile):
+                return Response({
+                    'success': False,
+                    'error': "Vous n'avez pas la permission de modifier le profil entreprise."
+                }, status=403)
+        else:
+            return Response({'success': False, 'error': 'Unauthorized'}, status=403)
+
+        data = request.data
+
+        profile.name = data.get('name', profile.name)
+        profile.description = data.get('description', profile.description)
+        profile.phone = data.get('phone', profile.phone)
+        profile.contact_email = data.get('contact_email', profile.contact_email)
+        profile.location = data.get('location', profile.location)
+        profile.website = data.get('website', profile.website)
+        profile.linkedin = data.get('linkedin', profile.linkedin)
+        profile.twitter = data.get('twitter', profile.twitter)
+        profile.industry = data.get('industry', profile.industry)
+
+        if data.get('logo'):
+            profile.logo = data['logo']
+        if data.get('cover_picture'):
+            profile.cover_picture = data['cover_picture']
+
+        from datetime import datetime as dt
+        profile.updated_at = dt.now()
+        profile.save()
+
+        log_activity(
+            user=request.user,
+            action_type='update_company_profile',
+            target_type='company',
+            target_id=company_id,
+            target_name=company.company_name,
+            details={'updated_fields': list(data.keys())}
+        )
+
+        return Response({'success': True, 'message': 'Company profile updated successfully'})
+
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['PUT'])
+@jwt_authenticated
+@role_required(allowed_roles=['company'])
+def update_company_profile(request):
+    
+    request.method = 'POST'
+    return get_company_profile(request)

@@ -51,6 +51,7 @@ urlpatterns = [
     path('admin/reject-co-dept-head/<str:user_id>/',                   views.reject_co_dept_head, name='reject-co-dept-head'),
     path('admin/request-proof/<str:pending_id>/',                      views.request_proof_from_admin, name='request-proof'),
     path('admin/mark-proof-received/<str:pending_id>/',                views.mark_proof_received, name='mark-proof-received'),
+	path('admin/university-profile/',  views.university_profile,  name='university-profile'),
 
   
     path('co-dept/pending-validations/',                               views.co_dept_pending_validations, name='co-dept-pending'),
@@ -69,6 +70,8 @@ urlpatterns = [
    path('company/notifications/', views.get_notifications, name='company-notifications'),
    path('company/notifications/<str:notification_id>/read/', views.mark_notification_read, name='company-mark-read'),
    path('company/notifications/read-all/', views.mark_all_notifications_read, name='company-mark-all-read'),
+   path('company/profile/', views.get_company_profile, name='get-company-profile'),
+   path('company/profile/update/', views.update_company_profile, name='update-company-profile'),
     
     path('utils/skills/',    views.get_skills_tags, name='skills-tags'),
     path('student/generate-cv/', views.generate_cv, name='generate-cv'),
@@ -85,6 +88,7 @@ path('generate-convention/<str:application_id>/', views.generate_convention_from
 path('activity-logs/company/', views.get_company_activity_logs, name='company-activity-logs'),
     path('activity-logs/dept-head/', views.get_dept_head_activity_logs, name='dept-head-activity-logs'),
      path('auth/check-user/', views.check_user_exists, name='check-user'),
+     
      # Permission Management - Hiring Managers
     path('company/hiring-managers/', views.get_hiring_managers_list, name='hiring-managers-list'),
     path('company/hiring-managers/<str:user_id>/permissions/', views.update_hiring_manager_permissions, name='update-hm-permissions'),

@@ -1,76 +1,116 @@
-// frontend/src/page/CoDeptValidations.jsx
+// frontend/src/page/DeptHeadValidations.jsx
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle } from 'lucide-react';  // ← IMPORTANT
+import { ArrowLeft } from 'lucide-react';
 import PendingValidationsList from '../components/PendingValidationsList';
+import { AdminSidebarInline } from '../components/AdminSidebar';
+import ChatWidget from '../components/ChatWidget';
+import PrivateChat from '../components/PrivateChat';
+import './StudentDashboard.css';
 
-export default function CoDeptValidations() {
-  const { user } = useAuth();
+export default function DeptHeadValidations() {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [permissionError, setPermissionError] = useState(null);
+  const [activeTab, setActiveTab] = useState('pending');
+  const [privateChatOpen, setPrivateChatOpen] = useState(false);
+  const [selectedChatUser, setSelectedChatUser] = useState(null);
 
-  const handlePermissionError = (errorMessage) => {
-    console.log("🔴 Permission error received:", errorMessage);
-    setPermissionError(errorMessage);
-    setTimeout(() => setPermissionError(null), 5000);
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const handleStartPrivateChat = (targetUser) => {
+    setSelectedChatUser(targetUser);
+    setPrivateChatOpen(true);
+  };
+
+  const handleClosePrivateChat = () => {
+    setPrivateChatOpen(false);
+    setSelectedChatUser(null);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black">
-      <nav className="bg-white/10 backdrop-blur-lg border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-4">
-              <button onClick={() => navigate('/co-dept-head/dashboard')} className="flex items-center gap-2 text-white/70 hover:text-white transition">
-                ← Retour
-              </button>
-              <span className="text-white/30">|</span>
-              <h1 className="text-xl font-bold text-white">Validations des conventions</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-white/80">{user?.full_name || user?.username}</span>
-              <span className="text-white/60 text-sm bg-white/10 px-3 py-1 rounded-full">
-                {user?.university || "Université"}
-              </span>
-            </div>
+    <div className="min-h-screen flex">
+      <AdminSidebarInline user={user} onLogout={handleLogout} />
+
+      <div className="ml-64 flex-1 min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <button
+            onClick={() => navigate('/admin/dashboard')}
+            className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
+          >
+            <ArrowLeft size={18} />
+            Retour au tableau de bord
+          </button>
+
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-white mb-2">Convention Requests</h2>
+            <p className="text-white/60">
+              Review and validate internship convention requests submitted by students.
+            </p>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-2 mb-6 border-b border-white/20 pb-2">
+            <button
+              onClick={() => setActiveTab('pending')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                activeTab === 'pending'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-white/10 text-white/70 hover:bg-white/20'
+              }`}
+            >
+              Conventions en attente
+            </button>
+            <button
+              onClick={() => setActiveTab('ready')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                activeTab === 'ready'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-white/10 text-white/70 hover:bg-white/20'
+              }`}
+            >
+              Prêtes à signer
+            </button>
+          </div>
+
+          {/* Glassmorphic list – same logic, new look */}
+          <div className="mt-4">
+            {activeTab === 'pending' && (
+              <PendingValidationsList
+                fetchEndpoint="/dept-head/pending-validations/"
+                validateEndpoint="/dept-head/validate-application/"
+                rejectEndpoint="/dept-head/reject-application/"
+                downloadConventionEndpoint="co-dept"
+                title="Conventions en attente"
+                emptyMessage="Aucune convention en attente de validation"
+              />
+            )}
+            {activeTab === 'ready' && (
+              <PendingValidationsList
+                fetchEndpoint="/dept-head/validated-validations/"
+                validateEndpoint="/dept-head/validate-application/"
+                rejectEndpoint="/dept-head/reject-application/"
+                downloadConventionEndpoint="co-dept"
+                title="Conventions prêtes à signer"
+                emptyMessage="Aucune convention prête à être signée"
+              />
+            )}
           </div>
         </div>
-      </nav>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* AFFICHAGE DIRECT DE L'ERREUR - SOLUTION SIMPLE */}
-        {permissionError && (
-          <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4 mb-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-orange-300 text-sm">{permissionError}</p>
-                <p className="text-orange-300/70 text-xs mt-2">
-                  💡 Veuillez contacter votre Department Head pour demander les permissions nécessaires.
-                </p>
-              </div>
-              <button 
-                onClick={() => setPermissionError(null)} 
-                className="text-orange-400/70 hover:text-orange-300"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        )}
-        
-        <PendingValidationsList
-          fetchEndpoint="/co-dept/pending-validations/"
-          validateEndpoint="/co-dept/validate-application/"
-          rejectEndpoint="/co-dept/reject-application/"
-          downloadConventionEndpoint="co-dept"
-          title="Validations des conventions"
-          emptyMessage="Aucune convention en attente"
-          onBack={() => navigate('/co-dept-head/dashboard')}
-          onPermissionError={handlePermissionError}
+      <ChatWidget university={user?.university || "Université"} />
+      {privateChatOpen && selectedChatUser && (
+        <PrivateChat
+          university={user?.university || "Université"}
+          currentUser={user}
+          targetUser={selectedChatUser}
+          onClose={handleClosePrivateChat}
         />
-      </main>
+      )}
     </div>
   );
 }

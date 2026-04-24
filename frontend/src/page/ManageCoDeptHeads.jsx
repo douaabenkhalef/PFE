@@ -5,9 +5,13 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Users, Trash2, Edit2, Save, X, CheckCircle, XCircle,
   ArrowLeft, Shield, GraduationCap, Mail, Calendar, Settings,
-  UserCheck, FileText, Signature, Stamp
+  UserCheck, FileText, Signature, Stamp, Clock
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { AdminSidebarInline } from '../components/AdminSidebar';
+import ChatWidget from '../components/ChatWidget';
+import PrivateChat from '../components/PrivateChat';
+import './StudentDashboard.css';
 
 const API = 'http://localhost:8000/api';
 const authHeaders = () => ({
@@ -122,13 +126,7 @@ const CoDeptHeadCard = ({ manager, onUpdatePermissions, onDelete }) => {
             onChange={(e) => setPermissions(prev => ({ ...prev, can_manage_conventions: e.target.checked }))}
             disabled={!isEditing}
           />
-          <PermissionCheckbox
-            label="Gérer les Co Dept Heads"
-            description="Ajouter, modifier ou supprimer des co department heads"
-            checked={permissions.can_manage_co_dept_heads}
-            onChange={(e) => setPermissions(prev => ({ ...prev, can_manage_co_dept_heads: e.target.checked }))}
-            disabled={!isEditing}
-          />
+          
           <PermissionCheckbox
             label="Ajouter une signature"
             description="Signer les conventions de stage"
@@ -153,7 +151,6 @@ const CoDeptHeadCard = ({ manager, onUpdatePermissions, onDelete }) => {
         </div>
       </div>
 
-      {/* Modal de confirmation de suppression */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowDeleteConfirm(false)}>
           <div className="bg-[#1e293b] border border-slate-700 rounded-2xl p-6 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
@@ -183,11 +180,61 @@ const CoDeptHeadCard = ({ manager, onUpdatePermissions, onDelete }) => {
   );
 };
 
+const PendingCoDeptCard = ({ head, onApprove, onReject, processing }) => (
+  <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:border-purple-500 transition-all">
+    <div className="flex items-start justify-between mb-4">
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
+          <GraduationCap className="w-6 h-6 text-purple-400" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-white">{head.username}</h3>
+          <p className="text-white/60 text-sm">{head.full_name}</p>
+        </div>
+      </div>
+      <Clock className="w-5 h-5 text-yellow-400" />
+    </div>
+    <div className="space-y-2 mb-4">
+      <div className="flex items-center gap-2 text-white/60 text-sm">
+        <Mail className="w-4 h-4" />
+        <span>{head.email}</span>
+      </div>
+      {head.university && (
+        <p className="text-white/60 text-sm flex items-center gap-2">
+          <GraduationCap className="w-4 h-4" />
+          {head.university}
+        </p>
+      )}
+    </div>
+    <div className="flex gap-3 mt-4">
+      <button 
+        onClick={() => onApprove(head.id, head.username)} 
+        disabled={processing} 
+        className="flex-1 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+      >
+        <CheckCircle className="w-4 h-4" /> Approuver
+      </button>
+      <button 
+        onClick={() => onReject(head.id, head.username)} 
+        disabled={processing} 
+        className="flex-1 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+      >
+        <XCircle className="w-4 h-4" /> Refuser
+      </button>
+    </div>
+  </div>
+);
+
 export default function ManageCoDeptHeads() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('active');
   const [coDeptHeads, setCoDeptHeads] = useState([]);
+  const [pendingCoDeptHeads, setPendingCoDeptHeads] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [privateChatOpen, setPrivateChatOpen] = useState(false);
+  const [selectedChatUser, setSelectedChatUser] = useState(null);
 
   const fetchCoDeptHeads = async () => {
     setLoading(true);
@@ -196,7 +243,6 @@ export default function ManageCoDeptHeads() {
       const data = await res.json();
       if (data.success) {
         setCoDeptHeads(data.co_dept_heads);
-        console.log("Co Dept Heads chargés:", data.co_dept_heads.length);
       } else {
         toast.error(data.error || 'Erreur de chargement');
       }
@@ -208,9 +254,22 @@ export default function ManageCoDeptHeads() {
     }
   };
 
+  const fetchPendingCoDeptHeads = async () => {
+    try {
+      const response = await fetch(`${API}/admin/pending-co-dept-heads/`, { headers: authHeaders() });
+      const data = await response.json();
+      if (data.success) {
+        setPendingCoDeptHeads(data.co_dept_heads);
+      }
+    } catch (error) {
+      toast.error("Erreur de connexion");
+    }
+  };
+
   useEffect(() => {
-    fetchCoDeptHeads();
-  }, []);
+    if (activeTab === 'active') fetchCoDeptHeads();
+    else fetchPendingCoDeptHeads();
+  }, [activeTab]);
 
   const handleUpdatePermissions = async (userId, permissions) => {
     try {
@@ -249,64 +308,177 @@ export default function ManageCoDeptHeads() {
     }
   };
 
+  const handleApproveCoDept = async (headId, headName) => {
+    setProcessing(true);
+    try {
+      const response = await fetch(`${API}/admin/approve-co-dept-head/${headId}/`, {
+        method: "POST",
+        headers: authHeaders()
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success(`Co Department Head ${headName} a été approuvé`);
+        fetchPendingCoDeptHeads();
+      } else {
+        toast.error(data.message || "Erreur lors de l'approbation");
+      }
+    } catch (error) {
+      toast.error("Erreur de connexion");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleRejectCoDept = async (headId, headName) => {
+    setProcessing(true);
+    try {
+      const response = await fetch(`${API}/admin/reject-co-dept-head/${headId}/`, {
+        method: "POST",
+        headers: authHeaders()
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success(`Co Department Head ${headName} a été refusé et supprimé`);
+        fetchPendingCoDeptHeads();
+        const currentUserEmail = localStorage.getItem('user_email');
+        if (data.deleted && currentUserEmail === headName) {
+          toast.info("Votre compte a été supprimé. Vous allez être déconnecté.");
+          setTimeout(() => {
+            logout();
+            navigate("/login");
+          }, 2000);
+        }
+      } else {
+        toast.error(data.message || "Erreur lors du refus");
+      }
+    } catch (error) {
+      toast.error("Erreur de connexion");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const handleStartPrivateChat = (targetUser) => {
+    setSelectedChatUser(targetUser);
+    setPrivateChatOpen(true);
+  };
+
+  const handleClosePrivateChat = () => {
+    setPrivateChatOpen(false);
+    setSelectedChatUser(null);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black">
-      <nav className="bg-white/10 backdrop-blur-lg border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate('/admin/dashboard')}
-                className="flex items-center gap-2 text-white/70 hover:text-white transition"
-              >
-                <ArrowLeft size={18} />
-                Retour
-              </button>
-              <span className="text-white/30">|</span>
-              <div className="flex items-center gap-3">
-                <Users className="w-6 h-6 text-purple-400" />
-                <h1 className="text-xl font-bold text-white">Gestion des Co Department Heads</h1>
+    <div className="min-h-screen flex">
+      <AdminSidebarInline user={user} onLogout={handleLogout} />
+      
+      <div className="ml-64 flex-1 min-h-screen">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Back button to admin dashboard */}
+          <button
+            onClick={() => navigate('/admin/dashboard')}
+            className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
+          >
+            <ArrowLeft size={18} />
+            Retour au tableau de bord
+          </button>
+
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-white mb-2">Gestion des Co Department Heads</h2>
+            <p className="text-white/60">
+              Gérez les permissions des co department heads approuvés ou approuvez les nouvelles demandes.
+            </p>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-2 mb-6 border-b border-white/20 pb-2">
+            <button
+              onClick={() => setActiveTab('active')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                activeTab === 'active'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-white/10 text-white/70 hover:bg-white/20'
+              }`}
+            >
+              Co Dept Heads Actifs
+            </button>
+            <button
+              onClick={() => setActiveTab('pending')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                activeTab === 'pending'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-white/10 text-white/70 hover:bg-white/20'
+              }`}
+            >
+              Demandes en attente
+              {pendingCoDeptHeads.length > 0 && (
+                <span className="ml-2 bg-yellow-500 text-white text-xs px-2 py-0.5 rounded-full">{pendingCoDeptHeads.length}</span>
+              )}
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
+            </div>
+          ) : activeTab === 'active' ? (
+            coDeptHeads.length === 0 ? (
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-12 text-center border border-white/20">
+                <Users className="w-16 h-16 text-white/30 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">Aucun co department head actif</h3>
+                <p className="text-white/60">Aucun co department head n'a encore été approuvé pour votre université.</p>
               </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-white/80">{user?.full_name || user?.email}</span>
-              <span className="text-white/60 text-sm bg-white/10 px-3 py-1 rounded-full">Department Head</span>
-            </div>
-          </div>
+            ) : (
+              <div className="space-y-4">
+                {coDeptHeads.map(manager => (
+                  <CoDeptHeadCard
+                    key={manager.id}
+                    manager={manager}
+                    onUpdatePermissions={handleUpdatePermissions}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
+            )
+          ) : (
+            pendingCoDeptHeads.length === 0 ? (
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-12 text-center border border-white/20">
+                <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">Aucune demande en attente</h3>
+                <p className="text-white/60">Tous les co department heads ont été traités.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {pendingCoDeptHeads.map(head => (
+                  <PendingCoDeptCard
+                    key={head.id}
+                    head={head}
+                    onApprove={handleApproveCoDept}
+                    onReject={handleRejectCoDept}
+                    processing={processing}
+                  />
+                ))}
+              </div>
+            )
+          )}
         </div>
-      </nav>
+      </div>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-2">Co Department Heads Actifs</h2>
-          <p className="text-white/60">
-            Gérez les permissions des co department heads approuvés de votre université.
-          </p>
-        </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
-          </div>
-        ) : coDeptHeads.length === 0 ? (
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-12 text-center border border-white/20">
-            <Users className="w-16 h-16 text-white/30 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">Aucun co department head actif</h3>
-            <p className="text-white/60">Aucun co department head n'a encore été approuvé pour votre université.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {coDeptHeads.map(manager => (
-              <CoDeptHeadCard
-                key={manager.id}
-                manager={manager}
-                onUpdatePermissions={handleUpdatePermissions}
-                onDelete={handleDelete}
-              />
-            ))}
-          </div>
-        )}
-      </main>
+      {/* Chat */}
+      <ChatWidget university={user?.university || "Université"} />
+      {privateChatOpen && selectedChatUser && (
+        <PrivateChat
+          university={user?.university || "Université"}
+          currentUser={user}
+          targetUser={selectedChatUser}
+          onClose={handleClosePrivateChat}
+        />
+      )}
     </div>
   );
 }

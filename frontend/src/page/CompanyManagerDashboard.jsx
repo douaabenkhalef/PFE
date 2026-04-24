@@ -140,6 +140,17 @@ const CompanyManagerDashboard = () => {
   const [activeSection, setActiveSection] = useState('home');
   const homeRef = useRef(null);
   const internshipsRef = useRef(null);
+  const [companyProfile, setCompanyProfile] = useState(null);
+
+  const fetchCompanyProfile = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/company/profile/`, { headers: authHeaders() });
+      const data = await res.json();
+      if (data.success) setCompanyProfile(data.profile);
+    } catch (err) {
+      console.error("Erreur chargement profil entreprise:", err);
+    }
+  }, []);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -203,9 +214,10 @@ const CompanyManagerDashboard = () => {
   useEffect(() => {
     fetchNotifications();
     fetchTopOffers();
+    fetchCompanyProfile();
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchNotifications, fetchCompanyProfile]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -228,6 +240,24 @@ const CompanyManagerDashboard = () => {
     if (internshipsRef.current) obs.observe(internshipsRef.current);
     return () => obs.disconnect();
   }, []);
+
+  // Refetch company profile when tab becomes visible or after profile update
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchCompanyProfile();
+      }
+    };
+    const handleCustomEvent = () => {
+      fetchCompanyProfile();
+    };
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('companyProfileUpdated', handleCustomEvent);
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('companyProfileUpdated', handleCustomEvent);
+    };
+  }, [fetchCompanyProfile]);
 
   const handleLogout = () => {
     logout();
@@ -299,12 +329,15 @@ const CompanyManagerDashboard = () => {
               </p>
             </div>
             <div className="sd-hero-image">
-              <img src="/images/company-hero.png" alt="Company Manager" onError={e => e.target.style.display = 'none'} />
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <rect x="3" y="3" width="18" height="18" rx="3" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
+              {companyProfile?.cover_picture ? (
+                <img src={companyProfile.cover_picture} alt="Company cover" className="w-full h-full object-cover rounded-xl" />
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="3" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+              )}
             </div>
           </div>
         </section>

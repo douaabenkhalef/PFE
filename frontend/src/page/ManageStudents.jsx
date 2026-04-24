@@ -7,9 +7,13 @@ import {
   GraduationCap, MapPin, Code, BookOpen, Calendar,
   CheckCircle, XCircle, Briefcase, Mail, Github, Globe,
   TrendingUp, Award, BarChart3, Loader2, Clock,
-  ChevronDown, ChevronUp, PieChart, TrendingDown, Download
+  ChevronDown, ChevronUp, PieChart, TrendingDown, Download,
+  User, Building2, UserCog, LogOut, Activity, SlidersHorizontal,
+  Settings, FileText, CheckSquare, BarChart
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { AdminSidebarInline } from '../components/AdminSidebar';
+import './StudentDashboard.css';
 
 const API = 'http://localhost:8000/api';
 const authHeaders = () => ({
@@ -17,6 +21,7 @@ const authHeaders = () => ({
   'Authorization': `Bearer ${localStorage.getItem('access_token')}`
 });
 
+// ==================== StudentCard Component ====================
 const StudentCard = ({ student, onClick }) => {
   return (
     <div 
@@ -75,6 +80,7 @@ const StudentCard = ({ student, onClick }) => {
   );
 };
 
+// ==================== StudentDetailsModal Component ====================
 const StudentDetailsModal = ({ student, onClose }) => {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -116,7 +122,6 @@ const StudentDetailsModal = ({ student, onClose }) => {
         </div>
         
         <div className="p-6 space-y-6">
-          {/* Informations personnelles */}
           <div className="bg-slate-800/60 rounded-xl p-5">
             <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">Informations personnelles</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -163,7 +168,6 @@ const StudentDetailsModal = ({ student, onClose }) => {
             </div>
           </div>
           
-          {/* Situation professionnelle */}
           <div className="bg-slate-800/60 rounded-xl p-5">
             <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">Situation professionnelle</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -188,7 +192,6 @@ const StudentDetailsModal = ({ student, onClose }) => {
             </div>
           </div>
           
-          {/* Candidatures */}
           <div className="bg-slate-800/60 rounded-xl p-5">
             <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">Historique des candidatures</h3>
             {loading ? (
@@ -229,6 +232,7 @@ const StudentDetailsModal = ({ student, onClose }) => {
   );
 };
 
+// ==================== StatisticsPanel Component ====================
 const StatisticsPanel = ({ stats, loading }) => {
   const [expandedSection, setExpandedSection] = useState(null);
   
@@ -242,11 +246,10 @@ const StatisticsPanel = ({ stats, loading }) => {
   
   if (!stats) return null;
   
-  const { global, by_major, by_graduation_year, by_wilaya, top_skills, timeline } = stats;
+  const { global, by_major, by_graduation_year, top_skills, timeline } = stats;
   
   return (
     <div className="space-y-6">
-      {/* Cartes globales */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-blue-600/20 to-blue-800/20 rounded-xl p-5 border border-blue-500/30">
           <div className="flex items-center justify-between">
@@ -289,7 +292,7 @@ const StatisticsPanel = ({ stats, loading }) => {
         </div>
       </div>
       
-      {/* Statistiques par filière */}
+      {/* Par filière */}
       <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
         <button
           onClick={() => setExpandedSection(expandedSection === 'major' ? null : 'major')}
@@ -317,10 +320,7 @@ const StatisticsPanel = ({ stats, loading }) => {
                     <span className="text-slate-400">📊 Total: {major.total}</span>
                   </div>
                   <div className="mt-2 h-2 bg-slate-700 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-green-500 rounded-full"
-                      style={{ width: `${major.placement_rate}%` }}
-                    />
+                    <div className="h-full bg-green-500 rounded-full" style={{ width: `${major.placement_rate}%` }} />
                   </div>
                 </div>
               ))}
@@ -329,7 +329,7 @@ const StatisticsPanel = ({ stats, loading }) => {
         )}
       </div>
       
-      {/* Statistiques par promotion */}
+      {/* Par promotion */}
       <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
         <button
           onClick={() => setExpandedSection(expandedSection === 'year' ? null : 'year')}
@@ -357,10 +357,7 @@ const StatisticsPanel = ({ stats, loading }) => {
                     <span className="text-slate-400">📊 Total: {year.total}</span>
                   </div>
                   <div className="mt-2 h-2 bg-slate-700 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-green-500 rounded-full"
-                      style={{ width: `${year.placement_rate}%` }}
-                    />
+                    <div className="h-full bg-green-500 rounded-full" style={{ width: `${year.placement_rate}%` }} />
                   </div>
                 </div>
               ))}
@@ -416,7 +413,7 @@ const StatisticsPanel = ({ stats, loading }) => {
         )}
       </div>
       
-      {/* Timeline des placements */}
+      {/* Timeline */}
       <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
         <button
           onClick={() => setExpandedSection(expandedSection === 'timeline' ? null : 'timeline')}
@@ -439,10 +436,7 @@ const StatisticsPanel = ({ stats, loading }) => {
                     <span className="text-green-400 text-sm font-semibold">{item.placed} placements</span>
                   </div>
                   <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-green-500 rounded-full"
-                      style={{ width: `${Math.min(100, item.placed * 5)}%` }}
-                    />
+                    <div className="h-full bg-green-500 rounded-full" style={{ width: `${Math.min(100, item.placed * 5)}%` }} />
                   </div>
                 </div>
               ))}
@@ -454,8 +448,9 @@ const StatisticsPanel = ({ stats, loading }) => {
   );
 };
 
+// ==================== Main Component ====================
 export default function ManageStudents() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [stats, setStats] = useState({});
@@ -464,7 +459,7 @@ export default function ManageStudents() {
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
   const [showStats, setShowStats] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
@@ -502,14 +497,12 @@ export default function ManageStudents() {
         setStudents(data.students);
         setStats(data.stats);
         setUniversity(data.university);
-        
         const uniqueMajors = [...new Set(data.students.map(s => s.major).filter(Boolean))];
         setMajors(uniqueMajors);
       } else {
         toast.error(data.error || 'Erreur de chargement');
       }
     } catch (err) {
-      console.error("Erreur:", err);
       toast.error('Erreur de connexion');
     } finally {
       setLoading(false);
@@ -521,11 +514,9 @@ export default function ManageStudents() {
     try {
       const res = await fetch(`${API}/admin/placement-stats/`, { headers: authHeaders() });
       const data = await res.json();
-      if (data.success) {
-        setPlacementStats(data.stats);
-      }
+      if (data.success) setPlacementStats(data.stats);
     } catch (err) {
-      console.error("Erreur chargement stats:", err);
+      console.error(err);
     } finally {
       setStatsLoading(false);
     }
@@ -554,181 +545,187 @@ export default function ManageStudents() {
     });
   };
 
-  const isDeptHead = user?.sub_role === 'admin';
-  const isCoDeptHead = user?.sub_role === 'co_dept_head';
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black">
-      <nav className="bg-white/10 backdrop-blur-lg border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate(isDeptHead ? '/admin/dashboard' : '/co-dept-head/dashboard')}
-                className="flex items-center gap-2 text-white/70 hover:text-white transition"
-              >
-                <ArrowLeft size={18} />
-                Retour
-              </button>
-              <span className="text-white/30">|</span>
-              <div className="flex items-center gap-3">
-                <GraduationCap className="w-6 h-6 text-purple-400" />
-                <h1 className="text-xl font-bold text-white">Gestion des Étudiants</h1>
+    <div className="min-h-screen flex">
+      {/* Fixed sidebar - using existing component - no changes */}
+      <AdminSidebarInline user={user} onLogout={handleLogout} />
+
+      {/* Main content area - exactly like CompanyActivityLogs.jsx */}
+      <div className="ml-64 flex-1 min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Back button to admin dashboard */}
+          <button
+            onClick={() => {
+              if (user?.sub_role === 'admin') {
+                navigate('/admin/dashboard');
+              } else if (user?.sub_role === 'co_dept_head') {
+                navigate('/co-dept-head/dashboard');
+              } else {
+                navigate('/admin/dashboard'); // fallback
+              }
+            }}
+            className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
+          >
+            <ArrowLeft size={18} />
+            Retour au tableau de bord
+          </button>
+
+          {showStats ? (
+            <>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-white">Statistiques détaillées</h2>
+                <button
+                  onClick={() => setShowStats(false)}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition shadow-lg flex items-center gap-2"
+                >
+                  <Users size={16} />
+                  Voir la liste des étudiants
+                </button>
               </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setShowStats(!showStats)}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition shadow-lg flex items-center gap-2"
-              >
-                <BarChart3 size={16} />
-                {showStats ? 'Voir étudiants' : 'Statistiques'}
-              </button>
-              <span className="text-white/80">{user?.full_name || user?.email}</span>
-              <span className="text-white/60 text-sm bg-white/10 px-3 py-1 rounded-full">
-                {isDeptHead ? 'Department Head' : 'Co Department Head'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </nav>
+              <StatisticsPanel stats={placementStats} loading={statsLoading} />
+            </>
+          ) : (
+            <>
+              {/* Professional Filter Section */}
+              <div className="bg-white/5 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl mb-8 overflow-hidden">
+                <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <SlidersHorizontal size={18} className="text-purple-400" />
+                    <h3 className="text-white font-semibold">Filtres avancés</h3>
+                  </div>
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="text-white/60 hover:text-white transition text-sm flex items-center gap-1"
+                  >
+                    {showFilters ? 'Masquer' : 'Afficher'}
+                    {showFilters ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </button>
+                </div>
+                
+                {showFilters && (
+                  <div className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
+                      <div>
+                        <label className="block text-white/80 text-xs font-medium uppercase tracking-wider mb-2">Recherche</label>
+                        <input
+                          type="text"
+                          placeholder="Nom, email, filière..."
+                          value={filters.search}
+                          onChange={(e) => handleFilterChange('search', e.target.value)}
+                          className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-white/80 text-xs font-medium uppercase tracking-wider mb-2">Filière</label>
+                        <select
+                          value={filters.major}
+                          onChange={(e) => handleFilterChange('major', e.target.value)}
+                          className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
+                        >
+                          <option value="">Toutes</option>
+                          {majors.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-white/80 text-xs font-medium uppercase tracking-wider mb-2">Wilaya</label>
+                        <select
+                          value={filters.wilaya}
+                          onChange={(e) => handleFilterChange('wilaya', e.target.value)}
+                          className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
+                        >
+                          <option value="">Toutes</option>
+                          {wilayasList.map(w => <option key={w} value={w}>{w}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-white/80 text-xs font-medium uppercase tracking-wider mb-2">Compétences</label>
+                        <input
+                          type="text"
+                          placeholder="React, Python, Java..."
+                          value={filters.skills}
+                          onChange={(e) => handleFilterChange('skills', e.target.value)}
+                          className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-white/80 text-xs font-medium uppercase tracking-wider mb-2">Statut</label>
+                        <select
+                          value={filters.is_placed}
+                          onChange={(e) => handleFilterChange('is_placed', e.target.value)}
+                          className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
+                        >
+                          <option value="">Tous</option>
+                          <option value="true">Stage trouvé</option>
+                          <option value="false">En recherche</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end mt-6 gap-3">
+                      <button
+                        onClick={resetFilters}
+                        className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-medium transition border border-white/20"
+                      >
+                        Réinitialiser
+                      </button>
+                      <button
+                        onClick={fetchStudents}
+                        className="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-medium transition shadow-md flex items-center gap-2"
+                      >
+                        <Search size={16} />
+                        Rechercher
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Université */}
-        <div className="mb-6">
-          <div className="bg-purple-600/20 border border-purple-500/30 rounded-lg p-4 inline-block">
-            <p className="text-white">
-              <span className="text-purple-400">🏛️ Université :</span> {university}
-            </p>
-          </div>
-        </div>
+              {/* Header with stats toggle */}
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Étudiants</h2>
+                  <p className="text-white/50 text-sm mt-1">{stats.filtered || students.length} résultat(s)</p>
+                </div>
+                <button
+                  onClick={() => setShowStats(true)}
+                  className="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-semibold transition shadow-lg flex items-center gap-2"
+                >
+                  <BarChart3 size={16} />
+                  Statistiques
+                </button>
+              </div>
 
-        {showStats ? (
-          <StatisticsPanel stats={placementStats} loading={statsLoading} />
-        ) : (
-          <>
-            {/* Filtres */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20 mb-6">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 text-white/70 hover:text-white transition mb-4"
-              >
-                <Filter size={16} />
-                {showFilters ? 'Masquer les filtres' : 'Afficher les filtres'}
-              </button>
-              
-              {showFilters && (
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                  <div>
-                    <label className="block text-white/70 text-sm mb-2">Recherche</label>
-                    <input
-                      type="text"
-                      placeholder="Nom ou filière..."
-                      value={filters.search}
-                      onChange={(e) => handleFilterChange('search', e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-white/70 text-sm mb-2">Filière</label>
-                    <select
-                      value={filters.major}
-                      onChange={(e) => handleFilterChange('major', e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm"
-                    >
-                      <option value="">Toutes</option>
-                      {majors.map(m => <option key={m} value={m}>{m}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-white/70 text-sm mb-2">Wilaya</label>
-                    <select
-                      value={filters.wilaya}
-                      onChange={(e) => handleFilterChange('wilaya', e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm"
-                    >
-                      <option value="">Toutes</option>
-                      {wilayasList.map(w => <option key={w} value={w}>{w}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-white/70 text-sm mb-2">Compétences</label>
-                    <input
-                      type="text"
-                      placeholder="React, Python,..."
-                      value={filters.skills}
-                      onChange={(e) => handleFilterChange('skills', e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-white/70 text-sm mb-2">Statut</label>
-                    <select
-                      value={filters.is_placed}
-                      onChange={(e) => handleFilterChange('is_placed', e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm"
-                    >
-                      <option value="">Tous</option>
-                      <option value="true">Stage trouvé</option>
-                      <option value="false">En recherche</option>
-                    </select>
-                  </div>
+              {/* Student grid */}
+              {loading ? (
+                <div className="flex justify-center py-20">
+                  <Loader2 size={32} className="animate-spin text-purple-400" />
+                </div>
+              ) : students.length === 0 ? (
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-12 text-center border border-white/20">
+                  <Users className="w-16 h-16 text-white/30 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-white mb-2">Aucun étudiant trouvé</h3>
+                  <p className="text-white/60">Modifiez vos filtres pour élargir la recherche.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {students.map(student => (
+                    <StudentCard key={student.id} student={student} onClick={setSelectedStudent} />
+                  ))}
                 </div>
               )}
-              
-              <div className="flex justify-end mt-4 gap-3">
-                <button
-                  onClick={resetFilters}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition"
-                >
-                  Réinitialiser
-                </button>
-                <button
-                  onClick={fetchStudents}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm transition"
-                >
-                  Rechercher
-                </button>
-              </div>
-            </div>
+            </>
+          )}
+        </div>
+      </div>
 
-            {/* Liste des étudiants */}
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-white">
-                Étudiants ({stats.filtered || students.length})
-              </h2>
-            </div>
-
-            {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
-              </div>
-            ) : students.length === 0 ? (
-              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-12 text-center border border-white/20">
-                <Users className="w-16 h-16 text-white/30 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">Aucun étudiant trouvé</h3>
-                <p className="text-white/60">Aucun étudiant ne correspond à vos critères de recherche.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {students.map(student => (
-                  <StudentCard 
-                    key={student.id} 
-                    student={student} 
-                    onClick={setSelectedStudent} 
-                  />
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </main>
-
+      {/* Modal for student details */}
       {selectedStudent && (
-        <StudentDetailsModal 
-          student={selectedStudent} 
-          onClose={() => setSelectedStudent(null)} 
-        />
+        <StudentDetailsModal student={selectedStudent} onClose={() => setSelectedStudent(null)} />
       )}
     </div>
   );

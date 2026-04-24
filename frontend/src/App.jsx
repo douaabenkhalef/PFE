@@ -14,6 +14,9 @@ import CompanyApplications from './page/CompanyApplications';
 import StudentApplications from './page/StudentApplications';
 import InternshipOfferManager from './page/InternshipOfferManager';
 import CoDeptValidations from './page/CoDeptValidations';
+import DeptHeadValidations from './page/DeptHeadValidations';
+import UniversityProfile from './page/UniversityProfile';
+import CompanyProfile from './page/CompanyProfile';
 import './App.css';
 import CompanyActivityLogs from './page/CompanyActivityLogs';
 import DeptHeadActivityLogs from './page/DeptHeadActivityLogs';
@@ -100,6 +103,12 @@ function App() {
             </ProtectedRoute>
           } />
 
+          <Route path="/admin/validations" element={
+            <ProtectedRoute allowedRoles={['admin']} allowedSubRoles={['admin']}>
+              <DeptHeadValidations />
+            </ProtectedRoute>
+          } />
+
           <Route path="/co-dept-head/validations" element={
             <ProtectedRoute allowedRoles={['admin']} allowedSubRoles={['co_dept_head']}>
               <CoDeptValidations />
@@ -124,6 +133,12 @@ function App() {
             </ProtectedRoute>
           } />
 
+          <Route path="/company/company-profile" element={
+            <ProtectedRoute allowedRoles={['company']} allowedSubRoles={['hiring_manager', 'company_manager']}>
+              <CompanyProfile />
+            </ProtectedRoute>
+          } />
+
           <Route path="/admin/activity-logs" element={
             <ProtectedRoute allowedRoles={['admin']} allowedSubRoles={['admin']}>
               <DeptHeadActivityLogs />
@@ -135,6 +150,13 @@ function App() {
               <ManageStudents />
             </ProtectedRoute>
           } />
+
+          <Route path="/admin/university-profile" element={
+            <ProtectedRoute allowedRoles={['admin']} allowedSubRoles={['admin', 'co_dept_head']}>
+              <UniversityProfile />
+            </ProtectedRoute>
+          } />
+
           
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

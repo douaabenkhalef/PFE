@@ -9,6 +9,10 @@ import {
   PenTool, Settings, Trash2, Briefcase, Users
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { AdminSidebarInline } from '../components/AdminSidebar';
+import ChatWidget from '../components/ChatWidget';
+import PrivateChat from '../components/PrivateChat';
+import './StudentDashboard.css'; // <-- Import the radial gradient background
 
 const API = 'http://localhost:8000/api';
 const authHeaders = () => ({
@@ -103,7 +107,7 @@ const ActivityLogCard = ({ log }) => {
 };
 
 export default function DeptHeadActivityLogs() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState({});
@@ -114,6 +118,8 @@ export default function DeptHeadActivityLogs() {
     end_date: ''
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [privateChatOpen, setPrivateChatOpen] = useState(false);
+  const [selectedChatUser, setSelectedChatUser] = useState(null);
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -158,201 +164,216 @@ export default function DeptHeadActivityLogs() {
     { value: 'reject_application', label: 'Refus candidature' }
   ];
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const handleStartPrivateChat = (targetUser) => {
+    setSelectedChatUser(targetUser);
+    setPrivateChatOpen(true);
+  };
+
+  const handleClosePrivateChat = () => {
+    setPrivateChatOpen(false);
+    setSelectedChatUser(null);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black">
-      <nav className="bg-white/10 backdrop-blur-lg border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate('/admin/dashboard')}
-                className="flex items-center gap-2 text-white/70 hover:text-white transition"
-              >
-                <ArrowLeft size={18} />
-                Retour
-              </button>
-              <span className="text-white/30">|</span>
-              <div className="flex items-center gap-3">
-                <BarChart3 className="w-6 h-6 text-purple-400" />
-                <h1 className="text-xl font-bold text-white">Contrôle d'Activité - Co Dept Heads</h1>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-white/80">{user?.full_name || user?.email}</span>
-              <span className="text-white/60 text-sm bg-white/10 px-3 py-1 rounded-full">Department Head</span>
-            </div>
-          </div>
-        </div>
-      </nav>
+    // Changed: removed bg-gradient-to-br, added flex layout + ml-64 for sidebar
+    <div className="min-h-screen flex">
+      <AdminSidebarInline user={user} onLogout={handleLogout} />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white/60 text-sm">Total actions</p>
-                <p className="text-2xl font-bold text-white">{stats.total_actions || 0}</p>
-              </div>
-              <Activity className="w-8 h-8 text-purple-400 opacity-60" />
-            </div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white/60 text-sm">Validations</p>
-                <p className="text-2xl font-bold text-green-400">{stats.validations_count || 0}</p>
-              </div>
-              <CheckCircle className="w-8 h-8 text-green-400 opacity-60" />
-            </div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white/60 text-sm">Signatures</p>
-                <p className="text-2xl font-bold text-purple-400">{stats.signatures_count || 0}</p>
-              </div>
-              <PenTool className="w-8 h-8 text-purple-400 opacity-60" />
-            </div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white/60 text-sm">Offres traitées</p>
-                <p className="text-2xl font-bold text-cyan-400">{stats.offers_count || 0}</p>
-              </div>
-              <Briefcase className="w-8 h-8 text-cyan-400 opacity-60" />
-            </div>
-          </div>
-        </div>
-
-        {/* Deuxième ligne de stats */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white/60 text-sm">Refus</p>
-                <p className="text-2xl font-bold text-red-400">{stats.rejections_count || 0}</p>
-              </div>
-              <XCircle className="w-8 h-8 text-red-400 opacity-60" />
-            </div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white/60 text-sm">Approbations Co Dept</p>
-                <p className="text-2xl font-bold text-emerald-400">{stats.approvals_count || 0}</p>
-              </div>
-              <UserPlus className="w-8 h-8 text-emerald-400 opacity-60" />
-            </div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white/60 text-sm">Modif. permissions</p>
-                <p className="text-2xl font-bold text-yellow-400">{stats.permissions_count || 0}</p>
-              </div>
-              <Settings className="w-8 h-8 text-yellow-400 opacity-60" />
-            </div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white/60 text-sm">Suppressions</p>
-                <p className="text-2xl font-bold text-red-400">{stats.deletions_count || 0}</p>
-              </div>
-              <Trash2 className="w-8 h-8 text-red-400 opacity-60" />
-            </div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white/60 text-sm">Candidatures</p>
-                <p className="text-2xl font-bold text-blue-400">{stats.applications_count || 0}</p>
-              </div>
-              <Users className="w-8 h-8 text-blue-400 opacity-60" />
-            </div>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20 mb-6">
+      <div className="ml-64 flex-1 min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Back button to admin dashboard */}
           <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 text-white/70 hover:text-white transition"
+            onClick={() => navigate('/admin/dashboard')}
+            className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
           >
-            <Filter size={16} />
-            {showFilters ? 'Masquer les filtres' : 'Afficher les filtres'}
+            <ArrowLeft size={18} />
+            Retour au tableau de bord
           </button>
-          
-          {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-              <div>
-                <label className="block text-white/70 text-sm mb-2">Type d'action</label>
-                <select
-                  value={filters.action_type}
-                  onChange={(e) => setFilters(prev => ({ ...prev, action_type: e.target.value }))}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
-                >
-                  <option value="">Tous</option>
-                  {actionTypes.map(at => (
-                    <option key={at.value} value={at.value}>{at.label}</option>
-                  ))}
-                </select>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white/60 text-sm">Total actions</p>
+                  <p className="text-2xl font-bold text-white">{stats.total_actions || 0}</p>
+                </div>
+                <Activity className="w-8 h-8 text-purple-400 opacity-60" />
               </div>
-              <div>
-                <label className="block text-white/70 text-sm mb-2">Date début</label>
-                <input
-                  type="date"
-                  value={filters.start_date}
-                  onChange={(e) => setFilters(prev => ({ ...prev, start_date: e.target.value }))}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
-                />
+            </div>
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white/60 text-sm">Validations</p>
+                  <p className="text-2xl font-bold text-green-400">{stats.validations_count || 0}</p>
+                </div>
+                <CheckCircle className="w-8 h-8 text-green-400 opacity-60" />
               </div>
-              <div>
-                <label className="block text-white/70 text-sm mb-2">Date fin</label>
-                <input
-                  type="date"
-                  value={filters.end_date}
-                  onChange={(e) => setFilters(prev => ({ ...prev, end_date: e.target.value }))}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
-                />
+            </div>
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white/60 text-sm">Signatures</p>
+                  <p className="text-2xl font-bold text-purple-400">{stats.signatures_count || 0}</p>
+                </div>
+                <PenTool className="w-8 h-8 text-purple-400 opacity-60" />
               </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white/60 text-sm">Offres traitées</p>
+                  <p className="text-2xl font-bold text-cyan-400">{stats.offers_count || 0}</p>
+                </div>
+                <Briefcase className="w-8 h-8 text-cyan-400 opacity-60" />
+              </div>
+            </div>
+          </div>
+
+          {/* Second row of stats */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white/60 text-sm">Refus</p>
+                  <p className="text-2xl font-bold text-red-400">{stats.rejections_count || 0}</p>
+                </div>
+                <XCircle className="w-8 h-8 text-red-400 opacity-60" />
+              </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white/60 text-sm">Approbations Co Dept</p>
+                  <p className="text-2xl font-bold text-emerald-400">{stats.approvals_count || 0}</p>
+                </div>
+                <UserPlus className="w-8 h-8 text-emerald-400 opacity-60" />
+              </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white/60 text-sm">Modif. permissions</p>
+                  <p className="text-2xl font-bold text-yellow-400">{stats.permissions_count || 0}</p>
+                </div>
+                <Settings className="w-8 h-8 text-yellow-400 opacity-60" />
+              </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white/60 text-sm">Suppressions</p>
+                  <p className="text-2xl font-bold text-red-400">{stats.deletions_count || 0}</p>
+                </div>
+                <Trash2 className="w-8 h-8 text-red-400 opacity-60" />
+              </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white/60 text-sm">Candidatures</p>
+                  <p className="text-2xl font-bold text-blue-400">{stats.applications_count || 0}</p>
+                </div>
+                <Users className="w-8 h-8 text-blue-400 opacity-60" />
+              </div>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20 mb-6">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2 text-white/70 hover:text-white transition"
+            >
+              <Filter size={16} />
+              {showFilters ? 'Masquer les filtres' : 'Afficher les filtres'}
+            </button>
+            
+            {showFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div>
+                  <label className="block text-white/70 text-sm mb-2">Type d'action</label>
+                  <select
+                    value={filters.action_type}
+                    onChange={(e) => setFilters(prev => ({ ...prev, action_type: e.target.value }))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                  >
+                    <option value="">Tous</option>
+                    {actionTypes.map(at => (
+                      <option key={at.value} value={at.value}>{at.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-white/70 text-sm mb-2">Date début</label>
+                  <input
+                    type="date"
+                    value={filters.start_date}
+                    onChange={(e) => setFilters(prev => ({ ...prev, start_date: e.target.value }))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-white/70 text-sm mb-2">Date fin</label>
+                  <input
+                    type="date"
+                    value={filters.end_date}
+                    onChange={(e) => setFilters(prev => ({ ...prev, end_date: e.target.value }))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Actions header */}
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-white">Historique des actions des Co Department Heads</h2>
+            <button
+              onClick={fetchLogs}
+              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm transition"
+            >
+              <RefreshCw size={14} />
+              Actualiser
+            </button>
+          </div>
+
+          {/* Logs list */}
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
+            </div>
+          ) : logs.length === 0 ? (
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-12 text-center border border-white/20">
+              <Activity className="w-16 h-16 text-white/30 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">Aucune activité enregistrée</h3>
+              <p className="text-white/60">Les actions des Co Department Heads apparaîtront ici.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {logs.map(log => (
+                <ActivityLogCard key={log.id} log={log} />
+              ))}
             </div>
           )}
         </div>
+      </div>
 
-        {/* Actions header */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-white">Historique des actions des Co Department Heads</h2>
-          <button
-            onClick={fetchLogs}
-            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm transition"
-          >
-            <RefreshCw size={14} />
-            Actualiser
-          </button>
-        </div>
-
-        {/* Logs list */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
-          </div>
-        ) : logs.length === 0 ? (
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-12 text-center border border-white/20">
-            <Activity className="w-16 h-16 text-white/30 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">Aucune activité enregistrée</h3>
-            <p className="text-white/60">Les actions des Co Department Heads apparaîtront ici.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {logs.map(log => (
-              <ActivityLogCard key={log.id} log={log} />
-            ))}
-          </div>
-        )}
-      </main>
+      {/* Floating chat */}
+      <ChatWidget university={user?.university || "Université"} />
+      {privateChatOpen && selectedChatUser && (
+        <PrivateChat
+          university={user?.university || "Université"}
+          currentUser={user}
+          targetUser={selectedChatUser}
+          onClose={handleClosePrivateChat}
+        />
+      )}
     </div>
   );
 }

@@ -53,7 +53,7 @@ class User(Document):
     created_at = DateTimeField(default=datetime.now)
     updated_at = DateTimeField(default=datetime.now)
     
-    # 🔥 AJOUTER CE CHAMP POUR LA DERNIÈRE ACTIVITÉ
+   
     last_activity = DateTimeField(default=datetime.now)
     
     pending_company_id = StringField(default='')
@@ -86,13 +86,19 @@ class Company(Document):
     
     user = ReferenceField(User, required=False, unique=True, null=True, blank=True, reverse_delete_rule=2)
     company_name = StringField(required=True, max_length=200)
-    logo = FileField(blank=True)
+    logo = StringField(blank=True, default='')
     description = StringField(required=True)
     location = StringField(required=True, max_length=100)
     website = StringField(blank=True, default='')
     industry = StringField(required=True, max_length=100)
     verified = BooleanField(default=False)
     parent_company = ReferenceField('self', null=True, default=None)
+
+    # cover_picture = StringField(blank=True, default='')    
+    # phone = StringField(max_length=30, blank=True, default='')
+    # contact_email = EmailField(blank=True, default='')
+    # linkedin = URLField(blank=True, default='')
+    # twitter = URLField(blank=True, default='')
     
     def __str__(self):
         return self.company_name
@@ -252,6 +258,8 @@ class Admin(Document):
     
     def __str__(self):
         return f"{self.full_name} - {self.user.email}"
+    
+
 
 
 # ==================== OTP VERIFICATION MODEL ====================
@@ -316,9 +324,7 @@ class PendingApproval(Document):
 # ==================== ACTIVITY LOG MODEL ====================
 
 class ActivityLog(Document):
-    """
-    Collection pour les logs d'activité des utilisateurs
-    """
+    
     meta = {'collection': 'activity_logs'}
     
     user_id = StringField(required=True)
@@ -342,7 +348,8 @@ class ActivityLog(Document):
         'update_permissions',
         'delete_hiring_manager',
         'delete_co_dept_head',
-        'add_signature'
+        'add_signature',
+        'update_company_profile',
     ])
     
     target_type = StringField(required=True, choices=[
@@ -358,6 +365,8 @@ class ActivityLog(Document):
     
     created_at = DateTimeField(default=datetime.now)
     ip_address = StringField(default='')
+
+    
     
     def __str__(self):
         return f"{self.created_at} - {self.user_email} - {self.action_type}"
@@ -382,9 +391,7 @@ class ChatMessage(Document):
 
 
 class PrivateChatMessage(Document):
-    """
-    Messages privés entre utilisateurs
-    """
+  
     meta = {'collection': 'private_chat_messages'}
     
     sender_id = StringField(required=True)
@@ -402,3 +409,58 @@ class PrivateChatMessage(Document):
     
     def __str__(self):
         return f"{self.sender_name} -> {self.receiver_name}: {self.message[:50]}"
+
+# ===========UNIVERSITY PROFILE======================
+class UniversityProfile(Document):
+   
+    meta = {'collection': 'university_profiles'}
+ 
+    university = StringField(required=True, unique=True, max_length=200)
+ 
+    name = StringField(max_length=200, default='')
+    description = StringField(default='')
+    email = StringField(default='')
+    phone = StringField(default='', max_length=30)
+    address = StringField(default='')
+    wilaya = StringField(default='', max_length=50)
+    website = StringField(default='')
+    linkedin = StringField(default='')
+ 
+    logo = StringField(default='')
+    cover_picture = StringField(default='')
+ 
+    faculties = ListField(StringField(), default=[])
+ 
+    created_at = DateTimeField(default=datetime.now)
+    updated_at = DateTimeField(default=datetime.now)
+ 
+    def __str__(self):
+        return f"UniversityProfile: {self.university}"
+    
+
+    # ==================== COMPANY PROFILE MODEL ====================
+ 
+class CompanyProfile(Document):
+    
+    meta = {'collection': 'company_profiles'}
+ 
+    company_id = StringField(required=True, unique=True)
+ 
+    name = StringField(max_length=200, default='')
+    description = StringField(default='')
+    phone = StringField(default='', max_length=30)
+    contact_email = StringField(default='')
+    location = StringField(default='', max_length=200)
+    website = StringField(default='')
+    linkedin = StringField(default='')
+    twitter = StringField(default='')
+    industry = StringField(default='', max_length=100)
+ 
+    logo = StringField(default='')
+    cover_picture = StringField(default='')
+ 
+    created_at = DateTimeField(default=datetime.now)
+    updated_at = DateTimeField(default=datetime.now)
+ 
+    def __str__(self):
+        return f"CompanyProfile: {self.company_id}"
