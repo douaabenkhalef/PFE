@@ -1,10 +1,12 @@
+// frontend/src/pages/CompanyManagerDashboard.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { CheckCircle, XCircle, Clock, Mail, User, Briefcase, Bell, CheckCheck, X, FileText, Users } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Mail, User, Briefcase, Bell, CheckCheck, X, FileText, Users, Building2, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CompanySidebar from '../components/CompanySidebar';
-import './StudentDashboard.css';
+import ChatWidget from '../components/ChatWidget';
+import PrivateChat from '../components/PrivateChat';
 
 const API = 'http://localhost:8000/api';
 
@@ -140,8 +142,9 @@ const CompanyManagerDashboard = () => {
   const [activeSection, setActiveSection] = useState('home');
   const homeRef = useRef(null);
   const internshipsRef = useRef(null);
-  const [companyProfile, setCompanyProfile] = useState(null);
 
+  // Your cover image fetch
+  const [companyProfile, setCompanyProfile] = useState(null);
   const fetchCompanyProfile = useCallback(async () => {
     try {
       const res = await fetch(`${API}/company/profile/`, { headers: authHeaders() });
@@ -151,6 +154,38 @@ const CompanyManagerDashboard = () => {
       console.error("Erreur chargement profil entreprise:", err);
     }
   }, []);
+
+  // Friend's private chat and hiring managers
+  const [privateChatOpen, setPrivateChatOpen] = useState(false);
+  const [selectedChatUser, setSelectedChatUser] = useState(null);
+  const [hiringManagers, setHiringManagers] = useState([]);
+  const [loadingHiringManagers, setLoadingHiringManagers] = useState(true);
+
+  const handleStartPrivateChat = (targetUser) => {
+    setSelectedChatUser(targetUser);
+    setPrivateChatOpen(true);
+  };
+  const handleClosePrivateChat = () => {
+    setPrivateChatOpen(false);
+    setSelectedChatUser(null);
+  };
+
+  const fetchHiringManagers = async () => {
+    setLoadingHiringManagers(true);
+    try {
+      const res = await fetch(`${API}/company/approved-hiring-managers/`, { 
+        headers: authHeaders() 
+      });
+      const data = await res.json();
+      if (data.success) {
+        setHiringManagers(data.hiring_managers || []);
+      }
+    } catch (err) {
+      console.error("Erreur chargement hiring managers:", err);
+    } finally {
+      setLoadingHiringManagers(false);
+    }
+  };
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -215,6 +250,7 @@ const CompanyManagerDashboard = () => {
     fetchNotifications();
     fetchTopOffers();
     fetchCompanyProfile();
+    fetchHiringManagers();
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, [fetchNotifications, fetchCompanyProfile]);
@@ -241,7 +277,7 @@ const CompanyManagerDashboard = () => {
     return () => obs.disconnect();
   }, []);
 
-  // Refetch company profile when tab becomes visible or after profile update
+  // Refetch company profile on visibility or custom event
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -274,6 +310,19 @@ const CompanyManagerDashboard = () => {
   return (
     <div className="min-h-screen">
       {sidebarOpen && <CompanySidebar user={user} onLogout={handleLogout} onClose={() => setSidebarOpen(false)} />}
+
+      {/* Chat de groupe pour l'entreprise */}
+      <ChatWidget companyMode={true} />
+      
+      {/* Chat privé avec Hiring Manager */}
+      {privateChatOpen && selectedChatUser && (
+        <PrivateChat
+          university={user?.company_name || "Entreprise"}
+          currentUser={user}
+          targetUser={selectedChatUser}
+          onClose={handleClosePrivateChat}
+        />
+      )}
 
       <nav className="sd-navbar" style={{ borderBottom: 'none' }}>
         <div className="sd-navbar-left">
@@ -324,7 +373,7 @@ const CompanyManagerDashboard = () => {
               </h1>
               <p>from {user?.company_name}</p>
               <p style={{ marginTop: '1rem', fontSize: '0.95rem', lineHeight: '1.6' }}>
-                your centralized platform for managing internship programs. Our portal empowers both operational 
+                Your centralized platform for managing internship programs. Our portal empowers both operational 
                 and strategic users with intuitive tools to post opportunities, review candidates.
               </p>
             </div>

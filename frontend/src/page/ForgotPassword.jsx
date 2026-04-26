@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ const ForgotPassword = () => {
   const [emailError, setEmailError] = useState('');
   const [otpError, setOtpError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [usingRecovery, setUsingRecovery] = useState(false);
 
   const validatePassword = (password) => {
     if (password.length < 8) {
@@ -68,7 +70,8 @@ const ForgotPassword = () => {
     setLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8000/api/auth/forgot-password/', {
+      // Use the endpoint that supports recovery email
+      const response = await fetch('http://localhost:8000/api/auth/forgot-password-recovery/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -77,17 +80,16 @@ const ForgotPassword = () => {
       const data = await response.json();
       
       if (data.success) {
-        if (data.email_exists === false || (data.success === false && data.message === 'Aucun compte trouvé avec cet email.')) {
+        if (data.email_exists === false) {
           setEmailError(data.message || 'No account found with this email.');
           setLoading(false);
           return;
         }
         
-        if (data.success) {
-          setStep('otp');
-        } else {
-          setEmailError(data.message || 'Error sending code');
-        }
+        // Show appropriate message based on whether recovery email was used
+        toast.success(data.message);
+        setUsingRecovery(data.using_recovery || false);
+        setStep('otp');
       } else {
         setEmailError(data.message || 'Error sending code');
       }
@@ -172,7 +174,7 @@ const ForgotPassword = () => {
     setOtpError('');
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/auth/forgot-password/', {
+      const response = await fetch('http://localhost:8000/api/auth/forgot-password-recovery/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -183,6 +185,7 @@ const ForgotPassword = () => {
       if (data.success && data.email_exists !== false) {
         setCode(['', '', '', '', '', '']);
         setOtpError('');
+        toast.success('New code sent to your email');
       } else {
         setOtpError('No account found with this email.');
         setStep('email');
@@ -260,8 +263,13 @@ const ForgotPassword = () => {
               </div>
               <h2 className="text-2xl font-bold text-white">Verification</h2>
               <p className="text-white/60 mt-2">
-                A code has been sent to <strong>{email}</strong>
+                A code has been sent to {usingRecovery ? 'your recovery email' : <strong>{email}</strong>}
               </p>
+              {usingRecovery && (
+                <p className="text-purple-400 text-xs mt-1">
+                  🔐 Using your recovery email for security
+                </p>
+              )}
               <p className="text-white/40 text-xs mt-1">
                 Valid for 15 minutes
               </p>

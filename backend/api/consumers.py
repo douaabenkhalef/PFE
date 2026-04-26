@@ -513,3 +513,590 @@ class PrivateChatConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             logger.error(f"❌ Erreur get_conversation_history: {e}")
             return []
+        
+
+class GroupChatConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        query_string = self.scope['query_string'].decode()
+        token = None
+        if 'token=' in query_string:
+            token = query_string.split('token=')[1].split('&')[0]
+        
+        user = None
+        if token:
+            try:
+                import jwt
+                from django.conf import settings
+                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+                user_id = payload.get('user_id')
+                if user_id:
+                    user = await self.get_user_by_id(user_id)
+                    if user:
+                        print(f"✅ Group chat user authenticated: {user.email}")
+            except Exception as e:
+                print(f"Token error: {e}")
+        
+        if user is None:
+            await self.close()
+            return
+        
+        self.user = user
+        self.group_id = self.scope['url_route']['kwargs']['group_id']
+        self.room_group_name = f'group_chat_{self.group_id}'
+        
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+        
+        await self.accept()
+        
+        messages = await self.get_group_messages(self.group_id)
+        await self.send(text_data=json.dumps({
+            'type': 'history',
+            'messages': messages
+        }))
+    
+    async def disconnect(self, close_code):
+        if hasattr(self, 'room_group_name'):
+            await self.channel_layer.group_discard(
+                self.room_group_name,
+                self.channel_name
+            )
+    
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        msg_type = data.get('type', 'message')
+        
+        if msg_type == 'message':
+            message = data.get('message', '')
+            message_type = data.get('message_type', 'text')
+            file_data = data.get('file_data', None)
+            file_name = data.get('file_name', '')
+            
+            file_url = ''
+            if file_data and message_type in ['image', 'file']:
+                file_url = await self.save_file(file_data, file_name, message_type)
+            
+            saved_msg = await self.save_group_message(
+                self.user, self.group_id, message, message_type, file_url, file_name
+            )
+            
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'group_message',
+                    'message_id': str(saved_msg.id),
+                    'message': message,
+                    'message_type': message_type,
+                    'file_url': file_url,
+                    'file_name': file_name,
+                    'sender_id': str(self.user.id),
+                    'sender_name': self.user.username,
+                    'timestamp': datetime.now().isoformat()
+                }
+            )
+    
+    async def group_message(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'message',
+            'message_id': event['message_id'],
+            'message': event['message'],
+            'message_type': event.get('message_type', 'text'),
+            'file_url': event.get('file_url', ''),
+            'file_name': event.get('file_name', ''),
+            'sender_id': event['sender_id'],
+            'sender_name': event['sender_name'],
+            'timestamp': event['timestamp']
+        }))
+    
+    @database_sync_to_async
+    def get_user_by_id(self, user_id):
+        from .models import User
+        try:
+            return User.objects(id=user_id).first()
+        except Exception:
+            return None
+    
+    @database_sync_to_async
+    def save_file(self, file_data, file_name, file_type):
+        try:
+            import base64
+            import uuid
+            import os
+            
+            upload_dir = os.path.join(settings.MEDIA_ROOT, 'chat_files')
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            if ',' in file_data:
+                imgstr = file_data.split(',')[1]
+            else:
+                imgstr = file_data
+            
+            ext = file_name.split('.')[-1] if '.' in file_name else 'png'
+            unique_name = f"{uuid.uuid4().hex}.{ext}"
+            file_path = os.path.join(upload_dir, unique_name)
+            
+            with open(file_path, 'wb') as f:
+                f.write(base64.b64decode(imgstr))
+            
+            return f'/media/chat_files/{unique_name}'
+        except Exception as e:
+            print(f"Erreur sauvegarde fichier: {e}")
+            return ''
+    
+    @database_sync_to_async
+    def save_group_message(self, user, group_id, message, message_type, file_url, file_name):
+        from .models import GroupChatMessage
+        
+        msg = GroupChatMessage(
+            group_id=group_id,
+            sender_id=str(user.id),
+            sender_name=user.username,
+            message=message,
+            message_type=message_type,
+            file_url=file_url,
+            file_name=file_name,
+            created_at=datetime.now()
+        )
+        msg.save()
+        return msg
+    
+    @database_sync_to_async
+    def get_group_messages(self, group_id):
+        from .models import GroupChatMessage
+        
+        messages = GroupChatMessage.objects(
+            group_id=group_id
+        ).order_by('created_at')[:100]
+        
+        result = []
+        for msg in messages:
+            result.append({
+                'id': str(msg.id),
+                'message': msg.message,
+                'message_type': msg.message_type,
+                'file_url': msg.file_url,
+                'file_name': msg.file_name,
+                'sender_id': msg.sender_id,
+                'sender_name': msg.sender_name,
+                'timestamp': msg.created_at.isoformat(),
+                'is_own': msg.sender_id == str(self.user.id)
+            })
+        return result
+
+
+class InternshipGroupChatConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        query_string = self.scope['query_string'].decode()
+        token = None
+        if 'token=' in query_string:
+            token = query_string.split('token=')[1].split('&')[0]
+        
+        user = None
+        if token:
+            try:
+                import jwt
+                from django.conf import settings
+                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+                user_id = payload.get('user_id')
+                if user_id:
+                    user = await self.get_user_by_id(user_id)
+                    if user:
+                        print(f"✅ Internship chat user authenticated: {user.email}")
+            except Exception as e:
+                print(f"❌ Internship chat token error: {e}")
+        
+        if user is None:
+            print("❌ Internship chat: No valid user, closing connection")
+            await self.close()
+            return
+        
+        # السماح للطلاب فقط
+        if user.role != 'student':
+            print(f"❌ Internship chat: User role {user.role} not allowed, closing connection")
+            await self.close()
+            return
+        
+        self.user = user
+        self.internship_id = self.scope['url_route']['kwargs']['internship_id']
+        self.room_group_name = f'internship_chat_{self.internship_id}'
+        
+        print(f"🔵 Internship ID from URL: {self.internship_id}")
+        
+        # التحقق من أن الطالب لديه حق الوصول
+        has_access = await self.check_student_access(self.internship_id)
+        if not has_access:
+            print(f"❌ Student {user.email} does not have access to internship {self.internship_id}")
+            await self.close()
+            return
+        
+        print(f"✅ Access granted for internship {self.internship_id}")
+        
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+        
+        await self.accept()
+        
+        # تحميل الرسائل السابقة من قاعدة البيانات
+        messages = await self.get_recent_messages()
+        await self.send(text_data=json.dumps({
+            'type': 'history',
+            'messages': messages
+        }))
+        
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'user_online',
+                'username': user.username,
+                'full_name': await self.get_user_full_name(user),
+                'is_online': True
+            }
+        )
+    
+    async def disconnect(self, close_code):
+        if hasattr(self, 'room_group_name') and hasattr(self, 'user') and self.user:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'user_offline',
+                    'username': self.user.username,
+                    'is_online': False
+                }
+            )
+            await self.channel_layer.group_discard(
+                self.room_group_name,
+                self.channel_name
+            )
+    
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        message_type = data.get('type', 'message')
+        
+        if message_type == 'message':
+            message = data.get('message', '')
+            if not hasattr(self, 'user') or not self.user:
+                return
+            
+            full_name = await self.get_user_full_name(self.user)
+            
+            # حفظ الرسالة في قاعدة البيانات
+            await self.save_message(self.user, message, self.internship_id)
+            
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'chat_message',
+                    'message': message,
+                    'username': self.user.username,
+                    'full_name': full_name,
+                    'timestamp': datetime.now().isoformat(),
+                    'user_id': str(self.user.id)
+                }
+            )
+    
+    async def chat_message(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'message',
+            'message': event['message'],
+            'username': event['username'],
+            'full_name': event['full_name'],
+            'timestamp': event['timestamp'],
+            'user_id': event['user_id']
+        }))
+    
+    async def user_online(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'user_online',
+            'username': event['username'],
+            'full_name': event.get('full_name', event['username']),
+            'is_online': True
+        }))
+    
+    async def user_offline(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'user_offline',
+            'username': event['username'],
+            'is_online': False
+        }))
+    
+    @database_sync_to_async
+    def get_user_by_id(self, user_id):
+        from .models import User
+        try:
+            return User.objects(id=user_id).first()
+        except Exception:
+            return None
+    
+    @database_sync_to_async
+    def get_user_full_name(self, user):
+        from .models import Student
+        student = Student.objects(user=user).first()
+        return student.full_name if student else user.username
+    
+    @database_sync_to_async
+    def check_student_access(self, internship_id):
+        """Vérifie si l'étudiant a accès à ce stage - Accepte Application ID ou Offer ID"""
+        from .models import Student, Application
+        from bson import ObjectId
+        
+        student = Student.objects(user=self.user).first()
+        if not student:
+            print(f"❌ No student profile found for user {self.user.email}")
+            return False
+        
+        try:
+            print(f"🔍 Checking access for ID: {internship_id}")
+            
+            # ========== الطريقة الأولى: البحث كـ Application مباشرة ==========
+            try:
+                app_id = ObjectId(internship_id)
+                application = Application.objects(id=app_id, student=student).first()
+                if application:
+                    print(f"✅ Found application directly by Application ID!")
+                    # تغيير internship_id إلى offer_id الصحيح للغرفة
+                    correct_offer_id = str(application.offer.id)
+                    if correct_offer_id != self.internship_id:
+                        print(f"🔄 Updating room from {self.internship_id} to {correct_offer_id}")
+                        self.internship_id = correct_offer_id
+                        self.room_group_name = f'internship_chat_{self.internship_id}'
+                    return True
+            except:
+                pass
+            
+            # ========== الطريقة الثانية: البحث كـ Offer ==========
+            try:
+                offer_id = ObjectId(internship_id)
+                application = Application.objects(
+                    student=student,
+                    offer=offer_id,
+                    status__in=['accepted_by_company', 'validated_by_co_dept']
+                ).first()
+                if application:
+                    print(f"✅ Found application via Offer ID!")
+                    return True
+            except:
+                pass
+            
+            # ========== الطريقة الثالثة: البحث النصي ==========
+            all_apps = Application.objects(student=student)
+            print(f"📋 Student has {all_apps.count()} applications")
+            
+            for app in all_apps:
+                if app.offer:
+                    print(f"   - App ID: {app.id}, Offer ID: {app.offer.id}, Status: {app.status}")
+                    
+                    # مقارنة مع Application ID
+                    if str(app.id) == str(internship_id):
+                        print(f"✅ Found match via Application ID!")
+                        correct_offer_id = str(app.offer.id)
+                        if correct_offer_id != self.internship_id:
+                            print(f"🔄 Updating room from {self.internship_id} to {correct_offer_id}")
+                            self.internship_id = correct_offer_id
+                            self.room_group_name = f'internship_chat_{self.internship_id}'
+                        return True
+                    
+                    # مقارنة مع Offer ID
+                    if str(app.offer.id) == str(internship_id):
+                        print(f"✅ Found match via Offer ID!")
+                        return True
+            
+            print(f"❌ No matching application found")
+            return False
+            
+        except Exception as e:
+            print(f"❌ Error checking access: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    @database_sync_to_async
+    def save_message(self, user, message, internship_id):
+        """حفظ الرسالة في قاعدة البيانات"""
+        from .models import ChatMessage
+        ChatMessage.objects.create(
+            university="Internship",
+            user_id=str(user.id),
+            username=user.username,
+            message=message,
+            created_at=datetime.now(),
+            internship_id=internship_id
+        )
+    
+    @database_sync_to_async
+    def get_recent_messages(self):
+        """استرجاع الرسائل السابقة"""
+        from .models import ChatMessage
+        messages = ChatMessage.objects(
+            internship_id=self.internship_id
+        ).order_by('-created_at')[:50]
+        
+        return [{
+            'id': str(msg.id),
+            'username': msg.username,
+            'message': msg.message,
+            'timestamp': msg.created_at.isoformat(),
+            'user_id': msg.user_id
+        } for msg in reversed(messages)]
+
+class CompanyGroupChatConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        query_string = self.scope['query_string'].decode()
+        token = None
+        if 'token=' in query_string:
+            token = query_string.split('token=')[1].split('&')[0]
+        
+        user = None
+        if token:
+            try:
+                import jwt
+                from django.conf import settings
+                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+                user_id = payload.get('user_id')
+                if user_id:
+                    user = await self.get_user_by_id(user_id)
+                    if user:
+                        print(f"✅ Company chat user authenticated: {user.email}")
+            except Exception as e:
+                print(f"❌ Company chat token error: {e}")
+        
+        if user is None:
+            print("❌ Company chat: No valid user, closing connection")
+            await self.close()
+            return
+        
+        # السماح فقط لموظفي الشركة (company_manager و hiring_manager)
+        if user.role != 'company':
+            print(f"❌ Company chat: User role {user.role} not allowed, closing connection")
+            await self.close()
+            return
+        
+        self.user = user
+        self.company_name = self.scope['url_route']['kwargs']['company_name']
+        self.room_group_name = f'company_chat_{self.company_name}'
+        
+        print(f"🔵 Company: {self.company_name} -> {self.room_group_name}")
+        
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+        
+        await self.accept()
+        print(f"✅ Company WebSocket accepted")
+        
+        messages = await self.get_recent_messages()
+        await self.send(text_data=json.dumps({
+            'type': 'history',
+            'messages': messages
+        }))
+        
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'user_online',
+                'username': user.username,
+                'full_name': user.username,
+                'is_online': True
+            }
+        )
+    
+    async def disconnect(self, close_code):
+        if hasattr(self, 'room_group_name') and hasattr(self, 'user') and self.user:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'user_offline',
+                    'username': self.user.username,
+                    'is_online': False
+                }
+            )
+            await self.channel_layer.group_discard(
+                self.room_group_name,
+                self.channel_name
+            )
+    
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        message_type = data.get('type', 'message')
+        
+        if message_type == 'message':
+            message = data.get('message', '')
+            if not hasattr(self, 'user') or not self.user:
+                return
+            
+            await self.save_message(self.user, message)
+            
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'chat_message',
+                    'message': message,
+                    'username': self.user.username,
+                    'full_name': self.user.username,
+                    'timestamp': datetime.now().isoformat(),
+                    'user_id': str(self.user.id)
+                }
+            )
+    
+    async def chat_message(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'message',
+            'message': event['message'],
+            'username': event['username'],
+            'full_name': event['full_name'],
+            'timestamp': event['timestamp'],
+            'user_id': event['user_id']
+        }))
+    
+    async def user_online(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'user_online',
+            'username': event['username'],
+            'full_name': event.get('full_name', event['username']),
+            'is_online': True
+        }))
+    
+    async def user_offline(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'user_offline',
+            'username': event['username'],
+            'is_online': False
+        }))
+    
+    @database_sync_to_async
+    def get_user_by_id(self, user_id):
+        from .models import User
+        try:
+            return User.objects(id=user_id).first()
+        except Exception:
+            return None
+    
+    @database_sync_to_async
+    def save_message(self, user, message):
+        from .models import ChatMessage
+        ChatMessage.objects.create(
+            university=self.company_name,
+            user_id=str(user.id),
+            username=user.username,
+            message=message,
+            created_at=datetime.now()
+        )
+    
+    @database_sync_to_async
+    def get_recent_messages(self):
+        from .models import ChatMessage
+        messages = ChatMessage.objects(
+            university=self.company_name
+        ).order_by('-created_at')[:50]
+        
+        return [{
+            'id': str(msg.id),
+            'username': msg.username,
+            'message': msg.message,
+            'timestamp': msg.created_at.isoformat(),
+            'user_id': msg.user_id
+        } for msg in reversed(messages)]

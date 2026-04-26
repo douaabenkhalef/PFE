@@ -52,6 +52,9 @@ class User(Document):
     is_university_email = BooleanField(default=False)
     created_at = DateTimeField(default=datetime.now)
     updated_at = DateTimeField(default=datetime.now)
+    two_fa_enabled = BooleanField(default=False)
+    recovery_email = EmailField(blank=True, null=True)
+    
     
    
     last_activity = DateTimeField(default=datetime.now)
@@ -90,6 +93,7 @@ class Company(Document):
     description = StringField(required=True)
     location = StringField(required=True, max_length=100)
     website = StringField(blank=True, default='')
+    phone = StringField(blank=True, default='')
     industry = StringField(required=True, max_length=100)
     verified = BooleanField(default=False)
     parent_company = ReferenceField('self', null=True, default=None)
@@ -124,6 +128,20 @@ class Student(Document):
     placed_company = ReferenceField(Company, null=True, reverse_delete_rule=3)
     placement_date = DateTimeField(null=True)
     created_at = DateTimeField(default=datetime.now)
+    # Ajouter ces champs dans la classe Student
+    bio = StringField(max_length=500, default='')
+    phone = StringField(max_length=20, default='')
+    profile_picture = StringField(blank=True, default='')
+    cover_image = FileField(blank=True)
+    profile_visibility = DictField(default={
+       'email_visible': True,
+       'phone_visible': True,
+       'wilaya_visible': True,
+       'university_visible': True,
+       'skills_visible': True,
+       'contact_visible': True,
+       'profile_public': True
+     })
     
     def __str__(self):
         return self.full_name
@@ -383,6 +401,7 @@ class ChatMessage(Document):
     message = StringField(required=True)
     created_at = DateTimeField(default=datetime.now)
     is_read = BooleanField(default=False)
+    internship_id = StringField(blank=True, default='') 
     
     def __str__(self):
         return f"{self.username}: {self.message[:50]}"
@@ -409,6 +428,7 @@ class PrivateChatMessage(Document):
     
     def __str__(self):
         return f"{self.sender_name} -> {self.receiver_name}: {self.message[:50]}"
+
 
 # ===========UNIVERSITY PROFILE======================
 class UniversityProfile(Document):
@@ -464,3 +484,39 @@ class CompanyProfile(Document):
  
     def __str__(self):
         return f"CompanyProfile: {self.company_id}"
+
+
+
+class CvHistory(Document):
+    """
+    Historique des CVs téléchargés par l'étudiant
+    """
+    meta = {'collection': 'cv_history'}
+    
+    student = ReferenceField('Student', required=True, reverse_delete_rule=2)
+    file = FileField(required=True)
+    filename = StringField(max_length=255)
+    uploaded_at = DateTimeField(default=datetime.now)
+    
+    def __str__(self):
+        return f"{self.student.full_name} - {self.filename}"
+    
+
+
+class GroupChatMessage(Document):
+    """Messages de chat de groupe"""
+    meta = {'collection': 'group_chat_messages'}
+    
+    group_id = StringField(required=True)
+    sender_id = StringField(required=True)
+    sender_name = StringField(required=True)
+    message = StringField(required=True)
+    message_type = StringField(default='text', choices=['text', 'image', 'file'])
+    file_url = StringField(default='')
+    file_name = StringField(default='')
+    created_at = DateTimeField(default=datetime.now)
+    is_read = BooleanField(default=False)
+    
+    def __str__(self):
+        return f"{self.sender_name} in {self.group_id}: {self.message[:50]}"
+

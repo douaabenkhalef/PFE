@@ -1,9 +1,12 @@
-
+// frontend/src/pages/StudentDashboard.jsx
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Link } from 'react-router-dom';
-import { Bell, CheckCheck, X, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Bell, CheckCheck, X, FileText, CheckCircle, XCircle, Clock, MessageCircle, Users, Briefcase, MessageSquare } from 'lucide-react';
+import StudentSidebar from '../components/Studentsidebar';
+import ChatWidget from '../components/ChatWidget';
+import PrivateChat from '../components/PrivateChat';
 import "./StudentDashboard.css";
 
 const API = "http://localhost:8000/api";
@@ -24,15 +27,7 @@ const NOTIFICATION_ICONS = {
     'default': { icon: Bell, color: 'text-purple-400', bg: 'bg-purple-500/10' }
 };
 
-// SVG Icons (unchanged)
-const MenuIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-    <line x1="3" y1="6"  x2="21" y2="6" />
-    <line x1="3" y1="12" x2="21" y2="12" />
-    <line x1="3" y1="18" x2="21" y2="18" />
-  </svg>
-);
+// SVG Icons
 const wilayas = [
   "Adrar","Chlef","Laghouat","Oum El Bouaghi","Batna","Béjaïa","Biskra","Béchar","Blida","Bouira",
   "Tamanrasset","Tébessa","Tlemcen","Tiaret","Tizi Ouzou","Alger","Djelfa","Jijel","Sétif","Saïda",
@@ -41,18 +36,21 @@ const wilayas = [
   "Tissemsilt","El Oued","Khenchela","Souk Ahras","Tipaza","Mila","Aïn Defla","Naâma",
   "Aïn Témouchent","Ghardaïa","Relizane",
 ];
+
 const SearchIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
   </svg>
 );
+
 const FilterIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
   </svg>
 );
+
 const BellIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -60,18 +58,21 @@ const BellIcon = () => (
     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
   </svg>
 );
+
 const MoonIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
   </svg>
 );
+
 const ArrowRight = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
   </svg>
 );
+
 const ImgPlaceholder = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="1.5" strokeLinecap="round">
@@ -80,6 +81,7 @@ const ImgPlaceholder = () => (
     <polyline points="21 15 16 10 5 21" />
   </svg>
 );
+
 const UsersIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -89,6 +91,7 @@ const UsersIcon = () => (
     <path d="M16 3.13a4 4 0 0 1 0 7.75" />
   </svg>
 );
+
 const MapPinIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2">
@@ -96,12 +99,14 @@ const MapPinIcon = () => (
     <circle cx="12" cy="10" r="3" />
   </svg>
 );
+
 const PhoneIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2">
     <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.67A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 8.09a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 15z" />
   </svg>
 );
+
 const MailIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2">
@@ -109,6 +114,7 @@ const MailIcon = () => (
     <polyline points="22,6 12,13 2,6" />
   </svg>
 );
+
 const CloseIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -116,7 +122,6 @@ const CloseIcon = () => (
     <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
-
 
 function Stars({ n = 5, max = 5 }) {
   return (
@@ -128,25 +133,29 @@ function Stars({ n = 5, max = 5 }) {
   );
 }
 
-
 const NotificationItem = ({ notification, onMarkRead, onNavigate }) => {
     const [isHovered, setIsHovered] = useState(false);
     const config = NOTIFICATION_ICONS[notification.type] || NOTIFICATION_ICONS.default;
     const IconComponent = config.icon;
     
-    
     const isSuccess = notification.message.includes('✅') || notification.message.includes('Félicitations');
     const isError = notification.message.includes('❌');
+    
+    const handleClick = () => {
+        if (!notification.is_read && onMarkRead) {
+            onMarkRead(notification.id);
+        }
+        if (notification.related_id && onNavigate) {
+            onNavigate(notification.related_id);
+        }
+    };
     
     return (
         <div 
             className={`sd-notif-item ${!notification.is_read ? 'unread' : ''}`}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            onClick={() => {
-                if (!notification.is_read) onMarkRead(notification.id);
-                if (notification.related_id) onNavigate(notification.related_id);
-            }}
+            onClick={handleClick}
             style={{ cursor: notification.related_id ? 'pointer' : 'default' }}
         >
             <div className={`sd-notif-icon ${config.bg}`}>
@@ -158,15 +167,13 @@ const NotificationItem = ({ notification, onMarkRead, onNavigate }) => {
                 </p>
                 <span className="sd-notif-time">{notification.created_at}</span>
             </div>
-            {!notification.is_read && (
-                <div className="sd-notif-unread-dot" />
-            )}
+            {!notification.is_read && <div className="sd-notif-unread-dot" />}
             {isHovered && !notification.is_read && (
                 <button 
                     className="sd-notif-mark-read"
                     onClick={(e) => {
                         e.stopPropagation();
-                        onMarkRead(notification.id);
+                        if (onMarkRead) onMarkRead(notification.id);
                     }}
                 >
                     <CheckCheck size={14} />
@@ -175,7 +182,6 @@ const NotificationItem = ({ notification, onMarkRead, onNavigate }) => {
         </div>
     );
 };
-
 
 const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRead, onNavigate }) => {
     const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -186,20 +192,14 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
                 <div className="flex items-center gap-2">
                     <Bell size={14} className="text-purple-400" />
                     <span>Notifications</span>
-                    {unreadCount > 0 && (
-                        <span className="sd-notif-unread-badge">{unreadCount}</span>
-                    )}
+                    {unreadCount > 0 && <span className="sd-notif-unread-badge">{unreadCount}</span>}
                 </div>
                 {unreadCount > 0 && (
-                    <button 
-                        className="sd-notif-clear"
-                        onClick={onMarkAllRead}
-                    >
+                    <button className="sd-notif-clear" onClick={onMarkAllRead}>
                         Tout marquer comme lu
                     </button>
                 )}
             </div>
-            
             <div className="sd-notif-list">
                 {notifications.length === 0 ? (
                     <div className="sd-notif-empty">
@@ -218,28 +218,20 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
                     ))
                 )}
             </div>
-            
             {notifications.length > 0 && (
                 <div className="sd-notif-footer">
-                    <button onClick={onClose}>
-                        Fermer
-                    </button>
+                    <button onClick={onClose}>Fermer</button>
                 </div>
             )}
         </div>
     );
 };
 
-
 const ApplyModal = ({ offer, onClose, onSuccess }) => {
   const [step, setStep] = useState('check'); 
   const [loading, setLoading] = useState(false);
   const [cvFile, setCvFile] = useState(null);
-  const [formData, setFormData] = useState({});
   const [missing, setMissing] = useState([]);
-  const [profileError, setProfileError] = useState(false);
-
-  
   const [cvFields, setCvFields] = useState({
     full_name: '',
     email: '',
@@ -279,8 +271,6 @@ const ApplyModal = ({ offer, onClose, onSuccess }) => {
             });
             setStep('cv');
           }
-        } else {
-          setProfileError(true);
         }
       })
       .catch(err => console.error(err));
@@ -294,12 +284,28 @@ const ApplyModal = ({ offer, onClose, onSuccess }) => {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
         body: JSON.stringify(cvFields),
       });
+      if (!res.ok) {
+        let errMsg = `Server error: ${res.status}`;
+        try {
+          const errData = await res.json();
+          errMsg = errData.error || errData.message || errMsg;
+        } catch (_) { }
+        alert(`Failed to generate CV: ${errMsg}`);
+        return;
+      }
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/pdf')) {
+        const errData = await res.json().catch(() => ({}));
+        alert(`Failed to generate CV: ${errData.error || errData.message || 'Unexpected response'}`);
+        return;
+      }
       const blob = await res.blob();
       const file = new File([blob], `${cvFields.full_name}_CV.pdf`, { type: 'application/pdf' });
       setCvFile(file);
       setStep('confirm');
     } catch (err) {
-      alert('Failed to generate CV');
+      console.error('Generate CV error:', err);
+      alert('Failed to generate CV: ' + (err.message || 'Network error'));
     } finally {
       setLoading(false);
     }
@@ -309,7 +315,7 @@ const ApplyModal = ({ offer, onClose, onSuccess }) => {
     setLoading(true);
     const form = new FormData();
     form.append('cv_file', cvFile);
-    form.append('cover_letter', document.getElementById('cover_letter').value);
+    form.append('cover_letter', document.getElementById('cover_letter')?.value || '');
     try {
       const res = await fetch(`${API}/student/offers/${offer.id}/apply/`, {
         method: 'POST',
@@ -318,7 +324,7 @@ const ApplyModal = ({ offer, onClose, onSuccess }) => {
       });
       const data = await res.json();
       if (data.success) {
-        onSuccess(); // call parent's handler
+        onSuccess();
         onClose();
       } else {
         alert(data.message);
@@ -382,7 +388,7 @@ const ApplyModal = ({ offer, onClose, onSuccess }) => {
           <h3>Incomplete Profile</h3>
           <p>Please complete the following fields before applying:</p>
           <ul>{missing.map(f => <li key={f}>{f}</li>)}</ul>
-          <button onClick={() => {/* navigate to profile edit */}}>Edit Profile</button>
+          <button onClick={() => navigate('/student/profile')}>Edit Profile</button>
         </div>
       </div>
     );
@@ -396,48 +402,22 @@ const ApplyModal = ({ offer, onClose, onSuccess }) => {
           <h3>CV Information</h3>
           <p>Fill in your CV details. You can edit them before generating the final CV.</p>
           <div className="grid grid-cols-1 gap-3 mt-4">
-            <div>
-              <label>Full Name *</label>
-              <input type="text" value={cvFields.full_name} onChange={e => updateCvField('full_name', e.target.value)} className="w-full bg-white/10 border rounded px-3 py-2" />
-            </div>
-            <div>
-              <label>Email *</label>
-              <input type="email" value={cvFields.email} onChange={e => updateCvField('email', e.target.value)} className="w-full bg-white/10 border rounded px-3 py-2" />
-            </div>
-            <div>
-              <label>University *</label>
-              <input type="text" value={cvFields.university} onChange={e => updateCvField('university', e.target.value)} className="w-full bg-white/10 border rounded px-3 py-2" />
-            </div>
-            <div>
-              <label>Major *</label>
-              <input type="text" value={cvFields.major} onChange={e => updateCvField('major', e.target.value)} className="w-full bg-white/10 border rounded px-3 py-2" />
-            </div>
-            <div>
-              <label>Education Level *</label>
-              <select value={cvFields.education_level} onChange={e => updateCvField('education_level', e.target.value)} className="w-full bg-white/10 border rounded px-3 py-2">
-                <option value="Licence">Licence</option>
-                <option value="Master 1">Master 1</option>
-                <option value="Master 2">Master 2</option>
-                <option value="Ingénieur">Ingénieur</option>
-                <option value="Doctorat">Doctorat</option>
-              </select>
-            </div>
-            <div>
-              <label>Graduation Year *</label>
-              <input type="number" value={cvFields.graduation_year} onChange={e => updateCvField('graduation_year', e.target.value)} className="w-full bg-white/10 border rounded px-3 py-2" />
-            </div>
-            <div>
-              <label>Skills (comma-separated)</label>
-              <input type="text" value={cvFields.skills.join(', ')} onChange={e => updateCvField('skills', e.target.value.split(',').map(s => s.trim()))} className="w-full bg-white/10 border rounded px-3 py-2" />
-            </div>
-            <div>
-              <label>Objective (optional)</label>
-              <textarea value={cvFields.objective} onChange={e => updateCvField('objective', e.target.value)} rows="3" className="w-full bg-white/10 border rounded px-3 py-2" />
-            </div>
+            <div><label>Full Name *</label><input type="text" value={cvFields.full_name} onChange={e => updateCvField('full_name', e.target.value)} className="w-full bg-white/10 border rounded px-3 py-2" /></div>
+            <div><label>Email *</label><input type="email" value={cvFields.email} onChange={e => updateCvField('email', e.target.value)} className="w-full bg-white/10 border rounded px-3 py-2" /></div>
+            <div><label>University *</label><input type="text" value={cvFields.university} onChange={e => updateCvField('university', e.target.value)} className="w-full bg-white/10 border rounded px-3 py-2" /></div>
+            <div><label>Major *</label><input type="text" value={cvFields.major} onChange={e => updateCvField('major', e.target.value)} className="w-full bg-white/10 border rounded px-3 py-2" /></div>
+            <div><label>Education Level *</label><select value={cvFields.education_level} onChange={e => updateCvField('education_level', e.target.value)} className="w-full bg-white/10 border rounded px-3 py-2">
+              <option value="Licence">Licence</option><option value="Master 1">Master 1</option><option value="Master 2">Master 2</option>
+              <option value="Ingénieur">Ingénieur</option><option value="Doctorat">Doctorat</option>
+            </select></div>
+            <div><label>Graduation Year *</label><input type="number" value={cvFields.graduation_year} onChange={e => updateCvField('graduation_year', e.target.value)} className="w-full bg-white/10 border rounded px-3 py-2" /></div>
+            <div><label>Skills (comma-separated)</label><input type="text" value={cvFields.skills.join(', ')} onChange={e => updateCvField('skills', e.target.value.split(',').map(s => s.trim()))} className="w-full bg-white/10 border rounded px-3 py-2" /></div>
+            <div><label>Objective (optional)</label><textarea value={cvFields.objective} onChange={e => updateCvField('objective', e.target.value)} rows="3" className="w-full bg-white/10 border rounded px-3 py-2" /></div>
+            
             <div>
               <label>Work Experience</label>
               {cvFields.experience.map((exp, idx) => (
-                <div key={idx} className="border p-2 mb-2 rounded">
+                <div key={idx} className="border p-2 mb-2 rounded" style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
                   <input placeholder="Title" value={exp.title} onChange={e => updateExperience(idx, 'title', e.target.value)} className="w-full bg-white/10 border rounded px-2 py-1 mb-1" />
                   <input placeholder="Company" value={exp.company} onChange={e => updateExperience(idx, 'company', e.target.value)} className="w-full bg-white/10 border rounded px-2 py-1 mb-1" />
                   <input placeholder="Dates (e.g., Jan 2020 - May 2020)" value={exp.dates} onChange={e => updateExperience(idx, 'dates', e.target.value)} className="w-full bg-white/10 border rounded px-2 py-1 mb-1" />
@@ -447,6 +427,7 @@ const ApplyModal = ({ offer, onClose, onSuccess }) => {
               ))}
               <button onClick={addExperience} className="bg-purple-600 text-white px-3 py-1 rounded text-sm">+ Add Experience</button>
             </div>
+            
             <div>
               <label>Languages</label>
               {cvFields.languages.map((lang, idx) => (
@@ -460,9 +441,7 @@ const ApplyModal = ({ offer, onClose, onSuccess }) => {
             </div>
           </div>
           <div className="sd-modal-actions mt-4">
-            <button onClick={handleGenerateCV} disabled={loading} className="sd-modal-submit">
-              {loading ? 'Generating...' : 'Generate CV'}
-            </button>
+            <button onClick={handleGenerateCV} disabled={loading} className="sd-modal-submit">{loading ? 'Generating...' : 'Generate CV'}</button>
             <button onClick={onClose} className="sd-modal-cancel">Cancel</button>
           </div>
         </div>
@@ -479,9 +458,7 @@ const ApplyModal = ({ offer, onClose, onSuccess }) => {
           <p>CV generated: <strong>{cvFile?.name}</strong></p>
           <textarea id="cover_letter" placeholder="Cover letter (optional)" className="w-full bg-white/10 border rounded px-3 py-2 mt-2" rows="4"></textarea>
           <div className="sd-modal-actions mt-4">
-            <button onClick={handleConfirm} disabled={loading} className="sd-modal-submit">
-              {loading ? 'Submitting...' : 'Confirm Application'}
-            </button>
+            <button onClick={handleConfirm} disabled={loading} className="sd-modal-submit">{loading ? 'Submitting...' : 'Confirm Application'}</button>
             <button onClick={() => setStep('cv')} className="sd-modal-cancel">Back</button>
           </div>
         </div>
@@ -492,7 +469,6 @@ const ApplyModal = ({ offer, onClose, onSuccess }) => {
   return null;
 };
 
-
 function Toast({ msg, type, onHide }) {
   useEffect(() => {
     const t = setTimeout(onHide, 3500);
@@ -501,15 +477,24 @@ function Toast({ msg, type, onHide }) {
   return <div className={`sd-toast ${type}`}>{type === "success" ? "✅" : "❌"} {msg}</div>;
 }
 
-
 export default function StudentDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const [companies, setCompanies] = useState([]);
   const [internships, setInternships] = useState([]);
+  const [acceptedInternships, setAcceptedInternships] = useState([]);
   const [loadingComp, setLoadingComp] = useState(true);
   const [loadingInter, setLoadingInter] = useState(true);
+  const [loadingAccepted, setLoadingAccepted] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  
+  // États pour le chat
+  const [privateChatOpen, setPrivateChatOpen] = useState(false);
+  const [selectedChatUser, setSelectedChatUser] = useState(null);
+  const [activeInternshipChat, setActiveInternshipChat] = useState(null);
+  const [showGroupsPanel, setShowGroupsPanel] = useState(false);
 
   const [activeSection, setActiveSection] = useState("home");
   const [filters, setFilters] = useState({
@@ -520,19 +505,36 @@ export default function StudentDashboard() {
   });
 
   const [applyOffer, setApplyOffer] = useState(null);
-  const [toast, setToast] = useState(null);
-
-  
+  const [toastMsg, setToastMsg] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifLoading, setNotifLoading] = useState(false);
   const notifRef = useRef(null);
 
   const homeRef = useRef(null);
   const companiesRef = useRef(null);
   const internshipsRef = useRef(null);
+  const groupsRef = useRef(null);
 
-  
+  const handleStartPrivateChat = (targetUser) => {
+    setSelectedChatUser(targetUser);
+    setPrivateChatOpen(true);
+  };
+
+  const handleClosePrivateChat = () => {
+    setPrivateChatOpen(false);
+    setSelectedChatUser(null);
+  };
+
+  const handleOpenInternshipChat = (offerId) => {
+    console.log("🔵 Opening chat for offer:", offerId);
+    setActiveInternshipChat(offerId);
+    setShowGroupsPanel(false);
+  };
+
+  const handleCloseInternshipChat = () => {
+    setActiveInternshipChat(null);
+  };
+
   useEffect(() => {
     const obs = new IntersectionObserver(
       entries => entries.forEach(e => {
@@ -540,11 +542,10 @@ export default function StudentDashboard() {
       }),
       { threshold: 0.35 }
     );
-    [homeRef, companiesRef, internshipsRef].forEach(r => r.current && obs.observe(r.current));
+    [homeRef, companiesRef, internshipsRef, groupsRef].forEach(r => r.current && obs.observe(r.current));
     return () => obs.disconnect();
   }, []);
 
-  
   useEffect(() => {
     const els = document.querySelectorAll(".sd-company-card, .sd-internship-card");
     const revealObs = new IntersectionObserver(entries => {
@@ -559,7 +560,6 @@ export default function StudentDashboard() {
     return () => revealObs.disconnect();
   }, [companies, internships]);
 
-  
   useEffect(() => {
     (async () => {
       setLoadingComp(true);
@@ -572,7 +572,6 @@ export default function StudentDashboard() {
     })();
   }, []);
 
-
   const fetchInternships = useCallback(async () => {
     setLoadingInter(true);
     const params = new URLSearchParams();
@@ -580,7 +579,6 @@ export default function StudentDashboard() {
     if (filters.wilaya) params.append('wilaya', filters.wilaya);
     if (filters.skills) params.append('skills', filters.skills);
     if (filters.company_name) params.append('company_name', filters.company_name);
-
     try {
       const res = await fetch(`${API}/student/offers/search/?${params.toString()}`, {
         headers: authHeaders()
@@ -598,12 +596,37 @@ export default function StudentDashboard() {
     }
   }, [filters]);
 
+  const fetchAcceptedInternships = useCallback(async () => {
+    setLoadingAccepted(true);
+    try {
+      const res = await fetch(`${API}/student/accepted-internships/`, { headers: authHeaders() });
+      const data = await res.json();
+      if (data.success) {
+        // Transform data to include offer_id for chat
+        const internshipsWithOfferId = (data.internships || []).map(internship => ({
+          id: internship.id,
+          offer_id: internship.offer_id || internship.id,
+          title: internship.title,
+          company_name: internship.company_name,
+          status: internship.status,
+          members_count: internship.members_count || 2
+        }));
+        setAcceptedInternships(internshipsWithOfferId);
+        console.log("📋 Accepted internships:", internshipsWithOfferId);
+      }
+    } catch (err) {
+      console.error('Error fetching accepted internships:', err);
+    } finally {
+      setLoadingAccepted(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchInternships();
-  }, [fetchInternships]);
+    fetchAcceptedInternships();
+  }, [fetchInternships, fetchAcceptedInternships]);
 
   const handleLogout = () => { logout(); navigate("/login"); };
-
    
   const fetchNotifications = useCallback(async () => {
     try {
@@ -653,14 +676,12 @@ export default function StudentDashboard() {
     setNotifOpen(false);
   };
 
-  // Charger les notifications au montage
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
-  // Fermer le dropdown au clic en dehors
   useEffect(() => {
     const handleClickOutside = (event) => {
         if (notifRef.current && !notifRef.current.contains(event.target)) {
@@ -679,15 +700,20 @@ export default function StudentDashboard() {
   };
 
   const handleApplySuccess = useCallback(() => {
-    setToast({ msg: "Candidature soumise avec succès !", type: "success" });
+    setToastMsg({ msg: "Candidature soumise avec succès !", type: "success" });
     setTimeout(() => navigate('/student/applications'), 1500);
   }, [navigate]);
 
-  const initials = (user?.full_name || user?.email || "U")
-    .split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-
   return (
     <>
+      {sidebarOpen && (
+        <StudentSidebar
+          user={user}
+          onLogout={handleLogout}
+          onClose={() => setSidebarOpen(false)}
+        />
+      )}
+
       {applyOffer && (
         <ApplyModal
           offer={applyOffer}
@@ -696,48 +722,102 @@ export default function StudentDashboard() {
         />
       )}
 
-      {toast && (
-        <Toast msg={toast.msg} type={toast.type} onHide={() => setToast(null)} />
+      {toastMsg && (
+        <Toast msg={toastMsg.msg} type={toastMsg.type} onHide={() => setToastMsg(null)} />
+      )}
+
+      {/* Chat de groupe pour chaque internship accepté */}
+      {activeInternshipChat && (
+        <ChatWidget 
+          internshipId={activeInternshipChat}
+          onClose={handleCloseInternshipChat}
+        />
+      )}
+      
+      {/* Chat privé */}
+      {privateChatOpen && selectedChatUser && (
+        <PrivateChat
+          university={user?.university || "Université"}
+          currentUser={user}
+          targetUser={selectedChatUser}
+          onClose={handleClosePrivateChat}
+        />
+      )}
+
+      {/* 🔥 BOUTON CHAT FLOTTANT POUR AFFICHER LES GROUPES */}
+      {!activeInternshipChat && acceptedInternships.length > 0 && (
+        <button
+          onClick={() => setShowGroupsPanel(!showGroupsPanel)}
+          className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-purple-600 to-pink-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+        >
+          <MessageCircle size={24} />
+          {acceptedInternships.length > 0 && (
+            <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              {acceptedInternships.length}
+            </span>
+          )}
+        </button>
+      )}
+
+      {/* 🔥 PANNEAU DES GROUPES DE CHAT */}
+      {showGroupsPanel && (
+        <div className="fixed bottom-24 right-6 z-50 w-80 bg-[#1e293b] rounded-2xl shadow-2xl border border-slate-700 overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-3 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <MessageSquare size={16} className="text-white" />
+              <h3 className="text-white font-semibold text-sm">Mes groupes</h3>
+            </div>
+            <button onClick={() => setShowGroupsPanel(false)} className="text-white/80 hover:text-white">
+              <X size={16} />
+            </button>
+          </div>
+          <div className="max-h-96 overflow-y-auto">
+            {acceptedInternships.length === 0 ? (
+              <div className="text-center py-8 text-white/40">
+                <Briefcase size={32} className="mx-auto mb-2 opacity-30" />
+                <p className="text-xs">Aucun stage accepté</p>
+                <p className="text-xs mt-1">Les groupes apparaîtront ici</p>
+              </div>
+            ) : (
+              acceptedInternships.map(internship => (
+                <button
+                  key={internship.id}
+                  onClick={() => handleOpenInternshipChat(internship.offer_id)}
+                  className="w-full p-3 text-left hover:bg-white/10 transition flex items-center gap-3 border-b border-slate-700 last:border-b-0"
+                >
+                  <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                    <Briefcase size={18} className="text-purple-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white text-sm font-medium">{internship.title}</p>
+                    <p className="text-white/40 text-xs">{internship.company_name}</p>
+                  </div>
+                  <MessageCircle size={14} className="text-purple-400" />
+                </button>
+              ))
+            )}
+          </div>
+        </div>
       )}
 
       <nav className="sd-navbar">
         <div className="sd-navbar-left">
-          <button className="sd-hamburger" aria-label="Menu">
+          <button className="sd-hamburger" aria-label="Menu" onClick={() => setSidebarOpen(true)}>
             <span /><span /><span />
           </button>
           <a className="sd-logo" href="/">UnivStage</a>
         </div>
         <ul className="sd-nav-links">
-          {[
-            { id: "home",        label: "Home",                ref: homeRef },
-            { id: "companies",   label: "popular companies",   ref: companiesRef },
-            { id: "internships", label: "popular internships", ref: internshipsRef },
-          ].map(({ id, label, ref }) => (
-            <li key={id}>
-              <a
-                href={`#${id}`}
-                className={activeSection === id ? "active" : ""}
-                onClick={e => { e.preventDefault(); scrollTo(id, ref); }}
-              >{label}</a>
-            </li>
-          ))}
+          <li><a href="#home" className={activeSection === "home" ? "active" : ""} onClick={e => { e.preventDefault(); scrollTo("home", homeRef); }}>Home</a></li>
+          <li><a href="#companies" className={activeSection === "companies" ? "active" : ""} onClick={e => { e.preventDefault(); scrollTo("companies", companiesRef); }}>popular companies</a></li>
+          <li><a href="#internships" className={activeSection === "internships" ? "active" : ""} onClick={e => { e.preventDefault(); scrollTo("internships", internshipsRef); }}>popular internships</a></li>
         </ul>
         <div className="sd-navbar-right">
-          {/* ── Notification Bell Améliorée ── */}
           <div className="sd-notif-wrapper" ref={notifRef}>
-            <button 
-              className="sd-icon-btn relative" 
-              onClick={() => setNotifOpen(!notifOpen)}
-              aria-label="Notifications"
-            >
+            <button className="sd-icon-btn relative" onClick={() => setNotifOpen(!notifOpen)} aria-label="Notifications">
               <BellIcon />
-              {unreadCount > 0 && (
-                <span className="sd-badge-count">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
+              {unreadCount > 0 && <span className="sd-badge-count">{unreadCount > 9 ? '9+' : unreadCount}</span>}
             </button>
-            
             {notifOpen && (
               <NotificationsDropdown 
                 notifications={notifications}
@@ -751,12 +831,6 @@ export default function StudentDashboard() {
           <button className="sd-icon-btn" aria-label="Dark mode">
             <MoonIcon />
           </button>
-          <Link to="/student/applications" className="sd-icon-btn" aria-label="Applications">
-            <FileText size={20} />
-          </Link>
-          <div className="sd-avatar" title={user?.full_name || user?.email}>
-            {initials}
-          </div>
         </div>
       </nav>
 
@@ -774,70 +848,142 @@ export default function StudentDashboard() {
                 The page offers you a dashboard to manage your profile,
                 upload your CV, browse internships, and track your applications.
               </p>
-              <div className="sd-hero-stars">
-                {[1,2,3,4,5].map(i => (
-                  <span key={i} className="star">★</span>
-                ))}
-              </div>
+              
 
-              {}
               <div className="sd-search-container" style={{ marginTop: "2rem", width: "100%" }}>
-                <div style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                  gap: "12px",
-                  alignItems: "end"
-                }}>
-                  <div>
-                    <label className="block text-white/70 text-sm mb-1">Search</label>
+                <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "16px" }}>
+                  <div style={{ flex: 1, position: "relative" }}>
+                    <div style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.5)" }}>
+                      <SearchIcon />
+                    </div>
                     <input
                       type="text"
-                      placeholder="Title, description, company..."
+                      placeholder="Search by title, description, or company..."
                       value={filters.search}
                       onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                      className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder:text-white/50 focus:outline-none focus:border-purple-500"
+                      onKeyPress={e => e.key === 'Enter' && fetchInternships()}
+                      style={{ 
+                        width: "100%", 
+                        background: "rgba(255,255,255,0.1)", 
+                        border: "1px solid rgba(255,255,255,0.2)", 
+                        borderRadius: "30px", 
+                        padding: "12px 20px 12px 48px", 
+                        color: "white", 
+                        fontSize: "0.9rem", 
+                        outline: "none",
+                        transition: "all 0.3s ease"
+                      }}
+                      onFocus={e => e.target.style.borderColor = "#8D23D4"}
+                      onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.2)"}
                     />
                   </div>
-                  <div>
-                    <label className="block text-white/70 text-sm mb-1">Wilaya</label>
-                    <select
-                      value={filters.wilaya}
-                      onChange={e => setFilters(prev => ({ ...prev, wilaya: e.target.value }))}
-                      className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500"
-                    >
-                      <option value="">All Wilayas</option>
-                      {wilayas.map(w => <option key={w} value={w}>{w}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-white/70 text-sm mb-1">Skills</label>
-                    <input
-                      type="text"
-                      placeholder="e.g., React, Python (comma-separated)"
-                      value={filters.skills}
-                      onChange={e => setFilters(prev => ({ ...prev, skills: e.target.value }))}
-                      className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder:text-white/50 focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-white/70 text-sm mb-1">Company</label>
-                    <input
-                      type="text"
-                      placeholder="Company name"
-                      value={filters.company_name}
-                      onChange={e => setFilters(prev => ({ ...prev, company_name: e.target.value }))}
-                      className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder:text-white/50 focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <button
-                      onClick={() => fetchInternships()}
-                      className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2 rounded-lg transition w-full"
-                    >
-                      Search
-                    </button>
-                  </div>
+                  <button 
+                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                    style={{ 
+                      background: "rgba(255,255,255,0.1)", 
+                      border: "1px solid rgba(255,255,255,0.2)", 
+                      borderRadius: "30px", 
+                      padding: "10px 20px", 
+                      color: "white", 
+                      cursor: "pointer", 
+                      display: "flex", 
+                      alignItems: "center", 
+                      gap: "8px",
+                      transition: "all 0.3s ease"
+                    }}
+                    onMouseEnter={e => e.target.style.background = "rgba(255,255,255,0.15)"}
+                    onMouseLeave={e => e.target.style.background = "rgba(255,255,255,0.1)"}
+                  >
+                    <FilterIcon /> Advanced Filters
+                  </button>
+                  <button 
+                    onClick={fetchInternships} 
+                    style={{ 
+                      background: "linear-gradient(135deg, #B556D7, #8E2FFB)", 
+                      border: "none", 
+                      borderRadius: "30px", 
+                      padding: "10px 28px", 
+                      color: "white", 
+                      fontWeight: "600", 
+                      cursor: "pointer",
+                      transition: "opacity 0.3s ease"
+                    }}
+                    onMouseEnter={e => e.target.style.opacity = "0.9"}
+                    onMouseLeave={e => e.target.style.opacity = "1"}
+                  >
+                    Search
+                  </button>
                 </div>
+
+                {showAdvancedFilters && (
+                  <div style={{ 
+                    display: "grid", 
+                    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", 
+                    gap: "16px", 
+                    padding: "20px", 
+                    background: "rgba(255,255,255,0.05)", 
+                    borderRadius: "16px", 
+                    marginTop: "8px",
+                    border: "1px solid rgba(255,255,255,0.1)"
+                  }}>
+                    <div>
+                      <label className="block text-white/70 text-sm mb-2" style={{ fontWeight: "500" }}>📍 Wilaya</label>
+                      <select
+                        value={filters.wilaya}
+                        onChange={e => setFilters(prev => ({ ...prev, wilaya: e.target.value }))}
+                        style={{ 
+                          width: "100%", 
+                          background: "rgba(255,255,255,0.1)", 
+                          border: "1px solid rgba(255,255,255,0.2)", 
+                          borderRadius: "12px", 
+                          padding: "10px 12px", 
+                          color: "white",
+                          cursor: "pointer",
+                          outline: "none"
+                        }}
+                      >
+                        <option value="" style={{ background: "#1e293b" }}>All Wilayas</option>
+                        {wilayas.map(w => <option key={w} value={w} style={{ background: "#1e293b" }}>{w}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-white/70 text-sm mb-2" style={{ fontWeight: "500" }}>⚡ Skills</label>
+                      <input
+                        type="text"
+                        placeholder="React, Python, Django..."
+                        value={filters.skills}
+                        onChange={e => setFilters(prev => ({ ...prev, skills: e.target.value }))}
+                        style={{ 
+                          width: "100%", 
+                          background: "rgba(255,255,255,0.1)", 
+                          border: "1px solid rgba(255,255,255,0.2)", 
+                          borderRadius: "12px", 
+                          padding: "10px 12px", 
+                          color: "white",
+                          outline: "none"
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-white/70 text-sm mb-2" style={{ fontWeight: "500" }}>🏢 Company</label>
+                      <input
+                        type="text"
+                        placeholder="Company name"
+                        value={filters.company_name}
+                        onChange={e => setFilters(prev => ({ ...prev, company_name: e.target.value }))}
+                        style={{ 
+                          width: "100%", 
+                          background: "rgba(255,255,255,0.1)", 
+                          border: "1px solid rgba(255,255,255,0.2)", 
+                          borderRadius: "12px", 
+                          padding: "10px 12px", 
+                          color: "white",
+                          outline: "none"
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <div className="sd-hero-image">

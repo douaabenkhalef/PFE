@@ -1,4 +1,4 @@
-// frontend/src/page/CompanyProfile.jsx
+// frontend/src/page/CompanyPublicProfile.jsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -16,7 +16,7 @@ const authHeaders = () => ({
   'Authorization': `Bearer ${localStorage.getItem('access_token')}`
 });
 
-export default function CompanyProfile() {
+export default function CompanyPublicProfile() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 

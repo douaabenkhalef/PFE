@@ -1,4 +1,5 @@
 // frontend/src/page/AuthPage.jsx
+
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -250,6 +251,13 @@ const AuthPage = () => {
   const [pendingEmail, setPendingEmail] = useState("");
   const [otpError, setOtpError] = useState("");
 
+  // 🔥 حالات 2FA
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [pending2FAEmail, setPending2FAEmail] = useState('');
+  const [otp2FACode, setOtp2FACode] = useState(['', '', '', '', '', '']);
+  const [verifying2FA, setVerifying2FA] = useState(false);
+  const [otp2FAError, setOtp2FAError] = useState('');
+
   const [loginErrors, setLoginErrors] = useState([]);
   const [studentErrors, setStudentErrors] = useState([]);
   const [companyErrors, setCompanyErrors] = useState([]);
@@ -347,7 +355,7 @@ const AuthPage = () => {
     "Construction","Services","Consulting","Marketing","Health","Other",
   ];
 
-  const { login, registerStudent, registerCompany, registerAdmin, completeSignup } = useAuth();
+  const { login, verify2FACode, completeSignup } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -363,7 +371,14 @@ const AuthPage = () => {
     
     const result = await login(loginData.email, loginData.password);
     if (result.success) {
-      navigate(result.redirectUrl);
+      if (result.requires_2fa) {
+        setPending2FAEmail(result.email);
+        setShow2FAModal(true);
+        setOtp2FACode(['', '', '', '', '', '']);
+        setOtp2FAError('');
+      } else {
+        navigate(result.redirectUrl);
+      }
     } else {
       if (result.message) {
         setLoginErrors([result.message]);
@@ -379,6 +394,51 @@ const AuthPage = () => {
       }
     }
     setLoading(false);
+  };
+
+  // 🔥 التحقق من كود 2FA
+  const handleVerify2FA = async () => {
+    const code = otp2FACode.join('');
+    if (code.length !== 6) {
+      setOtp2FAError('Le code doit contenir exactement 6 chiffres');
+      return;
+    }
+    
+    setVerifying2FA(true);
+    setOtp2FAError('');
+    
+    const result = await verify2FACode(pending2FAEmail, code);
+    
+    if (result.success) {
+      setShow2FAModal(false);
+      setOtp2FACode(['', '', '', '', '', '']);
+      navigate(result.redirectUrl);
+    } else {
+      setOtp2FAError(result.error || 'Code invalide. Veuillez réessayer.');
+      setOtp2FACode(['', '', '', '', '', '']);
+      document.getElementById('2fa-0')?.focus();
+    }
+    setVerifying2FA(false);
+  };
+
+  // 🔥 إعادة إرسال كود 2FA
+  const handleResend2FA = async () => {
+    setOtp2FAError('');
+    try {
+      const response = await fetch('http://localhost:8000/api/auth/send-2fa-code/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: pending2FAEmail })
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Un nouveau code a été envoyé à votre email');
+      } else {
+        setOtp2FAError(data.error || 'Erreur lors de l\'envoi du code');
+      }
+    } catch (error) {
+      setOtp2FAError('Erreur de connexion');
+    }
   };
 
   const handleStudentRegister = async (e) => {
@@ -1002,6 +1062,82 @@ const AuthPage = () => {
           )}
         </div>
       </div>
+
+      {/* 🔥 2FA Modal - عند تسجيل الدخول */}
+      {show2FAModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[10000]">
+          <div className="bg-[#1e293b] border border-slate-700 rounded-2xl w-full max-w-md p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-8 h-8 text-purple-400" />
+              </div>
+              <h2 className="text-xl font-bold text-white">Vérification à deux facteurs</h2>
+              <p className="text-white/60 text-sm mt-2">
+                Un code de vérification a été envoyé à<br/>
+                <strong className="text-purple-400">{pending2FAEmail}</strong>
+              </p>
+              <p className="text-white/40 text-xs mt-1">
+                Valable 15 minutes
+              </p>
+            </div>
+
+            <div className="flex justify-center gap-3 mb-6">
+              {otp2FACode.map((digit, index) => (
+                <input
+                  key={index}
+                  id={`2fa-${index}`}
+                  type="text"
+                  maxLength="1"
+                  value={digit}
+                  onChange={(e) => {
+                    const newCode = [...otp2FACode];
+                    newCode[index] = e.target.value;
+                    setOtp2FACode(newCode);
+                    if (e.target.value && index < 5) {
+                      document.getElementById(`2fa-${index + 1}`)?.focus();
+                    }
+                  }}
+                  className="w-12 h-12 text-center text-2xl font-bold bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                  autoFocus={index === 0}
+                />
+              ))}
+            </div>
+
+            {otp2FAError && (
+              <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300 text-sm text-center">
+                {otp2FAError}
+              </div>
+            )}
+
+            <button
+              onClick={handleVerify2FA}
+              disabled={verifying2FA}
+              className="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold text-white transition disabled:opacity-50"
+            >
+              {verifying2FA ? 'Vérification...' : 'Vérifier et se connecter'}
+            </button>
+
+            <div className="text-center mt-3">
+              <button
+                onClick={handleResend2FA}
+                className="text-purple-400 text-sm hover:underline"
+              >
+                Renvoyer le code
+              </button>
+            </div>
+
+            <button
+              onClick={() => {
+                setShow2FAModal(false);
+                setOtp2FACode(['', '', '', '', '', '']);
+              }}
+              className="w-full mt-3 py-2 text-white/60 hover:text-white transition text-sm"
+            >
+              ← Annuler
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
