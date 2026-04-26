@@ -27,7 +27,27 @@ import ManageCoDeptHeads from './page/ManageCoDeptHeads';
 import ManageStudents from './page/ManageStudents';
 import './App.css';
 
-const ProtectedRoute = ({ children, allowedRoles, allowedSubRoles }) => { /* unchanged */ };
+const ProtectedRoute = ({ children, allowedRoles, allowedSubRoles }) => {
+  const { isAuthenticated, user, loading } = useAuth();
+
+  if (loading) {
+    return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">Chargement...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user?.role)) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedSubRoles && !allowedSubRoles.includes(user?.sub_role)) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+};
 
 function App() {
   return (

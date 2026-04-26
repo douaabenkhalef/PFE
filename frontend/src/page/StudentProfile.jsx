@@ -297,7 +297,7 @@ export default function StudentProfile() {
         setLoading2FA(false);
         setShow2FAModal(false);
     }
-};g
+};
 
   // Handle Disable 2FA
   const handleDisable2FA = async () => {
