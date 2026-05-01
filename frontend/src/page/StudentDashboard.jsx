@@ -1,8 +1,7 @@
-// frontend/src/pages/StudentDashboard.jsx
+// frontend/src/page/StudentDashboard.jsx
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Link } from 'react-router-dom';
 import { Bell, CheckCheck, X, FileText, CheckCircle, XCircle, Clock, MessageCircle, Users, Briefcase, MessageSquare } from 'lucide-react';
 import StudentSidebar from '../components/Studentsidebar';
 import ChatWidget from '../components/ChatWidget';
@@ -70,15 +69,6 @@ const ArrowRight = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-  </svg>
-);
-
-const ImgPlaceholder = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-    strokeWidth="1.5" strokeLinecap="round">
-    <rect x="3" y="3" width="18" height="18" rx="3" />
-    <circle cx="8.5" cy="8.5" r="1.5" />
-    <polyline points="21 15 16 10 5 21" />
   </svg>
 );
 
@@ -244,6 +234,7 @@ const ApplyModal = ({ offer, onClose, onSuccess }) => {
     experience: [],
     languages: [],
   });
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetch(`${API}/student/profile/`, { headers: authHeaders() })
@@ -489,6 +480,8 @@ export default function StudentDashboard() {
   const [loadingAccepted, setLoadingAccepted] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAllInternships, setShowAllInternships] = useState(false);
+  const [showAllCompanies, setShowAllCompanies] = useState(false);
   
   // États pour le chat
   const [privateChatOpen, setPrivateChatOpen] = useState(false);
@@ -514,6 +507,10 @@ export default function StudentDashboard() {
   const companiesRef = useRef(null);
   const internshipsRef = useRef(null);
   const groupsRef = useRef(null);
+
+  // Display first 3 companies (they are already sorted by active_offers from API)
+  const displayedCompanies = showAllCompanies ? companies : companies.slice(0, 3);
+  const displayedInternships = showAllInternships ? internships : internships.slice(0, 3);
 
   const handleStartPrivateChat = (targetUser) => {
     setSelectedChatUser(targetUser);
@@ -566,7 +563,8 @@ export default function StudentDashboard() {
       try {
         const res = await fetch(`${API}/companies/list/`, { headers: authHeaders() });
         const data = await res.json();
-        setCompanies(data.companies || data || []);
+        // The API returns companies sorted by active_offers (most offers first)
+        setCompanies(Array.isArray(data) ? data : []);
       } catch { setCompanies([]); }
       finally { setLoadingComp(false); }
     })();
@@ -585,7 +583,7 @@ export default function StudentDashboard() {
       });
       const data = await res.json();
       if (data.success) {
-        setInternships(data.offers);
+        setInternships(data.offers || []);
       } else {
         console.error('Failed to fetch internships:', data);
       }
@@ -602,7 +600,6 @@ export default function StudentDashboard() {
       const res = await fetch(`${API}/student/accepted-internships/`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) {
-        // Transform data to include offer_id for chat
         const internshipsWithOfferId = (data.internships || []).map(internship => ({
           id: internship.id,
           offer_id: internship.offer_id || internship.id,
@@ -704,6 +701,14 @@ export default function StudentDashboard() {
     setTimeout(() => navigate('/student/applications'), 1500);
   }, [navigate]);
 
+  const clearFilters = () => {
+    setFilters({ search: '', wilaya: '', skills: '', company_name: '' });
+    setShowAdvancedFilters(false);
+    fetchInternships();
+  };
+
+  const hasActiveFilters = filters.search || filters.wilaya || filters.skills || filters.company_name;
+
   return (
     <>
       {sidebarOpen && (
@@ -726,7 +731,7 @@ export default function StudentDashboard() {
         <Toast msg={toastMsg.msg} type={toastMsg.type} onHide={() => setToastMsg(null)} />
       )}
 
-      {/* Chat de groupe pour chaque internship accepté */}
+      {/* Chat de groupe */}
       {activeInternshipChat && (
         <ChatWidget 
           internshipId={activeInternshipChat}
@@ -744,22 +749,17 @@ export default function StudentDashboard() {
         />
       )}
 
-      {/* 🔥 BOUTON CHAT FLOTTANT POUR AFFICHER LES GROUPES */}
+      {/* BOUTON CHAT FLOTTANT */}
       {!activeInternshipChat && acceptedInternships.length > 0 && (
         <button
           onClick={() => setShowGroupsPanel(!showGroupsPanel)}
           className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-purple-600 to-pink-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
         >
           <MessageCircle size={24} />
-          {acceptedInternships.length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              {acceptedInternships.length}
-            </span>
-          )}
         </button>
       )}
 
-      {/* 🔥 PANNEAU DES GROUPES DE CHAT */}
+      {/* PANNEAU DES GROUPES DE CHAT */}
       {showGroupsPanel && (
         <div className="fixed bottom-24 right-6 z-50 w-80 bg-[#1e293b] rounded-2xl shadow-2xl border border-slate-700 overflow-hidden">
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-3 flex justify-between items-center">
@@ -782,7 +782,9 @@ export default function StudentDashboard() {
               acceptedInternships.map(internship => (
                 <button
                   key={internship.id}
-                  onClick={() => handleOpenInternshipChat(internship.offer_id)}
+                  onClick={() => {
+                    handleOpenInternshipChat(internship.offer_id);
+                  }}
                   className="w-full p-3 text-left hover:bg-white/10 transition flex items-center gap-3 border-b border-slate-700 last:border-b-0"
                 >
                   <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
@@ -800,17 +802,54 @@ export default function StudentDashboard() {
         </div>
       )}
 
+      {/* ========== NAVBAR ========== */}
       <nav className="sd-navbar">
         <div className="sd-navbar-left">
           <button className="sd-hamburger" aria-label="Menu" onClick={() => setSidebarOpen(true)}>
             <span /><span /><span />
           </button>
-          <a className="sd-logo" href="/">UnivStage</a>
+          <div className="sd-logo-container" style={{ cursor: 'default' }}>
+            <img src="/images/logo.png" alt="UnivStage Logo" className="sd-logo-img" />
+            <span className="sd-site-name">UnivStage</span>
+          </div>
         </div>
         <ul className="sd-nav-links">
-          <li><a href="#home" className={activeSection === "home" ? "active" : ""} onClick={e => { e.preventDefault(); scrollTo("home", homeRef); }}>Home</a></li>
-          <li><a href="#companies" className={activeSection === "companies" ? "active" : ""} onClick={e => { e.preventDefault(); scrollTo("companies", companiesRef); }}>popular companies</a></li>
-          <li><a href="#internships" className={activeSection === "internships" ? "active" : ""} onClick={e => { e.preventDefault(); scrollTo("internships", internshipsRef); }}>popular internships</a></li>
+          <li>
+            <a 
+              href="#home" 
+              className={`sd-nav-link ${activeSection === "home" ? "active" : ""}`} 
+              onClick={(e) => { 
+                e.preventDefault(); 
+                scrollTo("home", homeRef); 
+              }}
+            >
+              Home
+            </a>
+          </li>
+          <li>
+            <a 
+              href="#companies" 
+              className={`sd-nav-link ${activeSection === "companies" ? "active" : ""}`} 
+              onClick={(e) => { 
+                e.preventDefault(); 
+                scrollTo("companies", companiesRef); 
+              }}
+            >
+              Popular Companies
+            </a>
+          </li>
+          <li>
+            <a 
+              href="#internships" 
+              className={`sd-nav-link ${activeSection === "internships" ? "active" : ""}`} 
+              onClick={(e) => { 
+                e.preventDefault(); 
+                scrollTo("internships", internshipsRef); 
+              }}
+            >
+              Popular Internships
+            </a>
+          </li>
         </ul>
         <div className="sd-navbar-right">
           <div className="sd-notif-wrapper" ref={notifRef}>
@@ -835,6 +874,7 @@ export default function StudentDashboard() {
       </nav>
 
       <main className="sd-main">
+        {/* ========== HERO SECTION WITH STUDENT IMAGE ========== */}
         <section className="sd-hero" id="home" ref={homeRef} data-section="home">
           <div className="sd-hero-container">
             <div className="sd-hero-content">
@@ -849,69 +889,69 @@ export default function StudentDashboard() {
                 upload your CV, browse internships, and track your applications.
               </p>
               
-
+              {/* SECTION RECHERCHE */}
               <div className="sd-search-container" style={{ marginTop: "2rem", width: "100%" }}>
-                <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "16px" }}>
-                  <div style={{ flex: 1, position: "relative" }}>
-                    <div style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.5)" }}>
-                      <SearchIcon />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Search by title, description, or company..."
-                      value={filters.search}
-                      onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                      onKeyPress={e => e.key === 'Enter' && fetchInternships()}
-                      style={{ 
-                        width: "100%", 
-                        background: "rgba(255,255,255,0.1)", 
-                        border: "1px solid rgba(255,255,255,0.2)", 
-                        borderRadius: "30px", 
-                        padding: "12px 20px 12px 48px", 
-                        color: "white", 
-                        fontSize: "0.9rem", 
-                        outline: "none",
-                        transition: "all 0.3s ease"
-                      }}
-                      onFocus={e => e.target.style.borderColor = "#8D23D4"}
-                      onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.2)"}
-                    />
-                  </div>
-                  <button 
-                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                <div className="sd-search-bar" style={{ 
+                  maxWidth: "100%", 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "10px", 
+                  background: "rgba(255,255,255,0.08)", 
+                  border: "1px solid rgba(255,255,255,0.18)", 
+                  borderRadius: "50px", 
+                  padding: "10px 16px", 
+                  backdropFilter: "blur(8px)" 
+                }}>
+                  <SearchIcon />
+                  <input
+                    type="text"
+                    placeholder="Search by title, description, or company..."
+                    value={filters.search}
+                    onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                    onKeyPress={e => e.key === 'Enter' && fetchInternships()}
                     style={{ 
-                      background: "rgba(255,255,255,0.1)", 
-                      border: "1px solid rgba(255,255,255,0.2)", 
-                      borderRadius: "30px", 
-                      padding: "10px 20px", 
-                      color: "white", 
-                      cursor: "pointer", 
-                      display: "flex", 
-                      alignItems: "center", 
-                      gap: "8px",
-                      transition: "all 0.3s ease"
+                      background: "transparent", 
+                      border: "none", 
+                      outline: "none", 
+                      color: "#fff", 
+                      fontSize: "0.85rem", 
+                      fontFamily: "'Poppins', sans-serif", 
+                      flex: 1 
                     }}
-                    onMouseEnter={e => e.target.style.background = "rgba(255,255,255,0.15)"}
-                    onMouseLeave={e => e.target.style.background = "rgba(255,255,255,0.1)"}
-                  >
-                    <FilterIcon /> Advanced Filters
-                  </button>
+                  />
                   <button 
-                    onClick={fetchInternships} 
+                    onClick={fetchInternships}
                     style={{ 
                       background: "linear-gradient(135deg, #B556D7, #8E2FFB)", 
                       border: "none", 
-                      borderRadius: "30px", 
-                      padding: "10px 28px", 
-                      color: "white", 
-                      fontWeight: "600", 
-                      cursor: "pointer",
-                      transition: "opacity 0.3s ease"
+                      borderRadius: "50%", 
+                      width: "30px", 
+                      height: "30px", 
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "center", 
+                      cursor: "pointer", 
+                      color: "#fff", 
+                      transition: "opacity 0.2s" 
                     }}
-                    onMouseEnter={e => e.target.style.opacity = "0.9"}
-                    onMouseLeave={e => e.target.style.opacity = "1"}
                   >
-                    Search
+                    <SearchIcon />
+                  </button>
+                  <button 
+                    className="sd-filter-btn"
+                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                    style={{ 
+                      background: "transparent", 
+                      border: "none", 
+                      cursor: "pointer", 
+                      color: "#8E2FFB", 
+                      display: "flex", 
+                      alignItems: "center", 
+                      transition: "color 0.2s",
+                      padding: "5px"
+                    }}
+                  >
+                    <FilterIcon />
                   </button>
                 </div>
 
@@ -923,7 +963,7 @@ export default function StudentDashboard() {
                     padding: "20px", 
                     background: "rgba(255,255,255,0.05)", 
                     borderRadius: "16px", 
-                    marginTop: "8px",
+                    marginTop: "12px",
                     border: "1px solid rgba(255,255,255,0.1)"
                   }}>
                     <div>
@@ -985,18 +1025,113 @@ export default function StudentDashboard() {
                   </div>
                 )}
               </div>
+
+              {/* RESULTS SECTION */}
+              {hasActiveFilters && (
+                <div style={{ marginTop: "2rem", width: "100%" }}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-white font-semibold text-lg">
+                      Search Results ({internships.length})
+                    </h3>
+                    <button 
+                      onClick={clearFilters}
+                      className="text-white/50 text-sm hover:text-white/80 transition px-3 py-1 rounded-lg hover:bg-white/10"
+                    >
+                      ✕ Clear filters
+                    </button>
+                  </div>
+                  
+                  {loadingInter ? (
+                    <div className="sd-loading">
+                      <div className="sd-spinner" />
+                      <p>Searching internships...</p>
+                    </div>
+                  ) : internships.length === 0 ? (
+                    <div className="sd-empty" style={{ background: "rgba(255,255,255,0.05)", borderRadius: "16px", padding: "40px" }}>
+                      <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.95rem" }}>
+                        No internships found matching your criteria.
+                      </p>
+                      <button 
+                        onClick={clearFilters}
+                        className="mt-4 px-4 py-2 bg-purple-600/40 hover:bg-purple-600/60 rounded-lg text-white text-sm transition"
+                      >
+                        Clear all filters
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="sd-internships-grid" style={{ marginTop: "1rem" }}>
+                      {internships.slice(0, 6).map(offer => (
+                        <div className="sd-internship-card is-visible" key={offer.id}>
+                          <div className="sd-intern-img">
+                            {offer.image ? <img src={offer.image} alt={offer.title} /> : <div className="sd-image-placeholder">student</div>}
+                            <div className="sd-intern-top-badges">
+                              <span className="sd-badge-level">{offer.level || "Internship"}</span>
+                              <span className="sd-badge-type">{offer.type || "Stage"}</span>
+                            </div>
+                          </div>
+                          <div className="sd-intern-info">
+                            <div className="sd-intern-title">{offer.title}</div>
+                            <div className="sd-intern-meta-row">
+                              <div className="sd-intern-applicants">
+                                <UsersIcon />
+                                <span style={{ color: "#F75AFA", fontWeight: "bold" }}>
+                                  {offer.applicants_count ?? 0}
+                                </span> Students Applied
+                              </div>
+                            </div>
+                            <div className="sd-intern-rep">
+                              <div className="sd-intern-rep-avatar">
+                                {(offer.contact_name || offer.company_name || "?")[0].toUpperCase()}
+                              </div>
+                              <span className="sd-intern-rep-name">
+                                {offer.contact_name || offer.company_name}
+                              </span>
+                            </div>
+                            <div className="sd-intern-footer">
+                              <Stars n={offer.rating ?? 4} />
+                              <button className="sd-enroll-btn" onClick={() => setApplyOffer(offer)}>
+                                Apply Now
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {internships.length > 6 && (
+                    <div style={{ display: "flex", justifyContent: "center", marginTop: "2rem" }}>
+                      <button className="sd-see-all-btn" onClick={() => document.getElementById('internships')?.scrollIntoView({ behavior: "smooth" })}>
+                        See All {internships.length} Internships &nbsp;<ArrowRight />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+            
+            {/* ========== STUDENT IMAGE ========== */}
             <div className="sd-hero-image">
-              <img
-                src="/images/student-hero.png"
-                alt="Student dashboard illustration"
-                onError={e => { e.target.style.display = "none"; }}
+              <img 
+                src="/images/student.png" 
+                alt="Student illustration" 
+                className="hero-image"
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'contain',
+                  borderRadius: '22px'
+                }}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'https://placehold.co/500x500/8D23D4/white?text=Student';
+                }}
               />
-              <ImgPlaceholder />
             </div>
           </div>
         </section>
 
+        {/* ========== COMPANIES SECTION - TOP 3 COMPANIES WITH MOST OFFERS ========== */}
         <section className="sd-section" id="companies" ref={companiesRef} data-section="companies">
           <div className="sd-section-header">
             <div>
@@ -1005,45 +1140,77 @@ export default function StudentDashboard() {
                 <span className="t-purple">Companies</span>
               </h2>
               <p className="sd-section-subtitle">
-                The popular companies offering internships
+                The top companies offering the most internships
               </p>
             </div>
-            <button className="sd-see-all-btn">
-              See All &nbsp;<ArrowRight />
-            </button>
+            {/* See All button - always visible when there are companies */}
+            {companies.length > 0 && (
+              <button 
+                className="sd-see-all-btn"
+                onClick={() => setShowAllCompanies(!showAllCompanies)}
+              >
+                {showAllCompanies ? "Show Less" : "See All"} &nbsp;<ArrowRight />
+              </button>
+            )}
           </div>
 
           {loadingComp ? (
             <div className="sd-loading">
               <div className="sd-spinner" />
-              <p>Chargement des entreprises…</p>
+              <p>Loading companies…</p>
             </div>
           ) : companies.length === 0 ? (
             <div className="sd-empty">
-              <ImgPlaceholder />
-              <p>Aucune entreprise disponible pour le moment.</p>
+              <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.95rem" }}>
+                This section is not available yet. Please check back later.
+              </p>
             </div>
           ) : (
             <div className="sd-companies-grid">
-              {companies.slice(0, 4).map(c => (
+              {displayedCompanies.map((c, index) => (
                 <div className="sd-company-card" key={c.id}>
                   <div className="sd-company-img">
-                    {c.logo ? <img src={c.logo} alt={c.name} /> : <ImgPlaceholder />}
-                    {c.sector && <span className="sd-company-badge">{c.sector}</span>}
+                    {c.logo ? (
+                      <img 
+                        src={typeof c.logo === 'string' && c.logo.startsWith('data:') ? c.logo : `http://localhost:8000${c.logo}`} 
+                        alt={c.name || c.company_name} 
+                      />
+                    ) : (
+                      <div className="sd-image-placeholder">company</div>
+                    )}
+                    {index === 0 && <span className="sd-company-badge">🥇 #1</span>}
+                    {index === 1 && <span className="sd-company-badge">🥈 #2</span>}
+                    {index === 2 && <span className="sd-company-badge">🥉 #3</span>}
                   </div>
                   <div className="sd-company-info">
                     <div className="sd-company-name">{c.name || c.company_name}</div>
-                    {c.description && <p className="sd-company-desc">{c.description}</p>}
+                    {c.description && <p className="sd-company-desc">{c.description.substring(0, 80)}...</p>}
                     <div className="sd-company-meta">
+                      <Briefcase size={12} />
+                      <span style={{ color: "#F75AFA", fontWeight: "bold" }}>{c.active_offers ?? 0}</span> active offers
+                    </div>
+                    <div className="sd-company-meta" style={{ marginTop: "4px" }}>
                       <UsersIcon />
-                      <span>{c.students_applied ?? 0}</span> students applied
+                      <span style={{ color: "#F75AFA", fontWeight: "bold" }}>{c.students_applied ?? 0}</span> students applied
                     </div>
                     <button className="sd-learn-btn" onClick={() => scrollTo("internships", internshipsRef)}>
-                      Learn More
+                      View Offers
                     </button>
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Bottom See All button - only when there are more than 3 companies and not showing all */}
+          {!loadingComp && companies.length > 3 && !showAllCompanies && (
+            <div style={{ display: "flex", justifyContent: "center", marginTop: "2rem" }}>
+              <button 
+                className="sd-see-all-btn"
+                onClick={() => setShowAllCompanies(true)}
+              >
+                See All {companies.length} Companies &nbsp;<ArrowRight />
+              </button>
             </div>
           )}
 
@@ -1055,6 +1222,7 @@ export default function StudentDashboard() {
           </div>
         </section>
 
+        {/* ========== INTERNSHIPS SECTION ========== */}
         <section className="sd-section" id="internships" ref={internshipsRef} data-section="internships">
           <div className="sd-section-header">
             <div>
@@ -1066,30 +1234,37 @@ export default function StudentDashboard() {
                 Find the perfect opportunity to start your career
               </p>
             </div>
-            <button className="sd-see-all-btn">
-              See All &nbsp;<ArrowRight />
-            </button>
+            {/* See All button - only when there are internships and not in search mode */}
+            {internships.length > 0 && !hasActiveFilters && (
+              <button 
+                className="sd-see-all-btn"
+                onClick={() => setShowAllInternships(!showAllInternships)}
+              >
+                {showAllInternships ? "Show Less" : "See All"} &nbsp;<ArrowRight />
+              </button>
+            )}
           </div>
 
-          {loadingInter ? (
+          {loadingInter && !hasActiveFilters ? (
             <div className="sd-loading">
               <div className="sd-spinner" />
-              <p>Chargement des offres…</p>
+              <p>Loading internships…</p>
             </div>
-          ) : internships.length === 0 ? (
+          ) : (!hasActiveFilters && internships.length === 0) ? (
             <div className="sd-empty">
-              <ImgPlaceholder />
-              <p>Aucune offre de stage disponible.</p>
+              <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.95rem" }}>
+                This section is not available yet. Please check back later.
+              </p>
             </div>
-          ) : (
+          ) : !hasActiveFilters ? (
             <div className="sd-internships-grid">
-              {internships.slice(0, 3).map(offer => (
+              {displayedInternships.map(offer => (
                 <div className="sd-internship-card" key={offer.id}>
                   <div className="sd-intern-img">
-                    {offer.image ? <img src={offer.image} alt={offer.title} /> : <ImgPlaceholder />}
+                    {offer.image ? <img src={offer.image} alt={offer.title} /> : <div className="sd-image-placeholder">internship</div>}
                     <div className="sd-intern-top-badges">
-                      <span className="sd-badge-level">{offer.level || "To+ Lesses"}</span>
-                      <span className="sd-badge-type">{offer.type || "Design"}</span>
+                      <span className="sd-badge-level">{offer.level || "Internship"}</span>
+                      <span className="sd-badge-type">{offer.type || "Stage"}</span>
                     </div>
                   </div>
                   <div className="sd-intern-info">
@@ -1097,7 +1272,9 @@ export default function StudentDashboard() {
                     <div className="sd-intern-meta-row">
                       <div className="sd-intern-applicants">
                         <UsersIcon />
-                        {offer.applicants_count ?? offer.students_count ?? 0}+ Students
+                        <span style={{ color: "#F75AFA", fontWeight: "bold" }}>
+                          {offer.applicants_count ?? 0}
+                        </span> Students Applied
                       </div>
                     </div>
                     <div className="sd-intern-rep">
@@ -1118,17 +1295,22 @@ export default function StudentDashboard() {
                 </div>
               ))}
             </div>
-          )}
+          ) : null}
 
-          {internships.length > 3 && (
+          {/* Bottom See All button - only when there are more than 3 internships, not in search mode, and not showing all */}
+          {!hasActiveFilters && internships.length > 3 && !showAllInternships && (
             <div style={{ display: "flex", justifyContent: "center", marginTop: "2rem" }}>
-              <button className="sd-see-all-btn">
-                See All &nbsp;<ArrowRight />
+              <button 
+                className="sd-see-all-btn"
+                onClick={() => setShowAllInternships(true)}
+              >
+                See All {internships.length} Internships &nbsp;<ArrowRight />
               </button>
             </div>
           )}
         </section>
 
+        {/* ========== FOOTER ========== */}
         <footer className="footer">
           <div className="footer-grid">
             <div className="footer-brand">
@@ -1141,24 +1323,25 @@ export default function StudentDashboard() {
             <div className="footer-contact">
               <h4>Contact Us</h4>
               <ul>
-                <li><MapPinIcon />123 University Ave, Campus Center, CA 94000</li>
-                <li><PhoneIcon />+1 (555) 123-4567</li>
-                <li><MailIcon />internships@university.edu</li>
+                <li><MapPinIcon />123 University Ave, Campus Center, Algiers, Algeria</li>
+                <li><PhoneIcon />+213 (0) 23 45 67 89</li>
+                <li><MailIcon />contact@univstage.dz</li>
               </ul>
             </div>
           </div>
           <div className="footer-bottom">
             <p>© 2026 UnivStage. All rights reserved.</p>
             <div className="footer-socials">
-              <a href="#!" aria-label="Facebook">f</a>
-              <a href="#!" aria-label="Twitter">𝕏</a>
-              <a href="#!" aria-label="LinkedIn">in</a>
-              <a href="#!" aria-label="Instagram">◎</a>
+              <a href="https://www.facebook.com/univstage" target="_blank" rel="noopener noreferrer">f</a>
+              <a href="https://www.instagram.com/univstage" target="_blank" rel="noopener noreferrer">𝕏</a>
+              <a href="https://www.linkedin.com/company/univstage" target="_blank" rel="noopener noreferrer">in</a>
             </div>
             <div className="footer-bottom-links">
-              <a href="#!">Privacy Policy</a>
+              <a href="/privacy-policy">Privacy Policy</a>
               <span>|</span>
-              <a href="#!">Terms of Service</a>
+              <a href="/terms-of-service">Terms of Service</a>
+              <span>|</span>
+              <a href="/faq">FAQ</a>
             </div>
           </div>
         </footer>

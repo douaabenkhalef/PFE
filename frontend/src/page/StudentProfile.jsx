@@ -1,15 +1,16 @@
 // frontend/src/page/StudentProfile.jsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { 
   User, Mail, MapPin, BookOpen, Award, Code, Github, 
   Phone, Calendar, Briefcase, Edit2, Save, X, Camera, 
   Lock, Eye, KeyRound, ShieldCheck, Smartphone, Key,
-  AlertCircle
+  AlertCircle, Users, Search, Filter, ArrowLeft, LogOut,
+  Building2, UserCog, Activity, FileText, ClipboardList,
+  GraduationCap
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import StudentSidebar from '../components/Studentsidebar';
 import './StudentProfile.css';
 
 const API = 'http://localhost:8000/api';
@@ -105,14 +106,12 @@ const OTPVerificationModal = ({ email, onVerify, onClose, loading, title = "Vér
 
 // Composant pour le changement de mot de passe avec OTP
 const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
-  const [step, setStep] = useState('initiate'); // 'initiate' ou 'verify'
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [targetEmailMasked, setTargetEmailMasked] = useState('');
   const [usingRecovery, setUsingRecovery] = useState(false);
   const [showOTPModal, setShowOTPModal] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
 
   const handleInitiate = async () => {
     if (newPassword !== confirmPassword) {
@@ -122,11 +121,6 @@ const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
     
     if (newPassword.length < 8) {
       toast.error('Le mot de passe doit contenir au moins 8 caractères');
-      return;
-    }
-    
-    if (newPassword.isdigit && !isNaN(newPassword)) {
-      toast.error('Le mot de passe ne peut pas être uniquement des chiffres');
       return;
     }
     
@@ -140,7 +134,6 @@ const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
       if (data.success) {
         setTargetEmailMasked(data.target_email_masked);
         setUsingRecovery(data.using_recovery);
-        setStep('verify');
         setShowOTPModal(true);
         toast.success(data.message);
       } else {
@@ -193,14 +186,14 @@ const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
         
         <input 
           type="password" 
-          placeholder="New Password" 
+          placeholder="Nouveau mot de passe" 
           value={newPassword} 
           onChange={(e) => setNewPassword(e.target.value)} 
           className="profile-edit-input" 
         />
         <input 
           type="password" 
-          placeholder="Confirm New Password" 
+          placeholder="Confirmer le mot de passe" 
           value={confirmPassword} 
           onChange={(e) => setConfirmPassword(e.target.value)} 
           className="profile-edit-input" 
@@ -248,7 +241,6 @@ export default function StudentProfile() {
   const [activeTab, setActiveTab] = useState('public');
   const [isOwner, setIsOwner] = useState(true);
   const [showChangePassword, setShowChangePassword] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const pictureInputRef = React.useRef(null);
   
   // Security states
@@ -276,30 +268,28 @@ export default function StudentProfile() {
     }
   };
 
-  // Handle Enable 2FA
   const handleEnable2FA = async () => {
     setLoading2FA(true);
     try {
-        const res = await fetch(`${API}/auth/enable-email-2fa/`, {
-            method: 'POST',
-            headers: authHeaders(),
-        });
-        const data = await res.json();
-        if (data.success) {
-            setTwoFAEnabled(true);
-            toast.success('2FA via email enabled! A code will be sent to your email at each login.');
-        } else {
-            toast.error(data.error || 'Failed to enable 2FA');
-        }
+      const res = await fetch(`${API}/auth/enable-email-2fa/`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTwoFAEnabled(true);
+        toast.success('2FA via email enabled!');
+      } else {
+        toast.error(data.error || 'Failed to enable 2FA');
+      }
     } catch (err) {
-        toast.error('Connection error');
+      toast.error('Connection error');
     } finally {
-        setLoading2FA(false);
-        setShow2FAModal(false);
+      setLoading2FA(false);
+      setShow2FAModal(false);
     }
-};
+  };
 
-  // Handle Disable 2FA
   const handleDisable2FA = async () => {
     setLoading2FA(true);
     try {
@@ -321,7 +311,6 @@ export default function StudentProfile() {
     }
   };
 
-  // Handle Add Recovery Email (Step 1: Send OTP)
   const handleAddRecoveryEmail = async () => {
     if (!recoveryEmail || !recoveryEmail.includes('@')) {
       toast.error('Veuillez entrer une adresse email valide');
@@ -356,7 +345,6 @@ export default function StudentProfile() {
     }
   };
 
-  // Handle Verify Recovery OTP (Step 2: Confirm and save)
   const handleVerifyRecoveryOTP = async (otpCode) => {
     setLoadingRecovery(true);
     try {
@@ -385,7 +373,6 @@ export default function StudentProfile() {
     }
   };
 
-  // Handle Remove Recovery Email
   const handleRemoveRecoveryEmail = async () => {
     setLoadingRecovery(true);
     try {
@@ -407,7 +394,6 @@ export default function StudentProfile() {
     }
   };
 
-  // Upload photo de profil
   const handlePictureUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -557,7 +543,7 @@ export default function StudentProfile() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
-        <div className="text-white text-xl">Chargement...</div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
       </div>
     );
   }
@@ -571,16 +557,543 @@ export default function StudentProfile() {
   }
 
   return (
-    <>
-      {sidebarOpen && (
-        <StudentSidebar
-          user={user}
-          onLogout={handleLogout}
-          onClose={() => setSidebarOpen(false)}
-        />
+    <div className="min-h-screen flex">
+      {/* Fixed Sidebar */}
+      <div className="w-64 bg-gradient-to-b from-[#1a0840] to-[#0e0c27] h-full fixed left-0 top-0 overflow-y-auto border-r border-purple-500/30">
+        {/* Sidebar Header with User Info */}
+        <div className="p-4 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold overflow-hidden">
+              {profile.profile_picture ? (
+                <img 
+                  src={profile.profile_picture} 
+                  alt={profile.full_name} 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.parentElement.innerHTML = `<span>${(profile.full_name?.charAt(0) || 'U').toUpperCase()}</span>`;
+                  }}
+                />
+              ) : (
+                <span>{(profile.full_name?.charAt(0) || 'U').toUpperCase()}</span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-medium text-sm truncate">{profile.full_name || user?.username || 'Student'}</p>
+              <p className="text-white/50 text-xs truncate">{profile.email || user?.email}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="p-4">
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+            <input
+              type="text"
+              placeholder="Search"
+              className="w-full bg-white/10 border border-white/20 rounded-lg pl-9 pr-3 py-2 text-white text-sm placeholder:text-white/40 focus:outline-none focus:border-purple-500"
+            />
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-3">
+          <div>
+            <p className="text-xs text-purple-300/60 uppercase tracking-wider px-3 mb-2">Control & Management</p>
+            <div className="space-y-1">
+              <Link 
+                to="/student/profile" 
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm bg-purple-600/30 text-purple-300 border border-purple-500/30"
+              >
+                <User size={16} /> My Profile
+              </Link>
+              <Link 
+                to="/student/cv" 
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:bg-white/10"
+              >
+                <FileText size={16} /> My CV
+              </Link>
+              <Link 
+                to="/student/applications" 
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:bg-white/10"
+              >
+                <ClipboardList size={16} /> Application status
+              </Link>
+            </div>
+          </div>
+        </nav>
+
+        {/* Logout Button */}
+        <div className="p-4 border-t border-white/10">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm text-red-300 hover:bg-red-500/20 transition"
+          >
+            <LogOut size={16} />
+            <span>Logout</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main content area - with glassmorphic effect */}
+      <div className="ml-64 flex-1 min-h-screen">
+        <div className="max-w-5xl mx-auto px-6 py-8">
+          {/* Back button */}
+          <button
+            onClick={() => navigate('/student/dashboard')}
+            className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
+          >
+            <ArrowLeft size={18} />
+            Retour au tableau de bord
+          </button>
+
+          {/* User info header with avatar */}
+          <div className="flex items-center gap-6 mb-8">
+            <div className="relative">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-3xl overflow-hidden">
+                {profile.profile_picture ? (
+                  <img src={profile.profile_picture} alt={profile.full_name} className="w-full h-full object-cover" />
+                ) : (
+                  <span>{(profile.full_name?.charAt(0) || 'U').toUpperCase()}</span>
+                )}
+              </div>
+              {isOwner && (
+                <>
+                  <input
+                    ref={pictureInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/jpg,image/gif"
+                    style={{ display: 'none' }}
+                    onChange={handlePictureUpload}
+                  />
+                  <button
+                    onClick={() => pictureInputRef.current?.click()}
+                    className="absolute bottom-0 right-0 bg-purple-600 rounded-full p-2 shadow-lg hover:bg-purple-500 transition"
+                    title="Change profile picture"
+                  >
+                    <Camera size={16} />
+                  </button>
+                </>
+              )}
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white">{profile.full_name}</h1>
+              <p className="text-purple-400">@{profile.username}</p>
+              {profile.is_placed && (
+                <p className="text-green-400 text-sm flex items-center gap-1 mt-1">
+                  <Briefcase size={14} /> Placé chez {profile.placed_company_name || 'une entreprise'}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Header with Edit/Save buttons */}
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-xl font-semibold text-white">Manage Profile</h2>
+              <p className="text-white/60 text-sm">Manage your public profile and personal information</p>
+            </div>
+            {isOwner && !isEditing ? (
+              <button 
+                className="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-semibold transition shadow-lg flex items-center gap-2"
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit2 size={16} /> Edit Profile
+              </button>
+            ) : isOwner && isEditing ? (
+              <div className="flex gap-3">
+                <button 
+                  className="px-5 py-2 bg-green-600 hover:bg-green-500 text-white rounded-xl text-sm font-semibold transition flex items-center gap-2"
+                  onClick={handleSave} 
+                  disabled={saving}
+                >
+                  <Save size={16} /> {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button 
+                  className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-semibold transition flex items-center gap-2"
+                  onClick={() => { setIsEditing(false); fetchProfile(); }}
+                >
+                  <X size={16} /> Cancel
+                </button>
+              </div>
+            ) : null}
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-4 mb-6 border-b border-white/20">
+            <button
+              onClick={() => setActiveTab('public')}
+              className={`pb-2 px-4 text-sm font-semibold transition flex items-center gap-2 ${
+                activeTab === 'public' ? 'text-purple-400 border-b-2 border-purple-400' : 'text-white/60 hover:text-white'
+              }`}
+            >
+              <Eye size={16} /> Public Profile
+            </button>
+            <button
+              onClick={() => setActiveTab('private')}
+              className={`pb-2 px-4 text-sm font-semibold transition flex items-center gap-2 ${
+                activeTab === 'private' ? 'text-purple-400 border-b-2 border-purple-400' : 'text-white/60 hover:text-white'
+              }`}
+            >
+              <Lock size={16} /> Personal Information
+            </button>
+          </div>
+
+          {/* PUBLIC PROFILE TAB - with glassmorphic cards */}
+          {activeTab === 'public' && (
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
+              <div className="p-6 space-y-5">
+                {/* Full Name */}
+                <div className="flex flex-col md:flex-row md:items-center gap-4 pb-4 border-b border-white/10">
+                  <label className="md:w-32 text-white/60 text-sm font-medium">Full Name</label>
+                  {isEditing ? (
+                    <input 
+                      type="text" 
+                      value={profile.full_name || ''} 
+                      onChange={(e) => handleInputChange('full_name', e.target.value)} 
+                      className="flex-1 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500"
+                    />
+                  ) : (
+                    <p className="flex-1 text-white">{profile.full_name || '—'}</p>
+                  )}
+                </div>
+
+                {/* Username */}
+                <div className="flex flex-col md:flex-row md:items-center gap-4 pb-4 border-b border-white/10">
+                  <label className="md:w-32 text-white/60 text-sm font-medium">Username</label>
+                  {isEditing ? (
+                    <input 
+                      type="text" 
+                      value={profile.username || ''} 
+                      onChange={(e) => handleInputChange('username', e.target.value)} 
+                      className="flex-1 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500"
+                    />
+                  ) : (
+                    <p className="flex-1 text-white">@{profile.username || '—'}</p>
+                  )}
+                </div>
+
+                {/* Location */}
+                <div className="flex flex-col md:flex-row md:items-center gap-4 pb-4 border-b border-white/10">
+                  <label className="md:w-32 text-white/60 text-sm font-medium">Location (Wilaya)</label>
+                  {isEditing ? (
+                    <select 
+                      value={profile.wilaya || ''} 
+                      onChange={(e) => handleInputChange('wilaya', e.target.value)} 
+                      className="flex-1 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500"
+                    >
+                      <option value="">Select Wilaya</option>
+                      {wilayas.map(w => <option key={w} value={w}>{w}</option>)}
+                    </select>
+                  ) : (
+                    <p className="flex-1 text-white">{profile.wilaya || '—'}</p>
+                  )}
+                </div>
+
+                {/* University */}
+                <div className="flex flex-col md:flex-row md:items-center gap-4 pb-4 border-b border-white/10">
+                  <label className="md:w-32 text-white/60 text-sm font-medium">University</label>
+                  {isEditing ? (
+                    <input 
+                      type="text" 
+                      value={profile.university || ''} 
+                      onChange={(e) => handleInputChange('university', e.target.value)} 
+                      className="flex-1 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500"
+                    />
+                  ) : (
+                    <p className="flex-1 text-white">{profile.university || '—'}</p>
+                  )}
+                </div>
+
+                {/* Major */}
+                <div className="flex flex-col md:flex-row md:items-center gap-4 pb-4 border-b border-white/10">
+                  <label className="md:w-32 text-white/60 text-sm font-medium">Major</label>
+                  {isEditing ? (
+                    <input 
+                      type="text" 
+                      value={profile.major || ''} 
+                      onChange={(e) => handleInputChange('major', e.target.value)} 
+                      className="flex-1 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500"
+                    />
+                  ) : (
+                    <p className="flex-1 text-white">{profile.major || '—'}</p>
+                  )}
+                </div>
+
+                {/* Education Level */}
+                <div className="flex flex-col md:flex-row md:items-center gap-4 pb-4 border-b border-white/10">
+                  <label className="md:w-32 text-white/60 text-sm font-medium">Education Level</label>
+                  {isEditing ? (
+                    <select 
+                      value={profile.education_level || ''} 
+                      onChange={(e) => handleInputChange('education_level', e.target.value)} 
+                      className="flex-1 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500"
+                    >
+                      <option value="">Select</option>
+                      {educationLevels.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  ) : (
+                    <p className="flex-1 text-white">{profile.education_level || '—'}</p>
+                  )}
+                </div>
+
+                {/* Graduation Year */}
+                <div className="flex flex-col md:flex-row md:items-center gap-4 pb-4 border-b border-white/10">
+                  <label className="md:w-32 text-white/60 text-sm font-medium">Graduation Year</label>
+                  {isEditing ? (
+                    <input 
+                      type="number" 
+                      value={profile.graduation_year || ''} 
+                      onChange={(e) => handleInputChange('graduation_year', parseInt(e.target.value) || '')} 
+                      className="flex-1 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500"
+                      placeholder="2025" 
+                    />
+                  ) : (
+                    <p className="flex-1 text-white">{profile.graduation_year || '—'}</p>
+                  )}
+                </div>
+
+                {/* Skills */}
+                <div className="flex flex-col md:flex-row gap-4 pb-4 border-b border-white/10">
+                  <label className="md:w-32 text-white/60 text-sm font-medium">Skills</label>
+                  {isEditing ? (
+                    <input 
+                      type="text" 
+                      value={profile.skills?.join(', ') || ''} 
+                      onChange={(e) => handleInputChange('skills', e.target.value.split(',').map(s => s.trim()).filter(s => s))} 
+                      className="flex-1 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500"
+                      placeholder="React, Python, Django, ..." 
+                    />
+                  ) : (
+                    <div className="flex-1 flex flex-wrap gap-2">
+                      {profile.skills?.length > 0 ? (
+                        profile.skills.map(s => <span key={s} className="bg-purple-900/60 text-purple-300 text-xs px-2.5 py-1 rounded-full">{s}</span>)
+                      ) : '—'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Bio */}
+                <div className="flex flex-col md:flex-row gap-4 pb-4 border-b border-white/10">
+                  <label className="md:w-32 text-white/60 text-sm font-medium">Bio</label>
+                  {isEditing ? (
+                    <textarea 
+                      value={profile.bio || ''} 
+                      onChange={(e) => handleInputChange('bio', e.target.value)} 
+                      className="flex-1 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500"
+                      rows="4"
+                      placeholder="Tell us about yourself..."
+                    />
+                  ) : (
+                    <p className="flex-1 text-white/80 leading-relaxed">{profile.bio || '—'}</p>
+                  )}
+                </div>
+
+                {/* GitHub */}
+                <div className="flex flex-col md:flex-row md:items-center gap-4 pb-4 border-b border-white/10">
+                  <label className="md:w-32 text-white/60 text-sm font-medium">GitHub</label>
+                  {isEditing ? (
+                    <input 
+                      type="url" 
+                      value={profile.github || ''} 
+                      onChange={(e) => handleInputChange('github', e.target.value)} 
+                      className="flex-1 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500"
+                      placeholder="https://github.com/..." 
+                    />
+                  ) : (
+                    <p className="flex-1">{profile.github ? (
+                      <a href={profile.github} target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">{profile.github}</a>
+                    ) : '—'}</p>
+                  )}
+                </div>
+
+                {/* Portfolio */}
+                <div className="flex flex-col md:flex-row md:items-center gap-4">
+                  <label className="md:w-32 text-white/60 text-sm font-medium">Portfolio</label>
+                  {isEditing ? (
+                    <input 
+                      type="url" 
+                      value={profile.portfolio || ''} 
+                      onChange={(e) => handleInputChange('portfolio', e.target.value)} 
+                      className="flex-1 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500"
+                      placeholder="https://..." 
+                    />
+                  ) : (
+                    <p className="flex-1">{profile.portfolio || '—'}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PERSONAL INFORMATION TAB */}
+          {activeTab === 'private' && (
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
+              <div className="p-6 space-y-5">
+                {/* Email */}
+                <div className="flex flex-col md:flex-row md:items-center gap-4 pb-4 border-b border-white/10">
+                  <label className="md:w-32 text-white/60 text-sm font-medium">Email</label>
+                  <p className="flex-1 text-white">{profile.email || '—'}</p>
+                </div>
+
+                {/* Phone */}
+                <div className="flex flex-col md:flex-row md:items-center gap-4 pb-4 border-b border-white/10">
+                  <label className="md:w-32 text-white/60 text-sm font-medium">Phone</label>
+                  {isEditing ? (
+                    <input 
+                      type="tel" 
+                      value={profile.phone || ''} 
+                      onChange={(e) => handleInputChange('phone', e.target.value)} 
+                      className="flex-1 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500"
+                      placeholder="+213 XX XXX XXXX" 
+                    />
+                  ) : (
+                    <p className="flex-1 text-white">{profile.phone || '—'}</p>
+                  )}
+                </div>
+
+                {/* Password */}
+                <div className="flex flex-col md:flex-row gap-4 pb-4 border-b border-white/10">
+                  <label className="md:w-32 text-white/60 text-sm font-medium">Password</label>
+                  <div className="flex-1">
+                    {!showChangePassword ? (
+                      <button 
+                        className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition flex items-center gap-2"
+                        onClick={() => setShowChangePassword(true)}
+                      >
+                        <KeyRound size={14} /> Change Password
+                      </button>
+                    ) : (
+                      <PasswordChangeWithOTP 
+                        onClose={() => setShowChangePassword(false)}
+                        onSuccess={handlePasswordChangeSuccess}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Security Section */}
+                <div className="pt-2">
+                  <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                    <ShieldCheck size={18} /> Additional Security
+                  </h3>
+                  
+                  {/* Two-factor authentication */}
+                  <div className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white/5 rounded-xl mb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Smartphone size={16} className="text-purple-400" />
+                        <span className="text-white text-sm font-medium">Two-factor authentication</span>
+                        {twoFAEnabled && <span className="bg-green-500/20 text-green-400 text-xs px-2 py-0.5 rounded-full ml-2">✓ Enabled</span>}
+                      </div>
+                      <p className="text-white/50 text-xs mt-1">Add an extra layer of security to your account</p>
+                    </div>
+                    {!twoFAEnabled ? (
+                      <button 
+                        className="mt-3 md:mt-0 px-4 py-2 bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 rounded-lg text-sm transition"
+                        onClick={() => setShow2FAModal(true)}
+                        disabled={loading2FA}
+                      >
+                        {loading2FA ? 'Loading...' : 'Enable'}
+                      </button>
+                    ) : (
+                      <button 
+                        className="mt-3 md:mt-0 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-sm transition"
+                        onClick={handleDisable2FA}
+                        disabled={loading2FA}
+                      >
+                        {loading2FA ? 'Loading...' : 'Disable'}
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Recovery email */}
+                  <div className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white/5 rounded-xl">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Key size={16} className="text-purple-400" />
+                        <span className="text-white text-sm font-medium">Recovery email</span>
+                        {recoveryEmailAdded && <span className="bg-green-500/20 text-green-400 text-xs px-2 py-0.5 rounded-full ml-2">✓ Added</span>}
+                      </div>
+                      <p className="text-white/50 text-xs mt-1">Add a recovery email to reset your password</p>
+                    </div>
+                    {!recoveryEmailAdded ? (
+                      <button 
+                        className="mt-3 md:mt-0 px-4 py-2 bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 rounded-lg text-sm transition"
+                        onClick={() => setShowRecoveryModal(true)}
+                        disabled={loadingRecovery}
+                      >
+                        {loadingRecovery ? 'Loading...' : 'Add'}
+                      </button>
+                    ) : (
+                      <button 
+                        className="mt-3 md:mt-0 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-sm transition"
+                        onClick={handleRemoveRecoveryEmail}
+                        disabled={loadingRecovery}
+                      >
+                        {loadingRecovery ? 'Loading...' : 'Remove'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 2FA Modal */}
+      {show2FAModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShow2FAModal(false)}>
+          <div className="bg-[#1e293b] border border-slate-700 rounded-2xl p-6 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <Smartphone size={20} /> Enable Two-Factor Authentication
+            </h3>
+            <p className="text-white/70 mb-4">Two-factor authentication adds an extra layer of security to your account.</p>
+            <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 mb-5">
+              <strong className="text-purple-300 text-sm">How it works:</strong>
+              <ul className="text-white/60 text-xs mt-2 space-y-1 ml-5 list-disc">
+                <li>Download an authenticator app (Google Authenticator, Microsoft Authenticator)</li>
+                <li>Scan the QR code that will appear</li>
+                <li>Enter the 6-digit code from the app to verify</li>
+              </ul>
+            </div>
+            <div className="flex gap-3">
+              <button className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg transition" onClick={() => setShow2FAModal(false)}>Cancel</button>
+              <button className="flex-1 bg-purple-600 hover:bg-purple-500 text-white py-2 rounded-lg transition" onClick={handleEnable2FA}>Enable 2FA</button>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* OTP Modal for Recovery Email */}
+      {/* Recovery Email Modal */}
+      {showRecoveryModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowRecoveryModal(false)}>
+          <div className="bg-[#1e293b] border border-slate-700 rounded-2xl p-6 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <Key size={20} /> Add Recovery Email
+            </h3>
+            <p className="text-white/70 mb-2">Add a recovery email to reset your password if you lose access to your account.</p>
+            <p className="text-white/50 text-sm mb-4">A verification code will be sent to this email.</p>
+            <input 
+              type="email"
+              placeholder="Enter recovery email"
+              value={recoveryEmail}
+              onChange={(e) => setRecoveryEmail(e.target.value)}
+              className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm mb-5 focus:outline-none focus:border-purple-500"
+            />
+            <div className="flex gap-3">
+              <button className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg transition" onClick={() => setShowRecoveryModal(false)}>Cancel</button>
+              <button className="flex-1 bg-purple-600 hover:bg-purple-500 text-white py-2 rounded-lg transition" onClick={handleAddRecoveryEmail} disabled={loadingRecovery}>
+                {loadingRecovery ? 'Sending...' : 'Send Code'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Recovery Email OTP Modal */}
       {showRecoveryOTPModal && (
         <OTPVerificationModal
           email={pendingRecoveryEmail}
@@ -593,438 +1106,6 @@ export default function StudentProfile() {
           title="Vérification de l'email de récupération"
         />
       )}
-
-      <div className="profile-page">
-        <nav className="profile-navbar">
-          <div className="profile-navbar-left">
-            <button className="profile-hamburger" onClick={() => setSidebarOpen(true)}>
-              <span /><span /><span />
-            </button>
-            <a className="profile-logo" href="/">UnivStage</a>
-          </div>
-        </nav>
-
-        <div className="profile-container">
-          {/* Left Sidebar - Avatar */}
-          <div className="profile-sidebar">
-            <div className="profile-avatar-container">
-              <div className="profile-avatar">
-                {profile.profile_picture ? (
-                  <img src={profile.profile_picture} alt={profile.full_name} />
-                ) : (
-                  <div className="profile-avatar-placeholder">
-                    {profile.full_name?.charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </div>
-              <h2>{profile.full_name}</h2>
-              <p className="profile-username">@{profile.username}</p>
-              {profile.is_placed && (
-                <div className="profile-placed-badge">
-                  <Briefcase size={14} /> Placé chez {profile.placed_company_name || 'une entreprise'}
-                </div>
-              )}
-
-              {isOwner && (
-                <>
-                  <input
-                    ref={pictureInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/jpg,image/gif"
-                    style={{ display: 'none' }}
-                    onChange={handlePictureUpload}
-                  />
-                  <button
-                    className="profile-upload-picture-btn"
-                    onClick={() => pictureInputRef.current?.click()}
-                    title="Change profile picture"
-                  >
-                    <Camera size={14} /> Change Photo
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Right Content */}
-          <div className="profile-main">
-            <div className="profile-header">
-              <div>
-                <h1>Community</h1>
-                <h2 className="profile-subtitle">Manage Profile</h2>
-                <p className="profile-description">Manage your public profile and personal information</p>
-              </div>
-              {isOwner && !isEditing ? (
-                <button className="profile-edit-btn" onClick={() => setIsEditing(true)}>
-                  <Edit2 size={16} /> Edit Profile
-                </button>
-              ) : isOwner && isEditing ? (
-                <div className="profile-edit-actions">
-                  <button className="profile-save-btn" onClick={handleSave} disabled={saving}>
-                    <Save size={16} /> {saving ? 'Saving...' : 'Save Changes'}
-                  </button>
-                  <button className="profile-cancel-btn" onClick={() => { setIsEditing(false); fetchProfile(); }}>
-                    <X size={16} /> Cancel
-                  </button>
-                </div>
-              ) : null}
-            </div>
-
-            {/* Tabs */}
-            <div className="profile-tabs">
-              <button 
-                className={`profile-tab-btn ${activeTab === 'public' ? 'active' : ''}`} 
-                onClick={() => setActiveTab('public')}
-              >
-                <Eye size={16} /> Public Profile
-              </button>
-              <button 
-                className={`profile-tab-btn ${activeTab === 'private' ? 'active' : ''}`} 
-                onClick={() => setActiveTab('private')}
-              >
-                <Lock size={16} /> Personal Information
-              </button>
-            </div>
-
-            {/* PUBLIC PROFILE TAB */}
-            {activeTab === 'public' && (
-              <div className="profile-tab-content">
-                <div className="profile-info-card">
-                  <div className="profile-info-row">
-                    <label>Full Name</label>
-                    {isEditing ? (
-                      <input 
-                        type="text" 
-                        value={profile.full_name || ''} 
-                        onChange={(e) => handleInputChange('full_name', e.target.value)} 
-                        className="profile-edit-input" 
-                      />
-                    ) : (
-                      <p>{profile.full_name || '—'}</p>
-                    )}
-                  </div>
-
-                  <div className="profile-info-row">
-                    <label>Username</label>
-                    {isEditing ? (
-                      <input 
-                        type="text" 
-                        value={profile.username || ''} 
-                        onChange={(e) => handleInputChange('username', e.target.value)} 
-                        className="profile-edit-input" 
-                      />
-                    ) : (
-                      <p>@{profile.username || '—'}</p>
-                    )}
-                  </div>
-
-                  <div className="profile-info-row">
-                    <label>Location (Wilaya)</label>
-                    {isEditing ? (
-                      <select 
-                        value={profile.wilaya || ''} 
-                        onChange={(e) => handleInputChange('wilaya', e.target.value)} 
-                        className="profile-edit-select"
-                      >
-                        <option value="">Select Wilaya</option>
-                        {wilayas.map(w => <option key={w} value={w}>{w}</option>)}
-                      </select>
-                    ) : (
-                      <p>{profile.wilaya || '—'}</p>
-                    )}
-                  </div>
-
-                  <div className="profile-info-row">
-                    <label>University</label>
-                    {isEditing ? (
-                      <input 
-                        type="text" 
-                        value={profile.university || ''} 
-                        onChange={(e) => handleInputChange('university', e.target.value)} 
-                        className="profile-edit-input" 
-                      />
-                    ) : (
-                      <p>{profile.university || '—'}</p>
-                    )}
-                  </div>
-
-                  <div className="profile-info-row">
-                    <label>Major / Field of Study</label>
-                    {isEditing ? (
-                      <input 
-                        type="text" 
-                        value={profile.major || ''} 
-                        onChange={(e) => handleInputChange('major', e.target.value)} 
-                        className="profile-edit-input" 
-                      />
-                    ) : (
-                      <p>{profile.major || '—'}</p>
-                    )}
-                  </div>
-
-                  <div className="profile-info-row">
-                    <label>Education Level</label>
-                    {isEditing ? (
-                      <select 
-                        value={profile.education_level || ''} 
-                        onChange={(e) => handleInputChange('education_level', e.target.value)} 
-                        className="profile-edit-select"
-                      >
-                        <option value="">Select</option>
-                        {educationLevels.map(l => <option key={l} value={l}>{l}</option>)}
-                      </select>
-                    ) : (
-                      <p>{profile.education_level || '—'}</p>
-                    )}
-                  </div>
-
-                  <div className="profile-info-row">
-                    <label>Graduation Year</label>
-                    {isEditing ? (
-                      <input 
-                        type="number" 
-                        value={profile.graduation_year || ''} 
-                        onChange={(e) => handleInputChange('graduation_year', parseInt(e.target.value) || '')} 
-                        className="profile-edit-input" 
-                        placeholder="2025" 
-                      />
-                    ) : (
-                      <p>{profile.graduation_year || '—'}</p>
-                    )}
-                  </div>
-
-                  <div className="profile-info-row">
-                    <label>Skills</label>
-                    {isEditing ? (
-                      <input 
-                        type="text" 
-                        value={profile.skills?.join(', ') || ''} 
-                        onChange={(e) => handleInputChange('skills', e.target.value.split(',').map(s => s.trim()).filter(s => s))} 
-                        className="profile-edit-input" 
-                        placeholder="React, Python, Django, ..." 
-                      />
-                    ) : (
-                      <div className="profile-skills-list">
-                        {profile.skills?.length > 0 ? (
-                          profile.skills.map(s => <span key={s} className="profile-skill-tag">{s}</span>)
-                        ) : '—'}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="profile-info-row">
-                    <label>Bio / About Me</label>
-                    {isEditing ? (
-                      <textarea 
-                        value={profile.bio || ''} 
-                        onChange={(e) => handleInputChange('bio', e.target.value)} 
-                        className="profile-edit-textarea" 
-                        rows="4"
-                        placeholder="Tell us about yourself..."
-                      />
-                    ) : (
-                      <p className="profile-bio-text">{profile.bio || '—'}</p>
-                    )}
-                  </div>
-
-                  <div className="profile-info-row">
-                    <label>GitHub</label>
-                    {isEditing ? (
-                      <input 
-                        type="url" 
-                        value={profile.github || ''} 
-                        onChange={(e) => handleInputChange('github', e.target.value)} 
-                        className="profile-edit-input" 
-                        placeholder="https://github.com/..." 
-                      />
-                    ) : (
-                      <p>{profile.github ? (
-                        <a href={profile.github} target="_blank" rel="noopener noreferrer" className="profile-link">{profile.github}</a>
-                      ) : '—'}</p>
-                    )}
-                  </div>
-
-                  <div className="profile-info-row">
-                    <label>Portfolio</label>
-                    {isEditing ? (
-                      <input 
-                        type="url" 
-                        value={profile.portfolio || ''} 
-                        onChange={(e) => handleInputChange('portfolio', e.target.value)} 
-                        className="profile-edit-input" 
-                        placeholder="https://..." 
-                      />
-                    ) : (
-                      <p>{profile.portfolio || '—'}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* PERSONAL INFORMATION TAB */}
-            {activeTab === 'private' && (
-              <div className="profile-tab-content">
-                <div className="profile-info-card">
-                  <div className="profile-info-row">
-                    <label>Email</label>
-                    <p>{profile.email || '—'}</p>
-                  </div>
-
-                  <div className="profile-info-row">
-                    <label>Phone Number</label>
-                    {isEditing ? (
-                      <input 
-                        type="tel" 
-                        value={profile.phone || ''} 
-                        onChange={(e) => handleInputChange('phone', e.target.value)} 
-                        className="profile-edit-input" 
-                        placeholder="+213 XX XXX XXXX" 
-                      />
-                    ) : (
-                      <p>{profile.phone || '—'}</p>
-                    )}
-                  </div>
-                  
-                  <div className="profile-info-row">
-                    <label>Password</label>
-                    {!showChangePassword ? (
-                      <button className="profile-change-password-btn" onClick={() => setShowChangePassword(true)}>
-                        <KeyRound size={14} /> Change Password
-                      </button>
-                    ) : (
-                      <PasswordChangeWithOTP 
-                        onClose={() => setShowChangePassword(false)}
-                        onSuccess={handlePasswordChangeSuccess}
-                      />
-                    )}
-                  </div>
-
-                  {/* Security Section */}
-                  <div className="profile-security-section">
-                    <div className="profile-security-header">
-                      <ShieldCheck size={18} />
-                      <h3>Additional Security</h3>
-                    </div>
-                    
-                    {/* Two-factor authentication */}
-                    <div className="profile-security-option">
-                      <div className="security-option-info">
-                        <Smartphone size={16} />
-                        <span>Two-factor authentication</span>
-                        <p>Add an extra layer of security to your account</p>
-                        {twoFAEnabled && <span className="security-enabled-badge">✓ Enabled</span>}
-                      </div>
-                      {!twoFAEnabled ? (
-                        <button 
-                          className="security-option-btn" 
-                          onClick={() => setShow2FAModal(true)}
-                          disabled={loading2FA}
-                        >
-                          {loading2FA ? 'Loading...' : 'Enable'}
-                        </button>
-                      ) : (
-                        <button 
-                          className="security-option-btn security-option-btn-danger" 
-                          onClick={handleDisable2FA}
-                          disabled={loading2FA}
-                        >
-                          {loading2FA ? 'Loading...' : 'Disable'}
-                        </button>
-                      )}
-                    </div>
-                    
-                    {/* Recovery email */}
-                    <div className="profile-security-option">
-                      <div className="security-option-info">
-                        <Key size={16} />
-                        <span>Recovery email</span>
-                        <p>Add a recovery email to reset your password</p>
-                        {recoveryEmailAdded && <span className="security-enabled-badge">✓ Added</span>}
-                      </div>
-                      {!recoveryEmailAdded ? (
-                        <button 
-                          className="security-option-btn" 
-                          onClick={() => setShowRecoveryModal(true)}
-                          disabled={loadingRecovery}
-                        >
-                          {loadingRecovery ? 'Loading...' : 'Add'}
-                        </button>
-                      ) : (
-                        <button 
-                          className="security-option-btn security-option-btn-danger" 
-                          onClick={handleRemoveRecoveryEmail}
-                          disabled={loadingRecovery}
-                        >
-                          {loadingRecovery ? 'Loading...' : 'Remove'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* 2FA Modal */}
-      {show2FAModal && (
-        <div className="profile-modal-overlay" onClick={() => setShow2FAModal(false)}>
-          <div className="profile-modal" onClick={e => e.stopPropagation()}>
-            <div className="profile-modal-header">
-              <Smartphone size={20} />
-              <h3>Enable Two-Factor Authentication</h3>
-              <button className="profile-modal-close" onClick={() => setShow2FAModal(false)}>×</button>
-            </div>
-            <div className="profile-modal-body">
-              <p>Two-factor authentication adds an extra layer of security to your account.</p>
-              <div className="profile-modal-info">
-                <strong>How it works:</strong>
-                <ul>
-                  <li>Download an authenticator app (Google Authenticator, Microsoft Authenticator)</li>
-                  <li>Scan the QR code that will appear</li>
-                  <li>Enter the 6-digit code from the app to verify</li>
-                </ul>
-              </div>
-            </div>
-            <div className="profile-modal-footer">
-              <button className="profile-modal-cancel" onClick={() => setShow2FAModal(false)}>Cancel</button>
-              <button className="profile-modal-confirm" onClick={handleEnable2FA}>Enable 2FA</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Recovery Email Modal (Step 1: Enter email) */}
-      {showRecoveryModal && (
-        <div className="profile-modal-overlay" onClick={() => setShowRecoveryModal(false)}>
-          <div className="profile-modal" onClick={e => e.stopPropagation()}>
-            <div className="profile-modal-header">
-              <Key size={20} />
-              <h3>Add Recovery Email</h3>
-              <button className="profile-modal-close" onClick={() => setShowRecoveryModal(false)}>×</button>
-            </div>
-            <div className="profile-modal-body">
-              <p>Add a recovery email to reset your password if you lose access to your account.</p>
-              <p className="text-sm text-white/50 mt-2">A verification code will be sent to this email.</p>
-              <input 
-                type="email"
-                placeholder="Enter recovery email"
-                value={recoveryEmail}
-                onChange={(e) => setRecoveryEmail(e.target.value)}
-                className="profile-modal-input"
-              />
-            </div>
-            <div className="profile-modal-footer">
-              <button className="profile-modal-cancel" onClick={() => setShowRecoveryModal(false)}>Cancel</button>
-              <button className="profile-modal-confirm" onClick={handleAddRecoveryEmail} disabled={loadingRecovery}>
-                {loadingRecovery ? 'Sending...' : 'Send Code'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 }

@@ -16,6 +16,14 @@ const ChatWidget = ({ university, companyMode = false, companyId = null, interns
   const [groupInfo, setGroupInfo] = useState(null);
   const [companyRoomName, setCompanyRoomName] = useState(null);
 
+  // ✅ Auto-open chat when internshipId is provided
+  useEffect(() => {
+    if (internshipId && !isOpen) {
+      console.log("🚀 Opening chat automatically for internship:", internshipId);
+      setIsOpen(true);
+    }
+  }, [internshipId]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -93,7 +101,7 @@ const ChatWidget = ({ university, companyMode = false, companyId = null, interns
     }
     else if (user?.role === 'student' && internshipId) {
       wsUrl = `ws://localhost:8000/ws/internship-chat/${internshipId}/?token=${token}`;
-      setGroupInfo({ type: 'internship', name: `Stage`, icon: '💼', title: `Chat` });
+      setGroupInfo({ type: 'internship', name: `Stage`, icon: '💼', title: `Chat Stage` });
     }
     else {
       console.log('❌ No valid chat configuration');
@@ -193,10 +201,12 @@ const ChatWidget = ({ university, companyMode = false, companyId = null, interns
     return <MessageCircle size={16} className="text-white" />;
   };
 
+  // Don't show anything for student without internshipId
   if (user?.role === 'student' && !internshipId) {
     return null;
   }
 
+  // Closed state - show chat button
   if (!isOpen) {
     return (
       <button
@@ -213,8 +223,9 @@ const ChatWidget = ({ university, companyMode = false, companyId = null, interns
     );
   }
   
+  // Open state - show chat window
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-72 bg-[#1e293b] rounded-xl shadow-2xl border border-slate-700 overflow-hidden transition-all duration-300">
+    <div className="fixed bottom-6 right-6 z-50 w-80 bg-[#1e293b] rounded-xl shadow-2xl border border-slate-700 overflow-hidden transition-all duration-300">
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-2.5 flex justify-between items-center">
         <div className="flex items-center gap-1.5">
           {getHeaderIcon()}

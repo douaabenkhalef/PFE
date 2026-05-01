@@ -25,6 +25,7 @@ import DeptHeadActivityLogs from './page/DeptHeadActivityLogs';
 import ManageHiringManagers from './page/ManageHiringManagers';
 import ManageCoDeptHeads from './page/ManageCoDeptHeads';
 import ManageStudents from './page/ManageStudents';
+import AboutUs from './page/AboutUs';
 import './App.css';
 
 const ProtectedRoute = ({ children, allowedRoles, allowedSubRoles }) => {
@@ -145,6 +146,7 @@ function App() {
           <Route path="/company-manager/profile" element={
             <ProtectedRoute allowedRoles={['company']} allowedSubRoles={['company_manager']}><MyProfile /></ProtectedRoute>
           } />
+          <Route path="/about" element={<AboutUs />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
