@@ -1,0 +1,272 @@
+/* frontend/src/page/AboutUs.css */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
+.about-us-page {
+  min-height: 100vh;
+  font-family: 'Poppins', sans-serif;
+  background: transparent;
+  color: #fff;
+  overflow-x: hidden;
+}
+
+/* ===== HERO SECTION ===== */
+.about-hero {
+  text-align: center;
+  padding: 100px 8% 40px;
+}
+
+.about-hero h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.about-hero h1 span {
+  background: linear-gradient(90deg, #F75AFA, #8D23D4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.about-hero p {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+/* ===== HOW IT WORKS ===== */
+.about-how-it-works {
+  padding: 40px 8%;
+}
+
+.about-how-it-works h2 {
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+}
+
+.about-how-it-works h2 span {
+  color: #F75AFA;
+}
+
+.about-steps {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.about-step {
+  flex: 1;
+  min-width: 200px;
+  text-align: center;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(141, 35, 212, 0.2);
+  border-radius: 16px;
+  transition: transform 0.2s;
+}
+
+.about-step:hover {
+  transform: translateY(-5px);
+  border-color: rgba(247, 90, 250, 0.4);
+}
+
+.about-step-icon {
+  width: 60px;
+  height: 60px;
+  background: rgba(141, 35, 212, 0.15);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: #F75AFA;
+}
+
+.about-step h3 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.about-step p {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ===== ROLE SECTIONS (Students, Companies, Universities) ===== */
+.about-role-section {
+  padding: 60px 8%;
+}
+
+.about-role-section:nth-child(even) {
+  background: rgba(141, 35, 212, 0.03);
+}
+
+.about-role-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.about-role-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.about-role-icon.student {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.05));
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #60a5fa;
+}
+
+.about-role-icon.company {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.05));
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  color: #a78bfa;
+}
+
+.about-role-icon.university {
+  background: linear-gradient(135deg, rgba(247, 90, 250, 0.2), rgba(247, 90, 250, 0.05));
+  border: 1px solid rgba(247, 90, 250, 0.4);
+  color: #F75AFA;
+}
+
+.about-role-header h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.about-role-header h2 span {
+  color: #F75AFA;
+}
+
+.about-role-header p {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.about-role-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.about-role-card {
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(141, 35, 212, 0.2);
+  border-radius: 16px;
+  text-align: center;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.about-role-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(247, 90, 250, 0.4);
+}
+
+.about-role-card-icon {
+  width: 50px;
+  height: 50px;
+  background: rgba(141, 35, 212, 0.15);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: #F75AFA;
+}
+
+.about-role-card h3 {
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.about-role-card p {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
+}
+
+/* ===== BACK TO HOME BUTTON ===== */
+.about-back-home {
+  display: flex;
+  justify-content: center;
+  padding: 20px 8% 60px;
+}
+
+.about-back-home-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 10px 24px;
+  border-radius: 30px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.about-back-home-btn:hover {
+  border-color: #F75AFA;
+  color: #F75AFA;
+  transform: translateY(-2px);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+  .about-role-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .about-hero h1 {
+    font-size: 1.8rem;
+  }
+  
+  .about-how-it-works h2,
+  .about-role-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .about-steps {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .about-step {
+    max-width: 300px;
+    width: 100%;
+  }
+  
+  .about-role-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .about-hero {
+    padding: 80px 5% 30px;
+  }
+  
+  .about-role-section {
+    padding: 40px 5%;
+  }
+  
+  .about-back-home-btn {
+    padding: 8px 18px;
+    font-size: 0.75rem;
+  }
+}

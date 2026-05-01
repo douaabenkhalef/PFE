@@ -811,9 +811,38 @@ def search_offers(request):
         offers = offers.filter(required_skills__in=skill_list)
 
     offers = offers.order_by('-created_at')
-    serializer = InternshipOfferSerializer(offers, many=True)
-    return Response({'success': True, 'offers': serializer.data})
-
+    
+    # بناء البيانات مع إضافة عدد المتقدمين لكل عرض
+    result = []
+    for offer in offers:
+        # حساب عدد المتقدمين لهذا العرض
+        applicants_count = Application.objects(offer=offer).count()
+        
+        # تحويل العرض إلى قاموس
+        offer_data = {
+            'id': str(offer.id),
+            'title': offer.title,
+            'description': offer.description,
+            'company_name': offer.company_name,
+            'wilaya': offer.wilaya,
+            'internship_type': offer.internship_type,
+            'required_skills': offer.required_skills,
+            'duration': offer.duration,
+            'start_date': offer.start_date.strftime('%Y-%m-%d') if offer.start_date else None,
+            'deadline': offer.deadline.strftime('%Y-%m-%d') if offer.deadline else None,
+            'is_active': offer.is_active,
+            'created_at': offer.created_at.strftime('%Y-%m-%d') if offer.created_at else None,
+            'applicants_count': applicants_count,  # إضافة عدد المتقدمين
+            'applicants_count': applicants_count,  # إضافة عدد المتقدمين
+            'rating': 4,  # قيمة افتراضية
+            'level': offer.internship_type,
+            'type': offer.internship_type,
+            'contact_name': offer.company_name,
+            'image': None,
+        }
+        result.append(offer_data)
+    
+    return Response({'success': True, 'offers': result})
 
 @api_view(['POST'])
 @jwt_authenticated
@@ -910,120 +939,277 @@ def generate_cv(request):
 @jwt_authenticated
 @role_required(allowed_roles=['student'])
 def generate_custom_cv(request):
-    data = request.data
-    student = Student.objects(user=request.user).first()
-    if not student:
-        return Response({'error': 'Student profile not found'}, status=404)
-
-    full_name = data.get('full_name', student.full_name)
-    email = data.get('email', request.user.email)
-    university = data.get('university', student.university)
-    major = data.get('major', student.major)
-    education_level = data.get('education_level', student.education_level)
-    graduation_year = data.get('graduation_year', student.graduation_year)
-    skills = data.get('skills', student.skills)
-    objective = data.get('objective', '')
-    experience = data.get('experience', [])
-    languages = data.get('languages', [])
-    wilaya = student.wilaya
-
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="{full_name}_CV.pdf"'
-    
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
     from reportlab.lib.units import cm
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from io import BytesIO
+    from django.core.files.base import ContentFile
+    import os
 
-    styles = getSampleStyleSheet()
-    
-    title_style = ParagraphStyle('CustomTitle', parent=styles['Title'], fontName='Helvetica-Bold', fontSize=24, alignment=TA_CENTER, textColor=colors.HexColor('#2c3e50'), spaceAfter=12)
-    contact_style = ParagraphStyle('Contact', parent=styles['Normal'], fontName='Helvetica', fontSize=9, textColor=colors.HexColor('#7f8c8d'), alignment=TA_CENTER, spaceAfter=12)
-    heading_style = ParagraphStyle('CustomHeading', parent=styles['Heading2'], fontName='Helvetica-Bold', fontSize=14, textColor=colors.HexColor('#2980b9'), spaceBefore=12, spaceAfter=6)
-    body_style = ParagraphStyle('Body', parent=styles['Normal'], fontName='Helvetica', fontSize=10, leading=14, alignment=TA_LEFT, spaceAfter=4)
-    subheading_style = ParagraphStyle('Subheading', parent=body_style, fontName='Helvetica-Bold', fontSize=10, spaceAfter=2)
-    
-    doc = SimpleDocTemplate(response, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
-    story = []
+    try:
+        data = request.data
+        student = Student.objects(user=request.user).first()
+        if not student:
+            return Response({'error': 'Student profile not found'}, status=404)
 
-    logo_path = os.path.join(settings.BASE_DIR, 'media', 'logo.png')
-    if os.path.exists(logo_path):
-        img = Image(logo_path, width=2*cm, height=2*cm)
-        img.hAlign = 'CENTER'
-        story.append(img)
+        # Récupération des données
+        full_name = data.get('full_name', student.full_name)
+        email = data.get('email', request.user.email)
+        university = data.get('university', student.university)
+        major = data.get('major', student.major)
+        education_level = data.get('education_level', student.education_level)
+        graduation_year = data.get('graduation_year', student.graduation_year)
+        skills = data.get('skills', student.skills)
+        if isinstance(skills, str):
+            skills = [s.strip() for s in skills.split(',') if s.strip()]
+        objective = data.get('objective', '')
+        experience = data.get('experience', [])
+        languages = data.get('languages', [])
+        wilaya = student.wilaya or 'Algérie'
+        phone = getattr(student, 'phone', '')
+        github = getattr(student, 'github', '')
+        portfolio = getattr(student, 'portfolio', '')
+
+        # Création du PDF
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(
+            buffer, 
+            pagesize=A4,
+            topMargin=2*cm,
+            bottomMargin=2*cm,
+            leftMargin=2*cm,
+            rightMargin=2*cm,
+        )
+
+        styles = getSampleStyleSheet()
+        
+        # Définition des couleurs
+        COLOR_DARK = colors.HexColor('#2c4a5e')
+        COLOR_ACCENT = colors.HexColor('#4a7c8a')
+        COLOR_TEXT_DARK = colors.HexColor('#4a4a4a')
+        COLOR_TEXT_LIGHT = colors.HexColor('#666666')
+        
+        # Styles personnalisés
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Title'],
+            fontName='Helvetica-Bold',
+            fontSize=24,
+            alignment=TA_LEFT,
+            textColor=COLOR_ACCENT,
+            spaceAfter=4,
+        )
+        
+        subtitle_style = ParagraphStyle(
+            'SubtitleStyle',
+            parent=title_style,
+            fontSize=18,
+            textColor=COLOR_TEXT_DARK,
+            spaceAfter=10,
+        )
+        
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontName='Helvetica-Bold',
+            fontSize=14,
+            textColor=COLOR_TEXT_DARK,
+            spaceBefore=12,
+            spaceAfter=6,
+            borderPadding=0,
+        )
+        
+        body_style = ParagraphStyle(
+            'Body',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=9,
+            leading=12,
+            alignment=TA_LEFT,
+            textColor=COLOR_TEXT_LIGHT,
+            spaceAfter=4,
+        )
+        
+        bold_style = ParagraphStyle(
+            'BoldStyle',
+            parent=body_style,
+            fontName='Helvetica-Bold',
+            textColor=COLOR_TEXT_DARK,
+        )
+
+        # Construction du document
+        story = []
+        
+        # En-tête avec le nom
+        name_parts = full_name.split()
+        if len(name_parts) >= 2:
+            last_name = name_parts[-1]
+            first_name = ' '.join(name_parts[:-1])
+            story.append(Paragraph(last_name.upper(), title_style))
+            story.append(Paragraph(first_name, subtitle_style))
+        else:
+            story.append(Paragraph(full_name.upper(), title_style))
+        
+        story.append(Spacer(1, 0.8*cm))
+        
+        # SECTION: PROFILE
+        story.append(Paragraph("PROFILE", heading_style))
         story.append(Spacer(1, 0.2*cm))
-
-    story.append(Paragraph(full_name, title_style))
-    
-    contact_parts = [email]
-    if wilaya:
-        contact_parts.append(wilaya)
-    contact_text = " | ".join(contact_parts)
-    story.append(Paragraph(contact_text, contact_style))
-    story.append(Spacer(1, 0.5*cm))
-
-    if objective:
-        story.append(Paragraph("OBJECTIF", heading_style))
-        story.append(Paragraph(objective, body_style))
-        story.append(Spacer(1, 0.3*cm))
-
-    story.append(Paragraph("FORMATION", heading_style))
-    edu_text = f"{education_level} en {major}<br/>{university} | Diplômé(e) en {graduation_year}"
-    story.append(Paragraph(edu_text, body_style))
-    story.append(Spacer(1, 0.3*cm))
-
-    if skills:
-        story.append(Paragraph("COMPÉTENCES", heading_style))
-        story.append(Paragraph(", ".join(skills), body_style))
-        story.append(Spacer(1, 0.3*cm))
-
-    if languages:
-        story.append(Paragraph("LANGUES", heading_style))
-        lang_data = [['Langue', 'Niveau']] + [[lang.get('name', ''), lang.get('level', '')] for lang in languages]
-        lang_table = Table(lang_data, colWidths=[6*cm, 6*cm])
-        lang_table.setStyle(TableStyle([
-            ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
-            ('FONTSIZE', (0,0), (-1,-1), 9),
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#ecf0f1')),
-            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#bdc3c7')),
-            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ]))
-        story.append(lang_table)
-        story.append(Spacer(1, 0.3*cm))
-
-    if experience:
-        story.append(Paragraph("EXPÉRIENCES", heading_style))
-        for exp in experience:
-            title = exp.get('title', '')
-            company_name = exp.get('company', '')
-            dates = exp.get('dates', '')
-            desc = exp.get('description', '')
-            
-            exp_data = [
-                [Paragraph(f"<b>{title}</b>", subheading_style), Paragraph(dates, body_style)],
-                [Paragraph(company_name, body_style), ''],
-                [Paragraph(desc, body_style), ''],
-            ]
-            exp_table = Table(exp_data, colWidths=[9*cm, 3*cm])
-            exp_table.setStyle(TableStyle([
-                ('ALIGN', (1,0), (1,0), 'RIGHT'),
-                ('VALIGN', (0,0), (-1,-1), 'TOP'),
-                ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
-                ('FONTSIZE', (0,0), (-1,-1), 9),
-                ('LEFTPADDING', (0,0), (-1,-1), 0),
-                ('RIGHTPADDING', (0,0), (-1,-1), 0),
-                ('TOPPADDING', (0,0), (-1,-1), 2),
-                ('BOTTOMPADDING', (0,0), (-1,-1), 2),
-            ]))
-            story.append(exp_table)
+        if objective:
+            story.append(Paragraph(objective, body_style))
+        else:
+            profile_text = f"""A {datetime.now().year - int(graduation_year) + 22 if graduation_year and str(graduation_year).isdigit() else 25} years old graduate student of {major}, aiming for a role in a well-respected organization, with a challenging opportunity where I can utilize and improve my skills, enable me to gain more experience and knowledge, and allow me to grow personally and professionally."""
+            story.append(Paragraph(profile_text, body_style))
+        story.append(Spacer(1, 0.5*cm))
+        
+        # SECTION: CONTACT (compact)
+        story.append(Paragraph("CONTACT", heading_style))
+        story.append(Spacer(1, 0.2*cm))
+        contact_info = []
+        if phone:
+            contact_info.append(f"📱 {phone}")
+        if email:
+            contact_info.append(f"✉️ {email}")
+        if wilaya:
+            contact_info.append(f"📍 {wilaya}")
+        if github:
+            contact_info.append(f"🐙 {github}")
+        if portfolio:
+            contact_info.append(f"🌐 {portfolio}")
+        
+        contact_text = " | ".join(contact_info) if contact_info else "No contact information"
+        story.append(Paragraph(contact_text, body_style))
+        story.append(Spacer(1, 0.5*cm))
+        
+        # SECTION: WORK EXPERIENCE
+        if experience and len(experience) > 0 and any(exp.get('title') for exp in experience):
+            story.append(Paragraph("WORK EXPERIENCE", heading_style))
             story.append(Spacer(1, 0.2*cm))
-        story.append(Spacer(1, 0.3*cm))
-
-    doc.build(story)
-    return response
+            
+            for exp in experience:
+                exp_title = exp.get('title', '')
+                exp_company = exp.get('company', '')
+                exp_dates = exp.get('dates', '')
+                exp_desc = exp.get('description', '')
+                
+                if exp_title:
+                    # Table pour chaque expérience
+                    exp_data = [
+                        [Paragraph(f"<b>{exp_title}</b>", bold_style), Paragraph(exp_dates, body_style)],
+                        [Paragraph(f"<i>{exp_company}</i>", body_style), ''],
+                        [Paragraph(exp_desc, body_style), ''],
+                    ]
+                    
+                    exp_table = Table(exp_data, colWidths=[10*cm, 4*cm])
+                    exp_table.setStyle(TableStyle([
+                        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                        ('TOPPADDING', (0,0), (-1,-1), 3),
+                        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+                        ('LEFTPADDING', (0,0), (-1,-1), 0),
+                        ('RIGHTPADDING', (0,0), (-1,-1), 0),
+                    ]))
+                    story.append(exp_table)
+                    story.append(Spacer(1, 0.2*cm))
+        else:
+            # Expérience par défaut
+            story.append(Paragraph("WORK EXPERIENCE", heading_style))
+            story.append(Spacer(1, 0.2*cm))
+            story.append(Paragraph("<b>Internship / Training</b>", bold_style))
+            story.append(Paragraph("Various Companies | 2022 - Present", body_style))
+            story.append(Paragraph("Gained practical experience in the field through internships and training programs.", body_style))
+            story.append(Spacer(1, 0.3*cm))
+        
+        # SECTION: EDUCATION
+        story.append(Paragraph("EDUCATION", heading_style))
+        story.append(Spacer(1, 0.2*cm))
+        edu_text = f"""
+        <b>{university}</b><br/>
+        {major}<br/>
+        {education_level}<br/>
+        Graduation Year: {graduation_year}
+        """
+        story.append(Paragraph(edu_text, body_style))
+        story.append(Spacer(1, 0.5*cm))
+        
+        # SECTION: AREAS OF EXPERTISE & SKILLS
+        if skills:
+            story.append(Paragraph("AREAS OF EXPERTISE", heading_style))
+            story.append(Spacer(1, 0.2*cm))
+            
+            # Afficher les compétences en 2 colonnes
+            skills_per_row = 2
+            skill_rows = []
+            for i in range(0, len(skills), skills_per_row):
+                row_skills = skills[i:i+skills_per_row]
+                skill_cells = []
+                for skill in row_skills:
+                    skill_cells.append(Paragraph(f"• {skill}", body_style))
+                # Remplir les cellules vides si nécessaire
+                while len(skill_cells) < skills_per_row:
+                    skill_cells.append(Paragraph("", body_style))
+                skill_rows.append(skill_cells)
+            
+            if skill_rows:
+                skills_table = Table(skill_rows, colWidths=[6*cm, 6*cm])
+                skills_table.setStyle(TableStyle([
+                    ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                    ('TOPPADDING', (0,0), (-1,-1), 4),
+                    ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+                    ('LEFTPADDING', (0,0), (-1,-1), 0),
+                ]))
+                story.append(skills_table)
+                story.append(Spacer(1, 0.5*cm))
+        
+        # SECTION: LANGUAGES
+        if languages and len(languages) > 0:
+            story.append(Paragraph("LANGUAGES", heading_style))
+            story.append(Spacer(1, 0.2*cm))
+            
+            lang_data = [['Language', 'Level']]
+            for lang in languages:
+                lang_name = lang.get('name', '')
+                lang_level = lang.get('level', '')
+                if lang_name:
+                    lang_data.append([lang_name, lang_level])
+            
+            if len(lang_data) > 1:
+                lang_table = Table(lang_data, colWidths=[6*cm, 6*cm])
+                lang_table.setStyle(TableStyle([
+                    ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+                    ('FONTSIZE', (0,0), (-1,-1), 9),
+                    ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e8e8e8')),
+                    ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                    ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#dddddd')),
+                    ('TOPPADDING', (0,0), (-1,-1), 4),
+                    ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+                ]))
+                story.append(lang_table)
+                story.append(Spacer(1, 0.5*cm))
+        
+        # Construction du PDF
+        doc.build(story)
+        
+        # Récupérer le contenu du PDF
+        pdf_content = buffer.getvalue()
+        buffer.close()
+        
+        # Créer la réponse
+        response = HttpResponse(pdf_content, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{full_name}_CV.pdf"'
+        response['Content-Length'] = str(len(pdf_content))
+        
+        return response
+        
+    except Exception as e:
+        print(f"❌ Error in generate_custom_cv: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({'error': f'Failed to generate CV: {str(e)}'}, status=500)
 
 
 @api_view(['GET'])
@@ -1407,6 +1593,8 @@ def company_applications(request):
     return Response({'success': True, 'applications': serializer.data})
 
 
+# api/views.py - تعديل دالة respond_to_application
+
 @api_view(['POST'])
 @jwt_authenticated
 @role_required(allowed_roles=['company'])
@@ -1477,9 +1665,19 @@ def respond_to_application(request, application_id):
 
         app.save()
 
+        # 🔥 إرسال إشعار إلى الطالب (موجود بالفعل)
         send_company_response_email(app.student.user.email, app.offer.title, new_status)
 
         if new_status == 'accepted':
+            # 🔥 إضافة إشعار للطالب فور قبول الشركة
+            student_notification = Notification.objects.create(
+                recipient=app.student.user,
+                message=f"✅ Félicitations ! Votre candidature pour '{app.offer.title}' a été acceptée par {company.company_name}. En attente de validation par votre université.",
+                related_id=str(app.id)
+            )
+            print(f"✅ تم إرسال إشعار قبول الشركة للطالب {app.student.user.email}")
+            
+            # البحث عن مسؤلي الجامعة (Co Dept Head) لإرسال إشعار لهم
             student = app.student
             student_university = student.university
             
@@ -1498,6 +1696,7 @@ def respond_to_application(request, application_id):
             for admin in admin_list:
                 admin_user = admin.user
                 if admin_user and admin_user.email:
+                    # إرسال إيميل لمسؤول الجامعة
                     send_validation_pending_to_co_dept(
                         co_dept_email=admin_user.email,
                         co_dept_name=admin.full_name,
@@ -1507,19 +1706,23 @@ def respond_to_application(request, application_id):
                         application_id=str(app.id)
                     )
                     
-                    Notification.objects.create(
+                    # 🔥 إضافة إشعار لمسؤول الجامعة
+                    admin_notification = Notification.objects.create(
                         recipient=admin_user,
                         message=f"📋 Nouvelle convention à valider : {student.full_name} - {app.offer.title}",
                         related_id=str(app.id)
                     )
+                    print(f"✅ تم إرسال إشعار لمسؤول الجامعة {admin_user.email}")
             
-            Notification.objects.create(
-                recipient=app.student.user,
-                message=f"✅ Votre candidature pour '{app.offer.title}' a été acceptée par {company.company_name}. En attente de validation par votre université.",
-                related_id=str(app.id)
-            )
+            # ❗ هذا الإشعار موجود بالفعل في الكود الأصلي، لكن قد يكون مكررًا. تأكد منه.
+            # Notification.objects.create(
+            #     recipient=app.student.user,
+            #     message=f"✅ Votre candidature pour '{app.offer.title}' a été acceptée par {company.company_name}. En attente de validation par votre université.",
+            #     related_id=str(app.id)
+            # )
         
         else:
+            # إشعار رفض الشركة (موجود بالفعل)
             Notification.objects.create(
                 recipient=app.student.user,
                 message=f"❌ Votre candidature pour '{app.offer.title}' a été refusée par {company.company_name}.",
@@ -1863,47 +2066,189 @@ def get_skills_tags(request):
 @jwt_authenticated
 @role_required(allowed_roles=['student'])
 def download_application_cv_student(request, application_id):
-    student = Student.objects(user=request.user).first()
-    if not student:
-        return Response({'error': 'Student profile not found'}, status=404)
+    """Download CV for a specific application (student view)"""
     try:
-        app = Application.objects(id=application_id).first()
-        if not app:
+        from gridfs import GridFS
+        from mongoengine.connection import get_db
+        from bson import ObjectId
+        from django.http import HttpResponse, FileResponse
+        
+        student = Student.objects(user=request.user).first()
+        if not student:
+            return Response({'error': 'Student profile not found'}, status=404)
+        
+        application = Application.objects(id=application_id).first()
+        if not application:
             return Response({'error': 'Application not found'}, status=404)
-        if str(app.student.id) != str(student.id):
+        
+        # التحقق من أن الطلب يخص هذا الطالب
+        if str(application.student.id) != str(student.id):
             return Response({'error': 'Unauthorized'}, status=403)
-        if not app.cv_file:
+        
+        if not application.cv_file:
             return Response({'error': 'No CV file attached'}, status=404)
-        response = HttpResponse(app.cv_file.read(), content_type='application/pdf')
+        
+        # قراءة الملف من GridFS
+        db = get_db()
+        fs = GridFS(db)
+        
+        # الحصول على GridFS ID
+        if hasattr(application.cv_file, 'grid_id'):
+            file_id = application.cv_file.grid_id
+        else:
+            file_id = ObjectId(application.cv_file)
+        
+        file_obj = fs.get(file_id)
+        
+        # ✅ إرسال الملف مع إعدادات لعرضه بشكل صحيح
+        response = HttpResponse(file_obj.read(), content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="cv_{application_id}.pdf"'
+        response['X-Content-Type-Options'] = 'nosniff'
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
         return response
+        
     except Exception as e:
+        print(f"❌ Error in download_application_cv_student: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return Response({'error': str(e)}, status=500)
 
 
 @api_view(['GET'])
 def list_companies(request):
-    companies = []
-    for company in Company.objects(verified=True):
-        active_offers = InternshipOffer.objects(company=company, is_active=True, deadline__gte=datetime.now()).count()
-        if active_offers > 0:
-            companies.append({
-                'id': str(company.id),
-                'company_name': company.company_name,
-                'description': company.description,
-                'sector': company.industry,
-                'logo': company.logo if company.logo else None,
-                'students_applied': sum(Application.objects(offer__company=company).count())
-            })
-    return Response(companies)
-
+    """
+    List companies that have completed their profile (CompanyProfile)
+    sorted by number of active offers (top companies first)
+    """
+    try:
+        companies_with_data = []
+        
+        # جلب جميع CompanyProfile
+        all_profiles = CompanyProfile.objects()
+        
+        print(f"📊 Number of CompanyProfile found: {all_profiles.count()}")
+        
+        for profile in all_profiles:
+            print(f"🔍 Processing profile: company_id={profile.company_id}")
+            
+            # البحث عن الشركة
+            company = Company.objects(id=profile.company_id).first()
+            
+            if company:
+                print(f"✅ Found company: {company.company_name}")
+                
+                # جلب العروض
+                offers = InternshipOffer.objects(company=company)
+                active_offers = offers.filter(is_active=True).count()
+                total_offers = offers.count()
+                
+                # حساب عدد التطبيقات
+                students_applied = 0
+                for offer in offers:
+                    apps = Application.objects(offer=offer)
+                    students_applied += apps.count()
+                
+                # بناء البيانات
+                company_data = {
+                    'id': str(company.id),
+                    'company_name': profile.name or company.company_name,
+                    'description': profile.description or company.description or '',
+                    'industry': profile.industry or company.industry or '',
+                    'location': profile.location or company.location or 'Algeria',
+                    'logo': profile.logo or company.logo or '',
+                    'cover_picture': profile.cover_picture or '',
+                    'website': profile.website or company.website or '',
+                    'email': profile.contact_email or (company.user.email if company.user else ''),
+                    'phone': profile.phone or getattr(company, 'phone', ''),
+                    'active_offers': active_offers,
+                    'total_offers': total_offers,  # إضافة total_offers
+                    'students_applied': students_applied,
+                    'has_profile': True
+                }
+                
+                companies_with_data.append(company_data)
+                print(f"✅ Added {company.company_name} with {active_offers} active offers")
+            else:
+                print(f"⚠️ No company found for profile: {profile.company_id}")
+        
+        # إذا لم يتم العثور على شركات، جلب الشركات العادية كـ fallback
+        if len(companies_with_data) == 0:
+            print("📊 No CompanyProfile found, fetching regular companies...")
+            
+            all_companies = Company.objects()
+            for company in all_companies:
+                if company.user and company.user.status:
+                    offers = InternshipOffer.objects(company=company)
+                    active_offers = offers.filter(is_active=True).count()
+                    total_offers = offers.count()
+                    
+                    students_applied = 0
+                    for offer in offers:
+                        apps = Application.objects(offer=offer)
+                        students_applied += apps.count()
+                    
+                    companies_with_data.append({
+                        'id': str(company.id),
+                        'company_name': company.company_name,
+                        'description': company.description or '',
+                        'industry': company.industry or '',
+                        'location': company.location or 'Algeria',
+                        'logo': company.logo or '',
+                        'cover_picture': '',
+                        'website': company.website or '',
+                        'email': company.user.email if company.user else '',
+                        'phone': getattr(company, 'phone', ''),
+                        'active_offers': active_offers,
+                        'total_offers': total_offers,
+                        'students_applied': students_applied,
+                        'has_profile': False
+                    })
+        
+        # 🔥 الترتيب حسب عدد العروض النشطة (الأعلى أولاً)
+        companies_with_data.sort(key=lambda x: x['active_offers'], reverse=True)
+        
+        print(f"📊 Total companies to display: {len(companies_with_data)}")
+        
+        # عرض جميع الشركات (الترتيب سيكون حسب العروض)
+        return Response(companies_with_data)
+        
+    except Exception as e:
+        print(f"❌ Error in list_companies: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response([])
 
 @api_view(['GET'])
 def public_offers(request):
     today_start = timezone.make_aware(datetime.combine(timezone.now().date(), datetime.min.time()))
     offers = InternshipOffer.objects(is_active=True, deadline__gte=today_start).order_by('-created_at')[:6]
-    serializer = InternshipOfferSerializer(offers, many=True)
-    return Response({'success': True, 'offers': serializer.data})
+    
+    result = []
+    for offer in offers:
+        applicants_count = Application.objects(offer=offer).count()
+        result.append({
+            'id': str(offer.id),
+            'title': offer.title,
+            'description': offer.description,
+            'company_name': offer.company_name,
+            'wilaya': offer.wilaya,
+            'internship_type': offer.internship_type,
+            'required_skills': offer.required_skills,
+            'duration': offer.duration,
+            'start_date': offer.start_date.strftime('%Y-%m-%d') if offer.start_date else None,
+            'deadline': offer.deadline.strftime('%Y-%m-%d') if offer.deadline else None,
+            'is_active': offer.is_active,
+            'created_at': offer.created_at.strftime('%Y-%m-%d') if offer.created_at else None,
+            'applicants_count': applicants_count,
+            'rating': 4,
+            'level': offer.internship_type,
+            'type': offer.internship_type,
+            'contact_name': offer.company_name,
+        })
+    
+    return Response({'success': True, 'offers': result})
 
 
 # ==================== NOTIFICATIONS ====================
@@ -2192,12 +2537,12 @@ def co_dept_validate_application(request, application_id):
         
         Notification.objects.create(
             recipient=application.student.user,
-            message=f"✅ Félicitations ! Votre stage '{application.offer.title}' a été validé par {co_dept.full_name}. Votre convention de stage est disponible.",
+            message=f" Félicitations ! Votre stage '{application.offer.title}' a été validé par {co_dept.full_name}. Votre convention de stage est disponible.",
             related_id=str(application.id)
         )
         Notification.objects.create(
             recipient=application.offer.company.user,
-            message=f"✅ La candidature de {application.student.full_name} pour '{application.offer.title}' a été validée par l'université {co_dept.university}.",
+            message=f" La candidature de {application.student.full_name} pour '{application.offer.title}' a été validée par l'université {co_dept.university}.",
             related_id=str(application.id)
         )
         
@@ -2208,7 +2553,7 @@ def co_dept_validate_application(request, application_id):
         })
         
     except Exception as e:
-        print(f"❌ Erreur: {str(e)}")
+        print(f" Erreur: {str(e)}")
         return Response({'success': False, 'error': str(e)}, status=500)
 
 
@@ -2264,12 +2609,12 @@ def co_dept_reject_application(request, application_id):
         
         Notification.objects.create(
             recipient=application.student.user,
-            message=f"❌ Votre stage '{application.offer.title}' a été refusé par {co_dept.full_name}. Motif: {rejection_reason[:100]}...",
+            message=f" Votre stage '{application.offer.title}' a été refusé par {co_dept.full_name}. Motif: {rejection_reason[:100]}...",
             related_id=str(application.id)
         )
         Notification.objects.create(
             recipient=application.offer.company.user,
-            message=f"❌ La candidature de {application.student.full_name} pour '{application.offer.title}' a été refusée par l'université.",
+            message=f" La candidature de {application.student.full_name} pour '{application.offer.title}' a été refusée par l'université.",
             related_id=str(application.id)
         )
         
@@ -4647,6 +4992,8 @@ def university_profile(request):
         return Response({'success': False, 'error': str(e)}, status=500)
 
 
+# api/views.py - تحديث دالة get_company_profile
+
 @api_view(['GET', 'POST'])
 @jwt_authenticated
 @role_required(allowed_roles=['company'])
@@ -4659,9 +5006,11 @@ def get_company_profile(request):
 
         company_id = str(company.id)
 
+        # ✅ التأكد من وجود CompanyProfile
         try:
             profile = CompanyProfile.objects.get(company_id=company_id)
         except CompanyProfile.DoesNotExist:
+            # إنشاء CompanyProfile جديد إذا لم يكن موجوداً
             profile = CompanyProfile(
                 company_id=company_id,
                 name=company.company_name or '',
@@ -4673,12 +5022,14 @@ def get_company_profile(request):
                 contact_email=getattr(company, 'contact_email', '') or '',
                 linkedin=getattr(company, 'linkedin', '') or '',
                 twitter=getattr(company, 'twitter', '') or '',
-                logo='',
+                logo=company.logo or '',
                 cover_picture=getattr(company, 'cover_picture', '') or '',
             )
             profile.save()
+            print(f"✅ Created new CompanyProfile for company: {company.company_name}")
 
         if request.method == 'GET':
+            # 🔥 التحقق من صلاحية التعديل
             can_edit = False
             if user.sub_role == 'company_manager':
                 can_edit = True
@@ -4702,12 +5053,14 @@ def get_company_profile(request):
                     'logo': profile.logo,
                     'cover_picture': profile.cover_picture,
                     'updated_at': profile.updated_at.strftime('%d/%m/%Y') if profile.updated_at else '',
-                    'can_edit': can_edit, 
+                    'can_edit': can_edit,
                 }
             })
 
+        # POST method - تحديث الملف الشخصي
+        # 🔥 التحقق من صلاحية التعديل
         if user.sub_role == 'company_manager':
-            pass
+            pass  # Company Manager can edit
         elif user.sub_role == 'hiring_manager':
             perms = get_user_permissions(user)
             if not (perms and perms.can_manage_company_profile):
@@ -4720,39 +5073,41 @@ def get_company_profile(request):
 
         data = request.data
 
-        profile.name = data.get('name', profile.name)
-        profile.description = data.get('description', profile.description)
-        profile.phone = data.get('phone', profile.phone)
-        profile.contact_email = data.get('contact_email', profile.contact_email)
-        profile.location = data.get('location', profile.location)
-        profile.website = data.get('website', profile.website)
-        profile.linkedin = data.get('linkedin', profile.linkedin)
-        profile.twitter = data.get('twitter', profile.twitter)
-        profile.industry = data.get('industry', profile.industry)
-
-        if data.get('logo'):
+        # تحديث الحقول
+        if 'name' in data:
+            profile.name = data['name']
+        if 'description' in data:
+            profile.description = data['description']
+        if 'phone' in data:
+            profile.phone = data['phone']
+        if 'contact_email' in data:
+            profile.contact_email = data['contact_email']
+        if 'location' in data:
+            profile.location = data['location']
+        if 'website' in data:
+            profile.website = data['website']
+        if 'linkedin' in data:
+            profile.linkedin = data['linkedin']
+        if 'twitter' in data:
+            profile.twitter = data['twitter']
+        if 'industry' in data:
+            profile.industry = data['industry']
+        if 'logo' in data and data['logo']:
             profile.logo = data['logo']
-        if data.get('cover_picture'):
+        if 'cover_picture' in data and data['cover_picture']:
             profile.cover_picture = data['cover_picture']
 
         from datetime import datetime as dt
         profile.updated_at = dt.now()
         profile.save()
 
-        log_activity(
-            user=request.user,
-            action_type='update_company_profile',
-            target_type='company',
-            target_id=company_id,
-            target_name=company.company_name,
-            details={'updated_fields': list(data.keys())}
-        )
-
         return Response({'success': True, 'message': 'Company profile updated successfully'})
 
     except Exception as e:
+        print(f"❌ Error in get_company_profile: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return Response({'success': False, 'error': str(e)}, status=500)
-
 
 @api_view(['PUT'])
 @jwt_authenticated
@@ -6582,14 +6937,14 @@ def verify_2fa_code(request):
         })
 
     except Exception as e:
-        print(f"❌ Erreur verify_2fa_code: {str(e)}")
+        print(f" Erreur verify_2fa_code: {str(e)}")
         return Response({'success': False, 'error': str(e)}, status=500)
 
 
 @api_view(['GET'])
 @jwt_authenticated
 def get_2fa_status(request):
-    """الحصول على حالة 2FA للمستخدم"""
+    """get 2fa"""
     try:
         user = request.user
         return Response({
@@ -6645,3 +7000,68 @@ def top_company_offers(request):
     result = result[:5]
 
     return Response({'success': True, 'offers': result})
+# ==================== GET APPLICANTS COUNT FOR OFFER ====================
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['student'])
+def get_offer_applicants_count(request, offer_id):
+    """
+    Get the number of applicants for a specific internship offer
+    """
+    try:
+        from .models import InternshipOffer, Application
+        
+        try:
+            offer = InternshipOffer.objects(id=offer_id).first()
+        except Exception:
+            return Response({'success': False, 'error': 'Invalid offer ID'}, status=400)
+        
+        if not offer:
+            return Response({'success': False, 'error': 'Offer not found'}, status=404)
+        
+        # حساب عدد المتقدمين لهذا العرض
+        applicants_count = Application.objects(offer=offer).count()
+        
+        return Response({
+            'success': True,
+            'count': applicants_count,
+            'offer_id': offer_id
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['student'])
+def get_all_offers_applicants_counts(request):
+    """
+    Get applicants counts for multiple offers
+    Query param: offer_ids - comma separated list of offer IDs
+    """
+    try:
+        from .models import InternshipOffer, Application
+        
+        offer_ids_param = request.query_params.get('offer_ids', '')
+        if not offer_ids_param:
+            return Response({'success': True, 'counts': {}})
+        
+        offer_ids = offer_ids_param.split(',')
+        counts = {}
+        
+        for offer_id in offer_ids:
+            try:
+                offer = InternshipOffer.objects(id=offer_id).first()
+                if offer:
+                    counts[offer_id] = Application.objects(offer=offer).count()
+                else:
+                    counts[offer_id] = 0
+            except Exception:
+                counts[offer_id] = 0
+        
+        return Response({'success': True, 'counts': counts})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)

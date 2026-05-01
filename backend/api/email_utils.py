@@ -56,7 +56,7 @@ def send_email(recipient, subject, html_content, text_content=None, attachments=
         return response.status_code in [200, 202]
         
     except Exception as e:
-        print(f"❌ Erreur envoi email à {recipient}: {str(e)}")
+        print(f" Erreur envoi email à {recipient}: {str(e)}")
         # Fallback to simulation mode for debugging
         print("\n" + "="*60)
         print(f"📧 [SIMULATION] Email à : {recipient}")

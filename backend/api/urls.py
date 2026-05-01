@@ -46,6 +46,9 @@ urlpatterns = [
     path('student/profile/upload-picture/', views.upload_profile_picture, name='upload-profile-picture'),
     path('student/profile/by-username/<str:username>/', views.get_profile_by_username, name='profile-by-username'),
     path('student/accepted-internships/', views.get_accepted_internships, name='accepted-internships'),
+    # أضف هذه الـ paths في urlpatterns
+path('student/offers/<str:offer_id>/applicants-count/', views.get_offer_applicants_count, name='get_offer_applicants_count'),
+path('student/offers/applicants-counts/', views.get_all_offers_applicants_counts, name='get_all_offers_applicants_counts'),
 
     # CV Management (Friend's)
     path('student/cv/', views.get_my_cv, name='get-my-cv'),
