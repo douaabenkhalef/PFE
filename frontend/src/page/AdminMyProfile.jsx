@@ -1,19 +1,20 @@
-// frontend/src/pages/MyProfile.jsx
-// Personal profile page for company users (Company Manager / Hiring Manager)
+// frontend/src/page/AdminMyProfile.jsx
+// Personal profile page for admin users (Department Head / Co‑Department Head)
 // Design: inline sidebar + glass cards, like UniversityProfile
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
   User, Mail, Building2, Edit2, Save, X, Camera, Loader2,
   KeyRound, ShieldCheck, Smartphone, Key, Phone,
-  LogOut, Search, Activity, UserCog, FileText, ArrowLeft, Briefcase
+  LogOut, Search, Activity, FileText, ArrowLeft, Briefcase,
+  GraduationCap
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ChatWidget from '../components/ChatWidget';
-import './CompanyProfile.css';
-import UserAvatar from '../components/UserAvatar';
+import { AdminSidebarInline } from '../components/AdminSidebar';
+import './StudentDashboard.css';
 
 const API = 'http://localhost:8000/api';
 const token = () => localStorage.getItem('access_token');
@@ -23,7 +24,7 @@ const authHeaders = () => ({
   'Authorization': `Bearer ${token()}`
 });
 
-// OTP Verification Modal (unchanged from your original)
+// OTP Verification Modal (unchanged)
 const OTPVerificationModal = ({ email, onVerify, onClose, loading, title = "Vérification de l'email" }) => {
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
@@ -95,7 +96,7 @@ const OTPVerificationModal = ({ email, onVerify, onClose, loading, title = "Vér
   );
 };
 
-// Password Change Component (unchanged from your original)
+// Password Change Component (unchanged)
 const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -220,7 +221,7 @@ const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
   );
 };
 
-export default function MyProfile() {
+export default function AdminMyProfile() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);     // personal user data from /auth/me/
@@ -243,7 +244,7 @@ export default function MyProfile() {
   const [profileImage, setProfileImage] = useState(null);
   const [imageError, setImageError] = useState(false);
 
-  const isCompanyManager = user?.sub_role === 'company_manager';
+  const isDeptHead = user?.sub_role === 'admin';
   const avatarInputRef = useRef(null);
 
   // ================== Fetch personal user info + security ==================
@@ -255,7 +256,6 @@ export default function MyProfile() {
       if (data.success) {
         const u = data.user;
         setProfile(u);
-        // Avatar
         if (u.profile_picture_url) {
           let imgUrl = u.profile_picture_url;
           if (!imgUrl.startsWith('http')) imgUrl = `http://localhost:8000${imgUrl}`;
@@ -347,7 +347,7 @@ export default function MyProfile() {
     }
   };
 
-  // ================== Security / 2FA (unchanged from your original) ==================
+  // ================== Security / 2FA (unchanged) ==================
   const handleEnable2FA = async () => {
     setLoading2FA(true);
     try {
@@ -445,12 +445,12 @@ export default function MyProfile() {
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
-  const roleBadge = isCompanyManager ? 'Company Manager' : 'Hiring Manager';
+  const roleBadge = isDeptHead ? 'Department Head' : 'Co‑Department Head';
   const getInitials = () => profile?.username?.charAt(0).toUpperCase() || 'U';
 
-  const dashboardPath = isCompanyManager
-    ? '/company-manager/dashboard'
-    : '/company/dashboard';
+  const dashboardPath = isDeptHead
+    ? '/admin/dashboard'
+    : '/co-dept-head/dashboard';
 
   if (loading) return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
@@ -465,46 +465,8 @@ export default function MyProfile() {
 
   return (
     <div className="min-h-screen flex">
-      {/* ========== FIXED INLINE SIDEBAR ========== */}
-      <div className="w-64 bg-gradient-to-b from-[#1a0840] to-[#0e0c27] h-full fixed left-0 top-0 overflow-y-auto border-r border-purple-500/30 flex flex-col z-40">
-        <div className="p-4 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold overflow-hidden">
-              {profileImage && !imageError ? (
-                <img src={profileImage} alt={profile?.username} className="w-full h-full object-cover" onError={() => { setImageError(true); setProfileImage(null); }} />
-              ) : (
-                <span>{getInitials()}</span>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white font-medium text-sm truncate">{profile?.username}</p>
-              <p className="text-white/50 text-xs truncate">{profile?.email}</p>
-            </div>
-          </div>
-        </div>
-        <div className="p-4">
-          <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
-            <input type="text" placeholder="Search" className="w-full bg-white/10 border border-white/20 rounded-lg pl-9 pr-3 py-2 text-white text-sm placeholder:text-white/40 focus:outline-none focus:border-purple-500" />
-          </div>
-        </div>
-        <nav className="flex-1 overflow-y-auto p-3">
-          <p className="text-xs text-purple-300/60 uppercase tracking-wider px-3 mb-2">Control & Management</p>
-          <Link to={isCompanyManager ? "/company-manager/profile" : "/company/profile"} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${window.location.pathname === (isCompanyManager ? "/company-manager/profile" : "/company/profile") ? 'bg-purple-600/30 text-purple-300 border border-purple-500/30' : 'text-white/70 hover:bg-white/10'}`}><User size={16} /> My Profile</Link>
-          <Link to="/company/company-profile" className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${window.location.pathname === "/company/company-profile" ? 'bg-purple-600/30 text-purple-300 border border-purple-500/30' : 'text-white/70 hover:bg-white/10'}`}><Building2 size={16} /> Company Profile</Link>
-          <Link to="/company/manage-offers" className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${window.location.pathname === "/company/manage-offers" ? 'bg-purple-600/30 text-purple-300 border border-purple-500/30' : 'text-white/70 hover:bg-white/10'}`}><Briefcase size={16} /> Manage Offers</Link>
-          <Link to="/company/applications" className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${window.location.pathname === "/company/applications" ? 'bg-purple-600/30 text-purple-300 border border-purple-500/30' : 'text-white/70 hover:bg-white/10'}`}><FileText size={16} /> Student Applications</Link>
-          {isCompanyManager && <>
-            <Link to="/company-manager/manage-hiring-managers" className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${window.location.pathname === "/company-manager/manage-hiring-managers" ? 'bg-purple-600/30 text-purple-300 border border-purple-500/30' : 'text-white/70 hover:bg-white/10'}`}><UserCog size={16} /> Manage Hiring Managers</Link>
-            <Link to="/company-manager/activity-logs" className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${window.location.pathname === "/company-manager/activity-logs" ? 'bg-purple-600/30 text-purple-300 border border-purple-500/30' : 'text-white/70 hover:bg-white/10'}`}><Activity size={16} /> Control HM Activity</Link>
-          </>}
-        </nav>
-        <div className="p-4 border-t border-white/10">
-          <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm text-red-300 hover:bg-red-500/20 transition"><LogOut size={16} /> Logout</button>
-        </div>
-      </div>
+      <AdminSidebarInline user={user} onLogout={handleLogout} />
 
-      {/* ========== MAIN CONTENT ========== */}
       <div className="ml-64 flex-1 min-h-screen py-8 px-6">
         <div className="max-w-5xl mx-auto">
           <button onClick={() => navigate(dashboardPath)} className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6">
@@ -543,8 +505,8 @@ export default function MyProfile() {
                   </div>
                   <div className="flex-1 flex items-center justify-between pt-10">
                     <div>
-                      <h1 className="text-2xl font-bold text-white">{profile?.username}</h1>
-                      <p className="text-purple-400 text-sm mt-1">{roleBadge}</p>
+                      <h1 className="text-2xl font-bold text-white">{profile?.full_name || profile?.username}</h1>
+                      <p className="text-purple-400 text-sm mt-1">{roleBadge} · {profile?.university || ''}</p>
                     </div>
                     <div className="flex gap-2">
                       {!isEditing ? (
@@ -643,7 +605,7 @@ export default function MyProfile() {
         </div>
       </div>
 
-      <ChatWidget companyMode={true} />
+      <ChatWidget university={user?.university || 'Université'} />
 
       {/* 2FA Modal */}
       {show2FAModal && (

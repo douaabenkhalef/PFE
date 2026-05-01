@@ -321,9 +321,13 @@ def login(request):
     
     user_data = {
         'id': str(user.id),
+        'username': user.username,  
         'email': user.email,
         'role': user.role,
         'sub_role': user.sub_role,
+        'profile_picture': user.profile_picture,
+        'bio': user.bio,
+        'phone': user.phone
     }
     
     if user.role == 'student':
@@ -332,7 +336,7 @@ def login(request):
             user_data['full_name'] = student.full_name
             user_data['university'] = student.university
     elif user.role == 'company':
-        company = Company.objects(user=user).first()
+        company = _get_user_company(user) 
         if company:
             user_data['company_name'] = company.company_name
     elif user.role == 'admin':
@@ -1114,6 +1118,7 @@ def list_offers(request):
             'is_active': o.is_active,
             'company_name': o.company.company_name,
             'created_at': o.created_at.strftime('%Y-%m-%d') if o.created_at else None,
+            'image_url': f"/api/company/offers/{o.id}/image/" if o.image else None,
         } for o in offers]
     })
 
@@ -1121,6 +1126,7 @@ def list_offers(request):
 @api_view(['POST'])
 @jwt_authenticated
 @role_required(allowed_roles=['company'])
+@parser_classes([MultiPartParser, FormParser])
 def create_offer(request):
     company = _get_user_company(request.user)
     if not company:
@@ -1152,6 +1158,9 @@ def create_offer(request):
     if isinstance(skills, str):
         skills = [s.strip() for s in skills.split(',') if s.strip()]
 
+    # Handle image upload
+    image_file = request.FILES.get('image')
+
     offer = InternshipOffer(
         company=company,
         company_name=company.company_name,
@@ -1164,6 +1173,7 @@ def create_offer(request):
         start_date=timezone.make_aware(start_date),
         deadline=timezone.make_aware(deadline),
         is_active=request.data.get('is_active', True),
+        image=image_file,                # ← saved into GridFS
     )
     offer.save()
 
@@ -1191,9 +1201,26 @@ def create_offer(request):
             'deadline': offer.deadline.strftime('%Y-%m-%d'),
             'is_active': offer.is_active,
             'created_at': offer.created_at.strftime('%Y-%m-%d'),
+            'image_url': f"/api/company/offers/{offer.id}/image/" if offer.image else None,
         }
     }, status=201)
+   
 
+
+@api_view(['GET'])
+def serve_offer_image(request, offer_id):
+    """Stream the offer's image from GridFS"""
+    try:
+        offer = InternshipOffer.objects(id=offer_id).first()
+        if not offer or not offer.image:
+            return HttpResponse(status=404)
+        image_data = offer.image.read()
+        content_type = offer.image.content_type or 'image/jpeg'
+        response = HttpResponse(image_data, content_type=content_type)
+        response['Content-Disposition'] = f'inline; filename="{offer.image.filename}"'
+        return response
+    except Exception as e:
+        return HttpResponse(status=404)
 
 @api_view(['GET'])
 @jwt_authenticated
@@ -1226,6 +1253,7 @@ def view_offer(request, offer_id):
             'is_active': offer.is_active,
             'company_name': offer.company.company_name,
             'created_at': offer.created_at.strftime('%Y-%m-%d') if offer.created_at else None,
+            'image_url': f"/api/company/offers/{offer.id}/image/" if offer.image else None,
         }
     })
 
@@ -1233,6 +1261,7 @@ def view_offer(request, offer_id):
 @api_view(['PUT', 'PATCH'])
 @jwt_authenticated
 @role_required(allowed_roles=['company'])
+@parser_classes([MultiPartParser, FormParser])
 def update_offer(request, offer_id):
     company = _get_user_company(request.user)
     if not company:
@@ -1282,6 +1311,10 @@ def update_offer(request, offer_id):
         if duplicate and str(duplicate.id) != offer_id:
             return Response({'success': False, 'message': 'An offer with this title already exists.'}, status=400)
 
+    # Handle image update
+    if 'image' in request.FILES:
+        offer.image = request.FILES['image']
+
     offer.save()
 
     log_activity(
@@ -1293,8 +1326,15 @@ def update_offer(request, offer_id):
         details={'updated_fields': list(request.data.keys())}
     )
 
-    return Response({'success': True, 'message': 'Offer updated successfully.'})
-
+    return Response({
+        'success': True,
+        'message': 'Offer updated successfully.',
+        'offer': {
+            'id': str(offer.id),
+            'title': offer.title,
+            'image_url': f"/api/company/offers/{offer.id}/image/" if offer.image else None,
+        }
+    })
 
 @api_view(['DELETE'])
 @jwt_authenticated
@@ -1317,6 +1357,16 @@ def delete_offer(request, offer_id):
         return Response({'success': False, 'message': 'Offer not found or does not belong to your company.'}, status=404)
 
     title = offer.title
+
+    # Delete image from GridFS if present
+    if offer.image:
+        try:
+            # The image field is a FileField backed by GridFS; deleting the file directly cleans up
+            offer.image.delete()  # MongoEngine FileField has a delete() method
+        except Exception as e:
+            # Log and continue
+            print(f"Warning: could not delete image for offer {offer_id}: {e}")
+
     offer.delete()
 
     log_activity(
@@ -2719,7 +2769,7 @@ def check_user_exists(request):
 
 def generate_internship_agreement_pdf(application, admin_user):
     from reportlab.lib.pagesizes import A4
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, HRFlowable
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import cm
     from reportlab.lib import colors
@@ -2727,141 +2777,335 @@ def generate_internship_agreement_pdf(application, admin_user):
     from io import BytesIO
     import base64
     import io
-    
+
     buffer = BytesIO()
-    
-    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm, leftMargin=2*cm, rightMargin=2*cm)
+    PAGE_W, PAGE_H = A4
+    LEFT_MARGIN = 1.5 * cm
+    RIGHT_MARGIN = 1.5 * cm
+    TOP_MARGIN = 1.5 * cm
+    BOTTOM_MARGIN = 1.5 * cm
+    CONTENT_WIDTH = PAGE_W - LEFT_MARGIN - RIGHT_MARGIN  # ~17.7 cm
+
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4,
+        topMargin=TOP_MARGIN, bottomMargin=BOTTOM_MARGIN,
+        leftMargin=LEFT_MARGIN, rightMargin=RIGHT_MARGIN,
+    )
     styles = getSampleStyleSheet()
-    
-    title_style = ParagraphStyle('CustomTitle', parent=styles['Title'], fontSize=16, alignment=1, spaceAfter=20, fontName='Helvetica-Bold')
-    heading_style = ParagraphStyle('CustomHeading', parent=styles['Heading2'], fontSize=12, alignment=0, spaceBefore=12, spaceAfter=6, fontName='Helvetica-Bold')
-    normal_style = ParagraphStyle('CustomNormal', parent=styles['Normal'], fontSize=10, alignment=0, spaceAfter=4, leading=14)
-    bold_style = ParagraphStyle('BoldNormal', parent=normal_style, fontName='Helvetica-Bold')
-    
+
+    # ── Style definitions ──────────────────────────────────────────────────────
+    title_style = ParagraphStyle(
+        'DocTitle', parent=styles['Normal'],
+        fontSize=13, fontName='Helvetica-Bold',
+        alignment=1, spaceAfter=2,
+    )
+    subtitle_style = ParagraphStyle(
+        'DocSubtitle', parent=styles['Normal'],
+        fontSize=10, fontName='Helvetica',
+        alignment=1, spaceAfter=6,
+    )
+    section_header_style = ParagraphStyle(
+        'SectionHeader', parent=styles['Normal'],
+        fontSize=9, fontName='Helvetica-Bold',
+        alignment=1, spaceAfter=0, spaceBefore=0,
+    )
+    label_style = ParagraphStyle(
+        'Label', parent=styles['Normal'],
+        fontSize=8.5, fontName='Helvetica',
+        leading=12, spaceAfter=0,
+    )
+    bold_label_style = ParagraphStyle(
+        'BoldLabel', parent=label_style,
+        fontName='Helvetica-Bold',
+    )
+    small_italic_style = ParagraphStyle(
+        'SmallItalic', parent=styles['Normal'],
+        fontSize=6.5, fontName='Helvetica-Oblique',
+        leading=8, alignment=1,
+    )
+    footer_style = ParagraphStyle(
+        'Footer', parent=styles['Normal'],
+        fontSize=7, fontName='Helvetica',
+        alignment=1, leading=10,
+    )
+
     story = []
-    
     today = datetime.now().strftime('%d/%m/%Y')
-    
-    story.append(Paragraph("CONVENTION DE STAGE", title_style))
-    story.append(Spacer(1, 0.5*cm))
-    
-    story.append(Paragraph("ENTRE", bold_style))
-    story.append(Spacer(1, 0.3*cm))
-    
-    company = application.offer.company
-    story.append(Paragraph(f"<b>L'entreprise (nom et adresse)</b><br/>{company.company_name}<br/>{company.location}<br/>Tel: {getattr(company, 'phone', 'Non renseigné')}<br/>Fax: ...", normal_style))
-    story.append(Spacer(1, 0.3*cm))
-    
-    story.append(Paragraph(f"<b>L'UNIVERSITE DE {application.student.university.upper()}</b><br/>{application.student.university}<br/>Representee par: {admin_user.full_name}<br/>Tel/Fax: 021 30 31 82", normal_style))
-    story.append(Spacer(1, 0.3*cm))
-    
-    story.append(Paragraph("ET", bold_style))
-    story.append(Spacer(1, 0.3*cm))
-    
-    story.append(Paragraph(f"<b>Monsieur/Madame :</b> {application.student.full_name}", normal_style))
-    story.append(Spacer(1, 0.5*cm))
-    
-    story.append(Paragraph("DONNEES RELATIVES A L'ETUDIANT", heading_style))
-    story.append(Spacer(1, 0.3*cm))
-    
-    student_data = [
-        ["Nom et prenom:", application.student.full_name],
-        ["Faculte:", application.student.major.split()[0] if application.student.major else "Informatique"],
-        ["Departement:", application.student.major.split()[0] if application.student.major else "Informatique"],
-        ["Carte d'etudiant n°:", str(application.student.user.id)[-8:]],
-        ["N° Securite Sociale:", "Non renseigné"],
-        ["Tel:", application.student.user.email],
-        ["Diplome prepare:", application.student.education_level],
-        ["Theme du stage:", application.offer.title],
-        ["Responsable pedagogique:", admin_user.full_name],
-        ["Duree du stage:", application.offer.duration],
-        ["Date de debut du stage:", application.offer.start_date.strftime('%d/%m/%Y') if application.offer.start_date else "À déterminer"],
-        ["Date de fin du stage:", "À déterminer"],
+
+    # ── Data shortcuts ─────────────────────────────────────────────────────────
+    company  = application.offer.company
+    student  = application.student
+    offer    = application.offer
+
+    company_name     = getattr(company, 'company_name', '') or ''
+    company_location = getattr(company, 'location', '') or ''
+    company_email    = getattr(company.user, 'email', '') if hasattr(company, 'user') else ''
+    company_phone    = getattr(company, 'phone', '') or ''
+
+    student_name  = getattr(student, 'full_name', '') or ''
+    student_email = getattr(student.user, 'email', '') if hasattr(student, 'user') else ''
+    university    = getattr(student, 'university', '') or ''
+    major         = getattr(student, 'major', '') or ''
+    edu_level     = getattr(student, 'education_level', '') or ''
+
+    start_date = offer.start_date.strftime('%d/%m/%Y') if getattr(offer, 'start_date', None) else '___/___/______'
+    end_date   = offer.end_date.strftime('%d/%m/%Y')   if getattr(offer, 'end_date', None)   else '___/___/______'
+    duration   = getattr(offer, 'duration', '') or ''
+    offer_title = getattr(offer, 'title', '') or ''
+
+    admin_name = getattr(admin_user, 'full_name', '') or ''
+
+    # ── Version stamp ──────────────────────────────────────────────────────────
+    version_style = ParagraphStyle(
+        'Version', parent=styles['Normal'],
+        fontSize=7, fontName='Helvetica',
+        alignment=2,  # right
+    )
+    story.append(Paragraph(f"Version du {today}", version_style))
+    story.append(Spacer(1, 0.15 * cm))
+
+    # ── Titles ─────────────────────────────────────────────────────────────────
+    story.append(Paragraph("<b>Convention de Stage EP1</b>", title_style))
+    story.append(Paragraph(offer_title if offer_title else "Intitulé de la formation / du stage", subtitle_style))
+    story.append(Spacer(1, 0.3 * cm))
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # SECTION 1 & 2  –  two-column table: Établissement | Organisme d'accueil
+    # ═══════════════════════════════════════════════════════════════════════════
+    COL = CONTENT_WIDTH / 2
+
+    def _field(label, value='', width=None):
+        """Return a Paragraph with label + underlined value or blank line."""
+        val = value.strip() if value else ''
+        line = '_' * 30 if not val else val
+        return Paragraph(f"{label} : {line}", label_style)
+
+    def _line(label=''):
+        return Paragraph(f"{label} ____________________________", label_style)
+
+    # Left column – Établissement de formation (static/university info)
+    left_cell = [
+        Paragraph("<b>1 - L'ÉTABLISSEMENT DE FORMATION</b>", section_header_style),
+        Spacer(1, 0.2 * cm),
+        Paragraph(f"Nom : {university}", label_style),
+        Spacer(1, 0.15 * cm),
+        Paragraph(f"Adresse : {getattr(admin_user, 'address', '') or 'Non renseignée'}", label_style),
+        Spacer(1, 0.15 * cm),
+        Paragraph("SIRET ____________________", label_style),
+        Spacer(1, 0.15 * cm),
+        Paragraph(f"Représenté par {admin_name}, responsable pédagogique", label_style),
+        Spacer(1, 0.15 * cm),
+        Paragraph("téléphone ____________________", label_style),
+        Spacer(1, 0.15 * cm),
+        Paragraph(f"e-mail : {getattr(admin_user.user, 'email', '') if hasattr(admin_user, 'user') else ''}", label_style),
     ]
-    
-    student_table = Table(student_data, colWidths=[5*cm, 11*cm])
-    student_table.setStyle(TableStyle([
-        ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
-        ('FONTSIZE', (0,0), (-1,-1), 9),
-        ('VALIGN', (0,0), (-1,-1), 'TOP'),
-        ('TOPPADDING', (0,0), (-1,-1), 4),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-        ('LEFTPADDING', (0,0), (-1,-1), 2),
-        ('RIGHTPADDING', (0,0), (-1,-1), 2),
-        ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+
+    # Right column – Organisme d'accueil (company info)
+    right_cell = [
+        Paragraph("<b>2 - L'ORGANISME D'ACCUEIL</b>", section_header_style),
+        Spacer(1, 0.2 * cm),
+        Paragraph(f"Nom : {company_name}", label_style),
+        Spacer(1, 0.15 * cm),
+        Paragraph(f"Adresse complète : {company_location}", label_style),
+        Spacer(1, 0.15 * cm),
+        Paragraph("N° SIRET : ____________________", label_style),
+        Spacer(1, 0.15 * cm),
+        Paragraph("Représenté par (nom du signataire de la convention) :", label_style),
+        Paragraph("____________________________", label_style),
+        Spacer(1, 0.15 * cm),
+        Paragraph("Qualité du représentant : ____________________", label_style),
+        Spacer(1, 0.15 * cm),
+        Paragraph(f"téléphone : {company_phone or '____________________'}", label_style),
+        Spacer(1, 0.15 * cm),
+        Paragraph(f"e-mail : {company_email or '____________________'}", label_style),
+        Spacer(1, 0.15 * cm),
+        Paragraph("Lieu(x) du stage (si différent de l'adresse de l'organisme) : ____________________", label_style),
+    ]
+
+    two_col = Table(
+        [[left_cell, right_cell]],
+        colWidths=[COL, COL],
+    )
+    two_col.setStyle(TableStyle([
+        ('BOX',        (0, 0), (-1, -1), 0.8, colors.black),
+        ('LINEBEFORE',  (1, 0), (1, 0),  0.8, colors.black),
+        ('VALIGN',     (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
     ]))
-    story.append(student_table)
-    story.append(Spacer(1, 0.5*cm))
-    
-    story.append(Paragraph("Etablie en 02 exemplaires originaux: 1 exemplaire pour l'universite et 01 exemplaire pour l'entreprise", normal_style))
-    story.append(Spacer(1, 0.5*cm))
-    
-    story.append(Paragraph(f"Fait a Constantine le: {today}", normal_style))
-    story.append(Spacer(1, 1*cm))
-    
-    story.append(Paragraph("Signatures et Cachet:", heading_style))
-    story.append(Spacer(1, 0.3*cm))
-    
+    story.append(two_col)
+    story.append(Spacer(1, 0.3 * cm))
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # SECTION 3  –  Le Stagiaire
+    # ═══════════════════════════════════════════════════════════════════════════
+    birth_date = getattr(student, 'birth_date', None)
+    birth_str  = birth_date.strftime('%d/%m/%Y') if birth_date else '___/___/______'
+
+    stagiaire_content = [
+        Paragraph("<b>3 - LE STAGIAIRE</b>", section_header_style),
+        Spacer(1, 0.25 * cm),
+        Paragraph(
+            f"Nom : <b>{student_name.split()[-1] if student_name else '____________________'}</b>"
+            f"      Prénom : <b>{' '.join(student_name.split()[:-1]) if student_name else '____________________'}</b>"
+            f"      Sexe : F ☐  M ☐      Né(e) le : {birth_str}",
+            label_style,
+        ),
+        Spacer(1, 0.2 * cm),
+        Paragraph(f"Adresse : ____________________________", label_style),
+        Spacer(1, 0.2 * cm),
+        Paragraph(f"téléphone __________________      e-mail : {student_email}", label_style),
+        Spacer(1, 0.25 * cm),
+        Paragraph(
+            "<u>Intitulé de la formation suivi dans l'établissement de formation et volume horaire (annuel ou semestriel) :</u>",
+            bold_label_style,
+        ),
+        Paragraph(f"{edu_level} – {major} (volume horaire à préciser)", label_style),
+    ]
+
+    stagiaire_table = Table([[stagiaire_content]], colWidths=[CONTENT_WIDTH])
+    stagiaire_table.setStyle(TableStyle([
+        ('BOX',           (0, 0), (-1, -1), 0.8, colors.black),
+        ('TOPPADDING',    (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+    ]))
+    story.append(stagiaire_table)
+    story.append(Spacer(1, 0.3 * cm))
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # SECTION 4  –  Sujet de Stage / Dates
+    # ═══════════════════════════════════════════════════════════════════════════
+    stage_content = [
+        Paragraph(f"<u><b>Sujet de Stage</b></u> : {offer_title}", bold_label_style),
+        Spacer(1, 0.2 * cm),
+        Paragraph(f"Dates : Du <b>{start_date}</b>   Au <b>{end_date}</b>", label_style),
+        Spacer(1, 0.15 * cm),
+        Paragraph(f"Représentant une durée totale de <b>{duration}</b> heures sur toute la période du stage", label_style),
+        Spacer(1, 0.15 * cm),
+        Paragraph("Et correspondant à _______ jours de présence effective", label_style),
+        Spacer(1, 0.15 * cm),
+        Paragraph(
+            "Répartition si présence discontinue : _______nombre d'heures par semaine ou nombre d'heures par jour "
+            "(rayer la mention inutile).",
+            label_style,
+        ),
+        Spacer(1, 0.15 * cm),
+        Paragraph("Commentaire : ____________________________", label_style),
+        Spacer(1, 0.2 * cm),
+        Paragraph(
+            "<i>Chaque période au moins égale à sept heures de présence, consécutives ou non, est considérée "
+            "comme équivalente à un jour et chaque période au moins égale à vingt jours de présence, consécutifs "
+            "ou non, est considérée comme équivalente à un mois. (art D124-6 Code de l'éducation)</i>",
+            small_italic_style,
+        ),
+    ]
+
+    stage_table = Table([[stage_content]], colWidths=[CONTENT_WIDTH])
+    stage_table.setStyle(TableStyle([
+        ('BOX',           (0, 0), (-1, -1), 0.8, colors.black),
+        ('TOPPADDING',    (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+    ]))
+    story.append(stage_table)
+    story.append(Spacer(1, 0.3 * cm))
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # SECTION 5  –  Encadrement (two-column)
+    # ═══════════════════════════════════════════════════════════════════════════
+    # Load signature and stamp images
     signature_img = None
     stamp_img = None
-    
-    if application.university_signature:
+
+    if getattr(application, 'university_signature', None):
         try:
             sig_data = application.university_signature
             if ',' in sig_data:
                 sig_data = sig_data.split(',')[1]
             img_data = base64.b64decode(sig_data)
             img_io = io.BytesIO(img_data)
-            signature_img = Image(img_io, width=4*cm, height=1.5*cm)
+            signature_img = Image(img_io, width=4 * cm, height=1.5 * cm)
         except Exception as e:
             print(f"Erreur chargement signature: {e}")
-    
-    if application.university_stamp:
+
+    if getattr(application, 'university_stamp', None):
         try:
             stamp_data = application.university_stamp
             if ',' in stamp_data:
                 stamp_data = stamp_data.split(',')[1]
             stamp_img_data = base64.b64decode(stamp_data)
             stamp_io = io.BytesIO(stamp_img_data)
-            stamp_img = Image(stamp_io, width=3*cm, height=3*cm)
+            stamp_img = Image(stamp_io, width=3 * cm, height=3 * cm)
         except Exception as e:
             print(f"Erreur chargement cachet: {e}")
-    
-    signature_data = [
-        ["", "", "", ""],
-        ["<b>Visa du chef de departement:</b>", "<b>Pour l'entreprise</b>", "<b>Pour l'universite</b>", "<b>Cachet de l'universite</b>"],
-        ["", "", "", ""],
-        ["", "", "", ""],
+
+    # Left: encadrement par établissement de formation
+    enc_left = [
+        Paragraph("<b>Encadrement du stagiaire par l'établissement de formation</b>", section_header_style),
+        Spacer(1, 0.2 * cm),
+        Paragraph(f"Nom et prénom du formateur référent : {admin_name}", label_style),
+        Spacer(1, 0.15 * cm),
+        Paragraph("Fonction : responsable pédagogique", label_style),
+        Spacer(1, 0.15 * cm),
+        Paragraph(
+            f"Téléphone : ____________________      e-mail : {getattr(admin_user.user, 'email', '') if hasattr(admin_user, 'user') else ''}",
+            label_style,
+        ),
+        Spacer(1, 0.3 * cm),
+        # ── Signature de l'université ──
+        Paragraph("<b>Signature de l'université :</b>", bold_label_style),
+        Spacer(1, 0.15 * cm),
+        signature_img if signature_img else Paragraph("____________________________", label_style),
     ]
-    
-    if signature_img:
-        signature_data[3][2] = signature_img
-    else:
-        signature_data[3][2] = Paragraph("Signature :", normal_style)
-    
-    if stamp_img:
-        signature_data[3][3] = stamp_img
-    else:
-        signature_data[3][3] = Paragraph("Cachet :", normal_style)
-    
-    signature_table = Table(signature_data, colWidths=[3.5*cm, 3.5*cm, 3.5*cm, 3.5*cm])
-    signature_table.setStyle(TableStyle([
-        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('FONTNAME', (0,1), (-1,1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,0), (-1,-1), 8),
-        ('TOPPADDING', (0,0), (-1,-1), 10),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
-        ('BACKGROUND', (0,1), (-1,1), colors.HexColor('#f0f0f0')),
+
+    # Right: encadrement par organisme d'accueil (company)
+    enc_right = [
+        Paragraph("<b>Encadrement du stagiaire par L'organisme d'accueil</b>", section_header_style),
+        Spacer(1, 0.2 * cm),
+        Paragraph("Nom et prénom du tuteur de stage : ____________________", label_style),
+        Spacer(1, 0.15 * cm),
+        Paragraph("Fonction : ____________________", label_style),
+        Spacer(1, 0.3 * cm),
+        # ── Cachet de l'université ──
+        Paragraph("<b>Cachet de l'université :</b>", bold_label_style),
+        Spacer(1, 0.15 * cm),
+        stamp_img if stamp_img else Paragraph("____________________________", label_style),
+    ]
+
+    enc_table = Table([[enc_left, enc_right]], colWidths=[COL, COL])
+    enc_table.setStyle(TableStyle([
+        ('BOX',        (0, 0), (-1, -1), 0.8, colors.black),
+        ('LINEBEFORE',  (1, 0), (1, 0),  0.8, colors.black),
+        ('VALIGN',     (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
     ]))
-    story.append(signature_table)
-    
+    story.append(enc_table)
+    story.append(Spacer(1, 0.4 * cm))
+
+    # ── Footer ────────────────────────────────────────────────────────────────
+    footer_lines = (
+        f"{university}  –  {getattr(admin_user, 'address', '') or 'Adresse de l\'université'}<br/>"
+        f"Tél : ____________________  –  Email : {getattr(admin_user.user, 'email', '') if hasattr(admin_user, 'user') else ''}<br/>"
+        "SIRET ____________________  –  APE ______  –  Déclaration d'activité enregistrée sous le numéro ____________________<br/>"
+        "auprès du préfet de région"
+    )
+    story.append(HRFlowable(width=CONTENT_WIDTH, thickness=0.5, color=colors.black))
+    story.append(Spacer(1, 0.1 * cm))
+    story.append(Paragraph(footer_lines, footer_style))
+
+    # ── Build ──────────────────────────────────────────────────────────────────
     doc.build(story)
-    
+
     pdf_content = ContentFile(buffer.getvalue())
-    pdf_content.name = f"convention_{application.student.full_name}_{application.offer.company.company_name}.pdf"
+    pdf_content.name = f"convention_{student_name}_{company_name}.pdf"
     return pdf_content
 
 
@@ -4242,9 +4486,12 @@ def get_university_users_status(request):
         return Response({'success': False, 'error': str(e)}, status=500)
 
 
+# ==================== MISC ====================
+
 @api_view(['GET'])
 @jwt_authenticated
 def get_current_user(request):
+    """Return the current authenticated user's personal info, including bio, phone, and avatar"""
     try:
         user = request.user
         user_data = {
@@ -4254,8 +4501,18 @@ def get_current_user(request):
             'role': user.role,
             'sub_role': user.sub_role,
             'status': user.status,
+            'bio': getattr(user, 'bio', ''),
+            'phone': getattr(user, 'phone', ''),
+            'created_at': user.created_at.strftime('%d/%m/%Y') if user.created_at else None,
         }
-        
+
+        # Profile picture URL (user avatar)
+        profile_picture_url = None
+        if user.profile_picture:
+            profile_picture_url = f"/api/my-profile/user/avatar/{user.profile_picture}/"
+        user_data['profile_picture_url'] = profile_picture_url
+
+        # Permissions
         permissions = get_user_permissions(user)
         if permissions:
             user_data['permissions'] = {
@@ -4264,14 +4521,15 @@ def get_current_user(request):
                 'can_add_stamp': permissions.can_add_stamp if hasattr(permissions, 'can_add_stamp') else True,
                 'can_manage_university_profile': permissions.can_manage_university_profile,
             }
-        
+
+        # Role-specific extra
         if user.role == 'student':
             student = Student.objects(user=user).first()
             if student:
                 user_data['full_name'] = student.full_name
                 user_data['university'] = student.university
         elif user.role == 'company':
-            company = Company.objects(user=user).first()
+            company = _get_user_company(user)
             if company:
                 user_data['company_name'] = company.company_name
         elif user.role == 'admin':
@@ -4279,9 +4537,9 @@ def get_current_user(request):
             if admin:
                 user_data['full_name'] = admin.full_name
                 user_data['university'] = admin.university
-        
+
         return Response({'success': True, 'user': user_data})
-        
+
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
 
@@ -4708,6 +4966,109 @@ def get_company_manager_info(request):
         return Response({'success': False, 'error': 'Company manager not found'}, status=404)
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
+
+
+# ==================== USER PERSONAL PROFILE ENDPOINTS (NEW) ====================
+
+@api_view(['PUT'])
+@jwt_authenticated
+def update_my_user_info(request):
+    """Update personal user info (bio, phone)"""
+    try:
+        user = request.user
+        data = request.data
+
+        if 'bio' in data:
+            user.bio = data['bio']
+        if 'phone' in data:
+            user.phone = data['phone']
+
+        user.save()
+        return Response({'success': True, 'message': 'Profile updated successfully'})
+    except Exception as e:
+        print(f"Erreur update_my_user_info: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+@jwt_authenticated
+@role_required(allowed_roles=['company', 'student', 'admin'])
+@parser_classes([MultiPartParser, FormParser])
+def upload_user_avatar(request):
+    """Upload user profile picture"""
+    try:
+        from gridfs import GridFS
+        from mongoengine.connection import get_db
+        from bson import ObjectId
+        from datetime import datetime
+
+        user = request.user
+
+        if 'avatar' not in request.FILES:
+            return Response({'success': False, 'error': 'No file provided'}, status=400)
+
+        file = request.FILES['avatar']
+
+        if file.size > 5 * 1024 * 1024:
+            return Response({'success': False, 'error': 'File too large (max 5MB)'}, status=400)
+        allowed_types = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif']
+        if file.content_type not in allowed_types:
+            return Response({'success': False, 'error': 'Invalid file type. Use JPEG, PNG or GIF'}, status=400)
+
+        db = get_db()
+        fs = GridFS(db)
+
+        if user.profile_picture:
+            try:
+                old_id = ObjectId(user.profile_picture)
+                fs.delete(old_id)
+            except:
+                pass
+
+        file_content = file.read()
+        file_id = fs.put(
+            file_content,
+            filename=file.name,
+            content_type=file.content_type,
+            metadata={
+                'user_id': str(user.id),
+                'uploaded_at': datetime.now().isoformat(),
+                'type': 'user_avatar'
+            }
+        )
+
+        user.profile_picture = str(file_id)
+        user.save()
+
+        image_url = f"/api/my-profile/user/avatar/{file_id}/"
+        return Response({
+            'success': True,
+            'message': 'Avatar uploaded successfully',
+            'url': image_url
+        })
+    except Exception as e:
+        print(f"Erreur upload_user_avatar: {str(e)}")
+        traceback.print_exc()
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+def serve_user_avatar(request, file_id):
+    """Serve user avatar from GridFS"""
+    try:
+        from gridfs import GridFS
+        from mongoengine.connection import get_db
+        from bson import ObjectId
+
+        db = get_db()
+        fs = GridFS(db)
+        file_obj = fs.get(ObjectId(file_id))
+        response = HttpResponse(file_obj.read(), content_type=file_obj.content_type)
+        response['Content-Disposition'] = f'inline; filename="{file_obj.filename}"'
+        return response
+    except Exception as e:
+        print(f"Erreur serve_user_avatar: {e}")
+        return HttpResponse(status=404)
 
 
 # ==================== FRIEND'S STUDENT PROFILE / CV / 2FA / CHAT ====================
@@ -6086,8 +6447,10 @@ def verify_login_otp(request):
             'admin': '/admin/dashboard',
         }
 
+        # Build user_data with username and correct company_name
         user_data = {
             'id': str(user.id),
+            'username': user.username,          # add username
             'email': user.email,
             'role': user.role,
             'sub_role': user.sub_role,
@@ -6099,7 +6462,8 @@ def verify_login_otp(request):
                 user_data['full_name'] = student.full_name
                 user_data['university'] = student.university
         elif user.role == 'company':
-            company = Company.objects(user=user).first()
+            # Use the helper to get the correct company (works for both company_manager and hiring_manager)
+            company = _get_user_company(user)
             if company:
                 user_data['company_name'] = company.company_name
         elif user.role == 'admin':
@@ -6184,8 +6548,10 @@ def verify_2fa_code(request):
             'admin': '/admin/dashboard',
         }
 
+        # Build user_data with username and correct company_name
         user_data = {
             'id': str(user.id),
+            'username': user.username,          # add username
             'email': user.email,
             'role': user.role,
             'sub_role': user.sub_role,
@@ -6197,7 +6563,8 @@ def verify_2fa_code(request):
                 user_data['full_name'] = student.full_name
                 user_data['university'] = student.university
         elif user.role == 'company':
-            company = Company.objects(user=user).first()
+            # Use the helper to get the correct company (works for both company_manager and hiring_manager)
+            company = _get_user_company(user)
             if company:
                 user_data['company_name'] = company.company_name
         elif user.role == 'admin':
@@ -6231,3 +6598,50 @@ def get_2fa_status(request):
         })
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
+
+
+# ============TOP INTERNSHIPS FOR COMPANY ==============
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['company'])
+def top_company_offers(request):
+    """
+    Return the top 5 offers of the company, sorted by application count.
+    Each offer includes 'applicants_count' and 'image_url'.
+    """
+    company = _get_user_company(request.user)
+    if not company:
+        return Response({'success': False, 'message': 'Company not found.'}, status=404)
+
+    offers = list(InternshipOffer.objects(company=company))
+    if not offers:
+        return Response({'success': True, 'offers': []})
+
+    count_map = {}
+    for offer in offers:
+        count_map[str(offer.id)] = Application.objects(offer=offer).count()
+
+    result = []
+    for offer in offers:
+        result.append({
+            'id': str(offer.id),
+            'title': offer.title,
+            'description': offer.description,
+            'wilaya': offer.wilaya,
+            'internship_type': offer.internship_type,
+            'required_skills': offer.required_skills,
+            'duration': offer.duration,
+            'start_date': offer.start_date.strftime('%Y-%m-%d') if offer.start_date else None,
+            'deadline': offer.deadline.strftime('%Y-%m-%d') if offer.deadline else None,
+            'is_active': offer.is_active,
+            'company_name': offer.company_name,
+            'created_at': offer.created_at.strftime('%Y-%m-%d') if offer.created_at else None,
+            'applicants_count': count_map.get(str(offer.id), 0),
+            'image_url': f"/api/company/offers/{offer.id}/image/" if offer.image else None,
+        })
+
+    result.sort(key=lambda x: x['applicants_count'], reverse=True)
+    result = result[:5]
+
+    return Response({'success': True, 'offers': result})

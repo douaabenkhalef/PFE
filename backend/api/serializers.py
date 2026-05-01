@@ -184,15 +184,24 @@ class InternshipOfferSerializer(serializers.Serializer):
     internship_type = serializers.ChoiceField(choices=['PFE', 'ouvrier', 'technicien', 'été'])
     required_skills = serializers.ListField(child=serializers.CharField())
     duration = serializers.CharField(max_length=50)
-    start_date = serializers.DateTimeField()  
+    start_date = serializers.DateTimeField()
     deadline = serializers.DateTimeField()
     is_active = serializers.BooleanField(default=True)
     created_at = serializers.DateTimeField(read_only=True)
     company_name = serializers.SerializerMethodField()
 
+    # New field for the offer image
+    image_url = serializers.SerializerMethodField()
+
     def get_company_name(self, obj):
         if hasattr(obj, 'company') and obj.company:
             return obj.company.company_name
+        return None
+
+    def get_image_url(self, obj):
+        """Return the URL to the offer's image, or None if no image."""
+        if hasattr(obj, 'image') and obj.image:
+            return f"/api/company/offers/{obj.id}/image/"
         return None
 
     def create(self, validated_data):
@@ -204,7 +213,6 @@ class InternshipOfferSerializer(serializers.Serializer):
             setattr(instance, key, value)
         instance.save()
         return instance
-
 
 class ApplicationSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
@@ -386,32 +394,40 @@ class UserSerializer(serializers.Serializer):
     status = serializers.BooleanField()
     is_university_email = serializers.BooleanField()
     created_at = serializers.DateTimeField(read_only=True)
+    
+    # Expose the new profile fields added in recent work
+    bio = serializers.CharField(allow_blank=True, required=False)
+    phone = serializers.CharField(allow_blank=True, required=False)
+    profile_picture = serializers.CharField(allow_blank=True, required=False)
+    
+    # Root level company name to match login payload
+    company_name = serializers.SerializerMethodField()
+    
     student_profile = serializers.SerializerMethodField()
     company_profile = serializers.SerializerMethodField()
 
-    def get_student_profile(self, obj):
-        if obj.role == 'student':
-            from .models import Student
-            student = Student.objects(user=obj).first()
-            if student:
-                return {
-                    'full_name': student.full_name,
-                    'wilaya': student.wilaya,
-                    'skills': student.skills,
-                    'github': student.github,
-                    'portfolio': student.portfolio,
-                    'education_level': student.education_level,
-                    'university': student.university,
-                    'major': student.major,
-                    'graduation_year': student.graduation_year,
-                    'is_placed': student.is_placed,
-                }
+    def get_company_name(self, obj):
+        if obj.role == 'company':
+            from .models import Company
+            # Use pending_company_id for hiring managers
+            if obj.sub_role == 'hiring_manager' and obj.pending_company_id:
+                company = Company.objects(id=obj.pending_company_id).first()
+            else:
+                company = Company.objects(user=obj).first()
+            
+            if company:
+                return company.company_name
         return None
 
     def get_company_profile(self, obj):
         if obj.role == 'company':
             from .models import Company
-            company = Company.objects(user=obj).first()
+            # Use pending_company_id for hiring managers
+            if obj.sub_role == 'hiring_manager' and obj.pending_company_id:
+                company = Company.objects(id=obj.pending_company_id).first()
+            else:
+                company = Company.objects(user=obj).first()
+                
             if company:
                 return {
                     'company_name': company.company_name,

@@ -15,32 +15,29 @@ const CompanySidebar = ({ user, onLogout, onClose }) => {
 
   const isCompanyManager = user?.sub_role === 'company_manager';
 
-  // جلب معلومات المستخدم واللوجو (مثل CompanyProfile.jsx)
+  // Fetch user personal info AND avatar (not company logo)
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('access_token');
         
-        // جلب معلومات المستخدم
+        // Get personal user info via /auth/me/
         const userRes = await fetch(`${API}/auth/me/`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const userData = await userRes.json();
         if (userData.success) {
           setProfile(userData.user);
-        }
-        
-        // جلب صورة الشركة
-        const companyRes = await fetch(`${API}/company/profile/`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const companyData = await companyRes.json();
-        if (companyData.success && companyData.company && companyData.company.logo_url) {
-          let logoUrl = companyData.company.logo_url;
-          if (logoUrl && !logoUrl.startsWith('http')) {
-            logoUrl = `http://localhost:8000${logoUrl}`;
+          // If the user has a profile picture, use it
+          if (userData.user?.profile_picture_url) {
+            let avatarUrl = userData.user.profile_picture_url;
+            if (avatarUrl && !avatarUrl.startsWith('http')) {
+              avatarUrl = `http://localhost:8000${avatarUrl}`;
+            }
+            setProfileImage(avatarUrl);
+          } else {
+            setProfileImage(null);   // fallback to initials
           }
-          setProfileImage(logoUrl);
         }
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -49,7 +46,6 @@ const CompanySidebar = ({ user, onLogout, onClose }) => {
     fetchData();
   }, []);
 
-  // 🔥 عرض اسم المستخدم (مثل CompanyProfile.jsx)
   const getDisplayName = () => {
     if (profile?.username) {
       return profile.username;
@@ -63,13 +59,11 @@ const CompanySidebar = ({ user, onLogout, onClose }) => {
     return 'User';
   };
 
-  // 🔥 الحرف الأول من اسم المستخدم
   const getInitials = () => {
     const name = getDisplayName();
     return name.charAt(0).toUpperCase();
   };
 
-  // البريد الإلكتروني
   const getDisplayEmail = () => {
     return profile?.email || user?.email || '';
   };
@@ -79,7 +73,7 @@ const CompanySidebar = ({ user, onLogout, onClose }) => {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose}></div>
       <div className="relative w-64 bg-gradient-to-b from-[#1a0840] to-[#0e0c27] h-full shadow-xl border-r border-purple-500/30 flex flex-col animate-slide-in">
         
-        {/* Header with Logo/Image - مثل CompanyProfile.jsx */}
+        {/* Header with user personal avatar (no longer company logo) */}
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold overflow-hidden">
@@ -98,7 +92,6 @@ const CompanySidebar = ({ user, onLogout, onClose }) => {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              {/* 🔥 عرض اسم المستخدم (مثل CompanyProfile.jsx) */}
               <p className="text-white font-medium text-sm truncate">{getDisplayName()}</p>
               <p className="text-white/50 text-xs truncate">{getDisplayEmail()}</p>
             </div>
@@ -117,7 +110,7 @@ const CompanySidebar = ({ user, onLogout, onClose }) => {
           </div>
         </div>
 
-        {/* Navigation */}
+        {/* Navigation (unchanged) */}
         <nav className="flex-1 overflow-y-auto p-3">
           <div>
             <p className="text-xs text-purple-300/60 uppercase tracking-wider px-3 mb-2">Control & Management</p>

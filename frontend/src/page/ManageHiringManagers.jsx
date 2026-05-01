@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import './StudentDashboard.css';
+import UserAvatar from '../components/UserAvatar';
 
 const API = 'http://localhost:8000/api';
 const token = () => localStorage.getItem('access_token');
@@ -123,13 +124,7 @@ const HiringManagerCard = ({ manager, onUpdatePermissions, onDelete }) => {
             onChange={(e) => setPermissions(prev => ({ ...prev, can_manage_applications: e.target.checked }))}
             disabled={!isEditing}
           />
-          <PermissionCheckbox
-            label="Gérer les Hiring Managers"
-            description="Ajouter, modifier ou supprimer des hiring managers"
-            checked={permissions.can_manage_hiring_managers}
-            onChange={(e) => setPermissions(prev => ({ ...prev, can_manage_hiring_managers: e.target.checked }))}
-            disabled={!isEditing}
-          />
+
           <PermissionCheckbox
             label="Créer des offres"
             description="Publier de nouvelles offres de stage"
@@ -242,8 +237,6 @@ export default function ManageHiringManagers() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const isCompanyManager = user?.sub_role === 'company_manager';
-  const initials = (user?.full_name || user?.email || "U")
-    .split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
 
   const fetchData = async () => {
     setLoading(true);
@@ -359,7 +352,7 @@ export default function ManageHiringManagers() {
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
-              {initials}
+              <UserAvatar />   
             </div>
             <div>
               <p className="text-white font-medium text-sm">{user?.full_name || user?.email}</p>

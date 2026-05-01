@@ -58,6 +58,7 @@ urlpatterns = [
     # Public Company Profile (YOURS)
     path('company/dashboard/',                                     views.company_dashboard, name='company-dashboard'),
     path('company/offers/',                                        views.list_offers, name='list-offers'),
+	path('company/offers/top/',                                    views.top_company_offers, name='top-company-offers'),	
     path('company/offers/create/',                                 views.create_offer, name='create-offer'),
     path('company/offers/<str:offer_id>/',                         views.view_offer, name='view-offer'),
     path('company/offers/<str:offer_id>/update/',                  views.update_offer, name='update-offer'),
@@ -68,16 +69,17 @@ urlpatterns = [
     path('company/applications/',                                  views.company_applications, name='company-applications'),
     path('company/applications/<str:application_id>/respond/',     views.respond_to_application, name='respond-application'),
     path('company/applications/<str:application_id>/cv/',          views.download_application_cv, name='download-cv'),
+	path('company/offers/<str:offer_id>/image/', views.serve_offer_image, name='offer-image'),
 
     # Your public Company Profile (editing cover, description, etc.)
     path('company/profile/', views.get_company_profile, name='get-company-profile'),
     path('company/profile/update/', views.update_company_profile, name='update-company-profile'),   # PUT delegates to POST
 
     # Friend's MyProfile for company (personal info, logo, 2FA) – renamed endpoints
-    path('my-profile/company/', views.get_my_company_info, name='my-company-info'),
-    path('my-profile/company/update/', views.update_my_company_info, name='update-my-company-info'),
-    path('my-profile/company/upload-logo/', views.upload_my_company_logo, name='upload-my-company-logo'),
-    path('my-profile/company/logo/<str:file_id>/', views.serve_my_company_logo, name='serve-my-company-logo'),
+    
+    path('my-profile/user/update/', views.update_my_user_info, name='update-my-user-info'),
+    path('my-profile/user/upload-avatar/', views.upload_user_avatar, name='upload-user-avatar'),
+    path('my-profile/user/avatar/<str:file_id>/', views.serve_user_avatar, name='serve-user-avatar'),
 
     # For fetching the company manager (friend's, used in private chat)
     path('company/company-manager/', views.get_company_manager_info, name='get-company-manager'),

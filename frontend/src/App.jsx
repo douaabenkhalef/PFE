@@ -25,6 +25,7 @@ import DeptHeadActivityLogs from './page/DeptHeadActivityLogs';
 import ManageHiringManagers from './page/ManageHiringManagers';
 import ManageCoDeptHeads from './page/ManageCoDeptHeads';
 import ManageStudents from './page/ManageStudents';
+import AdminMyProfile from './page/AdminMyProfile';
 import './App.css';
 
 const ProtectedRoute = ({ children, allowedRoles, allowedSubRoles }) => {
@@ -88,6 +89,18 @@ function App() {
           
           <Route path="/co-dept-head/dashboard" element={
             <ProtectedRoute allowedRoles={['admin']} allowedSubRoles={['co_dept_head']}><CoDeptHeadDashboard /></ProtectedRoute>
+          } />
+
+          <Route path="/admin/my-profile" element={
+            <ProtectedRoute allowedRoles={['admin']} allowedSubRoles={['admin']}>
+              <AdminMyProfile />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/co-dept-head/my-profile" element={
+            <ProtectedRoute allowedRoles={['admin']} allowedSubRoles={['co_dept_head']}>
+              <AdminMyProfile />
+            </ProtectedRoute>
           } />
 
           <Route path="/admin/validations" element={

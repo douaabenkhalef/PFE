@@ -8,8 +8,11 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import './StudentDashboard.css';
+import UserAvatar from '../components/UserAvatar';
 
 const BASE_URL = 'http://localhost:8000/api';
+const BACKEND  = 'http://localhost:8000';
+const imgUrl   = (url) => { if (!url) return null; if (url.startsWith('http')) return url; return `${BACKEND}${url}`; };
 const TYPES    = ['PFE', 'ouvrier', 'technicien', 'été'];
 const WILAYAS  = [
   'Adrar','Chlef','Laghouat','Oum El Bouaghi','Batna','Béjaïa','Biskra','Béchar','Blida','Bouira',
@@ -22,6 +25,7 @@ const WILAYAS  = [
 const EMPTY = {
   title: '', description: '', wilaya: '', internship_type: '',
   duration: '', start_date: '', required_skills: '', is_active: true, deadline: '',
+  image: null,   // added
 };
 const inp = 'bg-[#1e293b] border border-slate-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-sm text-white outline-none transition w-full';
 
@@ -51,6 +55,10 @@ function OfferForm({ initial, onSubmit, submitLabel, submitting }) {
 
   const set  = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
   const bool = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value === 'true' }));
+  const setFile = (k) => (e) => {
+    const file = e.target.files[0];
+    setF((p) => ({ ...p, [k]: file }));
+  };
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit(f); }} className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-2xl">
@@ -88,6 +96,20 @@ function OfferForm({ initial, onSubmit, submitLabel, submitting }) {
         <label className="block text-xs text-slate-400 mb-1 font-medium">Required Skills <span className="text-slate-500 font-normal">(comma-separated)</span></label>
         <input className={inp} placeholder="e.g. Flutter, Firebase, REST API" value={f.required_skills} onChange={set('required_skills')} />
       </div>
+      {/* New image input */}
+      <div className="md:col-span-2">
+        <label className="block text-xs text-slate-400 mb-1 font-medium">Offer Image</label>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={setFile('image')}
+          className="bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-500 transition"
+        />
+        {f.image instanceof File && <p className="text-xs text-slate-400 mt-1">Selected: {f.image.name}</p>}
+        {typeof f.image === 'string' && f.image && !(f.image instanceof File) && (
+          <p className="text-xs text-slate-400 mt-1">Current image will be kept (upload new to replace)</p>
+        )}
+      </div>
       <div>
         <label className="block text-xs text-slate-400 mb-1 font-medium">Status</label>
         <select className={inp} value={String(f.is_active)} onChange={bool('is_active')}>
@@ -112,7 +134,7 @@ function OfferForm({ initial, onSubmit, submitLabel, submitting }) {
 export default function InternshipOfferManager() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('list'); // 'list' or 'create'
+  const [activeTab, setActiveTab] = useState('list');
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -124,8 +146,6 @@ export default function InternshipOfferManager() {
   const [fActive, setFActive] = useState('');
 
   const isCompanyManager = user?.sub_role === 'company_manager';
-  const initials = (user?.full_name || user?.email || "U")
-    .split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
 
   const auth = () => ({
     'Content-Type': 'application/json',
@@ -158,10 +178,25 @@ export default function InternshipOfferManager() {
 
   const handleCreate = async (f) => {
     setSubmitting(true); setMsg(null);
+    const formData = new FormData();
+    // Append all fields
+    Object.keys(f).forEach(key => {
+      if (key === 'image' && f.image instanceof File) {
+        formData.append('image', f.image);
+      } else if (key === 'required_skills') {
+        // Convert skills array to comma-separated if needed (f.required_skills is string)
+        formData.append(key, f.required_skills);
+      } else {
+        formData.append(key, f[key]);
+      }
+    });
+    formData.append('is_active', f.is_active === true || f.is_active === 'true');
+
     try {
       const res = await fetch(`${BASE_URL}/company/offers/create/`, {
-        method: 'POST', headers: auth(),
-        body: JSON.stringify({ ...f, is_active: f.is_active === true || f.is_active === 'true' }),
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        body: formData,
       });
       const data = await res.json();
       if (data.success) { showMsg('success', 'Offer created and saved to database!'); setActiveTab('list'); }
@@ -185,6 +220,7 @@ export default function InternshipOfferManager() {
       required_skills: Array.isArray(offer.required_skills) ? offer.required_skills.join(', ') : (offer.required_skills || ''),
       start_date: offer.start_date || '',
       deadline: offer.deadline || '',
+      image: offer.image_url || offer.image || null,  // keep current image indicator (URL string)
     });
     setActiveTab('edit');
     setMsg(null);
@@ -193,10 +229,23 @@ export default function InternshipOfferManager() {
   const handleUpdate = async (f) => {
     if (!editOffer) return;
     setSubmitting(true); setMsg(null);
+    const formData = new FormData();
+    Object.keys(f).forEach(key => {
+      if (key === 'image' && f.image instanceof File) {
+        formData.append('image', f.image);
+      } else if (key === 'required_skills') {
+        formData.append(key, f.required_skills);
+      } else {
+        formData.append(key, f[key]);
+      }
+    });
+    formData.append('is_active', f.is_active === true || f.is_active === 'true');
+
     try {
       const res = await fetch(`${BASE_URL}/company/offers/${editOffer.id}/update/`, {
-        method: 'PUT', headers: auth(),
-        body: JSON.stringify({ ...f, is_active: f.is_active === true || f.is_active === 'true' }),
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        body: formData,
       });
       const data = await res.json();
       if (data.success) { showMsg('success', 'Offer updated!'); setEditOffer(null); setActiveTab('list'); }
@@ -225,12 +274,13 @@ export default function InternshipOfferManager() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Sidebar - always visible, inline (no blur overlay) */}
+      {/* Sidebar unchanged */}
       <div className="w-64 bg-gradient-to-b from-[#1a0840] to-[#0e0c27] h-full fixed left-0 top-0 overflow-y-auto border-r border-purple-500/30">
+        {/* ... sidebar content exactly as before ... */}
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
-              {initials}
+              <UserAvatar /> 
             </div>
             <div>
               <p className="text-white font-medium text-sm">{user?.full_name || user?.email}</p>
@@ -290,10 +340,9 @@ export default function InternshipOfferManager() {
         </div>
       </div>
 
-      {/* Main content area - background from CSS (radial gradient) */}
+      {/* Main content area unchanged */}
       <div className="ml-64 flex-1 min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Back button */}
           <button
             onClick={() => navigate(dashboardPath)}
             className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
@@ -304,7 +353,6 @@ export default function InternshipOfferManager() {
 
           <Msg msg={msg} onClose={() => setMsg(null)} />
 
-          {/* Tabs */}
           <div className="flex gap-4 mb-6 border-b border-white/20">
             <button
               onClick={() => setActiveTab('list')}
@@ -367,6 +415,7 @@ export default function InternshipOfferManager() {
                         <th className="px-4 py-3 text-left">Duration</th>
                         <th className="px-4 py-3 text-left">Start</th>
                         <th className="px-4 py-3 text-left">Status</th>
+                        <th className="px-4 py-3 text-left">Image</th>
                         <th className="px-4 py-3 text-left">Actions</th>
                       </tr>
                     </thead>
@@ -379,6 +428,13 @@ export default function InternshipOfferManager() {
                           <td className="px-4 py-3 text-white/70">{o.duration}</td>
                           <td className="px-4 py-3 text-white/50">{o.start_date || '—'}</td>
                           <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-xs font-medium ${o.is_active ? 'bg-green-900/60 text-green-300' : 'bg-red-900/60 text-red-300'}`}>{o.is_active ? 'Active' : 'Inactive'}</span></td>
+                          <td className="px-4 py-3">
+                            {imgUrl(o.image_url) ? (
+                              <img src={imgUrl(o.image_url)} alt={o.title} className="w-10 h-10 object-cover rounded" />
+                            ) : (
+                              <span className="text-white/30 text-xs">—</span>
+                            )}
+                          </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
                               <button onClick={() => viewOffer(o.id)} title="View" className="text-indigo-400 hover:text-indigo-300 transition"><Eye size={16} /></button>
@@ -412,10 +468,16 @@ export default function InternshipOfferManager() {
         </div>
       </div>
 
+      {/* Modal for view details (unchanged logic, now with image) */}
       {modal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setModal(null)}>
           <div className="bg-[#1e293b] border border-slate-700 rounded-2xl w-full max-w-lg p-8 relative shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setModal(null)} className="absolute top-4 right-4 text-slate-500 hover:text-white transition"><X size={20} /></button>
+            {imgUrl(modal.image_url) && (
+              <div className="h-80 w-full overflow-hidden rounded-lg mb-4">
+                <img src={imgUrl(modal.image_url)} alt={modal.title} className="w-full h-full object-cover" />
+              </div>
+            )}
             <h2 className="text-xl font-bold text-white mb-1">{modal.title}</h2>
             <p className="text-slate-500 text-sm mb-5">{modal.company_name}</p>
             <div className="grid grid-cols-2 gap-3 mb-5">

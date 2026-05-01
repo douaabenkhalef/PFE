@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import './StudentDashboard.css';
+import UserAvatar from '../components/UserAvatar';
 
 const API = 'http://localhost:8000/api';
 const auth = () => ({
@@ -365,8 +366,6 @@ export default function CompanyApplications() {
   const [filter, setFilter] = useState('all');
 
   const isCompanyManager = user?.sub_role === 'company_manager';
-  const initials = (user?.full_name || user?.email || "U")
-    .split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
 
   const showMsg = (type, text) => {
     setMsg({ type, text });
@@ -450,7 +449,7 @@ export default function CompanyApplications() {
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
-              {initials}
+                <UserAvatar /> 
             </div>
             <div>
               <p className="text-white font-medium text-sm">{user?.full_name || user?.email}</p>

@@ -56,6 +56,9 @@ class User(Document):
     recovery_email = EmailField(blank=True, null=True)
     
     
+    bio = StringField(max_length=500, default='')
+    phone = StringField(max_length=30, default='')
+    profile_picture = StringField(blank=True, default='')
    
     last_activity = DateTimeField(default=datetime.now)
     
@@ -98,11 +101,7 @@ class Company(Document):
     verified = BooleanField(default=False)
     parent_company = ReferenceField('self', null=True, default=None)
 
-    # cover_picture = StringField(blank=True, default='')    
-    # phone = StringField(max_length=30, blank=True, default='')
-    # contact_email = EmailField(blank=True, default='')
-    # linkedin = URLField(blank=True, default='')
-    # twitter = URLField(blank=True, default='')
+  
     
     def __str__(self):
         return self.company_name
@@ -164,6 +163,7 @@ class InternshipOffer(Document):
     created_at = DateTimeField(default=datetime.now)
     deadline = DateTimeField(required=True)
     company_name = StringField(max_length=200)
+    image = FileField(blank=True)
     
     def __str__(self):
         return f"{self.title} - {self.company.company_name}"
