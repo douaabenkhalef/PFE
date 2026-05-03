@@ -181,4 +181,11 @@ path('student/offers/applicants-counts/', views.get_all_offers_applicants_counts
     path('auth/check-user/', views.check_user_exists, name='check-user'),
     path('admin/university-users-status/', views.get_university_users_status, name='university-users-status'),
     path('auth/me/', views.get_current_user, name='get-current-user'),
+    path('admin/pending-conventions/', views.get_pending_conventions_count, name='pending_conventions_count'),
+    path('co-dept/pending-conventions/', views.get_co_dept_pending_conventions_count, name='co_dept_pending_conventions_count'),
+    path('co-dept/pending-conventions/', views.get_co_dept_pending_conventions, name='co_dept_pending_conventions'),
+    path('co-dept/validated-validations/', views.co_dept_validated_validations, name='co-dept-validated'),
+    path('private-chat/conversations/', views.get_private_conversations, name='private-conversations'),
+    path('private-chat/history/<str:user_id>/', views.get_private_chat_history, name='private-chat-history'),
+    
 ]

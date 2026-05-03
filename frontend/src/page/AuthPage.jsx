@@ -1,27 +1,12 @@
 // frontend/src/page/AuthPage.jsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
-  User,
-  Mail,
-  Lock,
-  ChevronDown,
-  CheckSquare,
-  Briefcase,
-  GraduationCap,
-  Shield,
-  Github,
-  Globe,
-  MapPin,
-  BookOpen,
-  Calendar,
-  Award,
-  Building2,
-  FileText,
-  AlertCircle,
-  Clock,
+  User, Mail, Lock, ChevronDown, CheckSquare, Briefcase, GraduationCap,
+  Shield, Github, Globe, MapPin, BookOpen, Calendar, Award, Building2,
+  FileText, AlertCircle, Clock, Eye, EyeOff
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { VALIDATION_MESSAGES, extractErrors } from "../utils/messages";
@@ -50,10 +35,11 @@ const FormError = ({ messages }) => {
             gap: "8px",
             color: "#fca5a5",
             fontSize: "13px",
+            whiteSpace: "pre-line",
           }}
         >
           <AlertCircle size={14} style={{ flexShrink: 0 }} />
-          <span>{msg}</span>
+          <span style={{ whiteSpace: "pre-line" }}>{msg}</span>
         </div>
       ))}
     </div>
@@ -138,8 +124,9 @@ const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) 
         const result = await response.json();
         if (result.success) {
           setCode(['', '', '', '', '', '']);
+          alert('A new verification code has been sent to your email.');
         } else {
-          setLocalError(result.message || 'Error resending code');
+          setLocalError(result.message || result.error || 'Error resending code');
         }
       }
     } catch (error) {
@@ -228,16 +215,30 @@ const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) 
 };
 
 const InputGroup = ({ icon, label, type, value, onChange, required, placeholder }) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === 'password';
+  
   return (
     <div className="input-group">
       {icon && <span className="icon">{icon}</span>}
       <input 
-        type={type} 
+        type={isPassword && showPassword ? "text" : type} 
         placeholder={placeholder || label} 
         value={value} 
         onChange={onChange} 
         required={required} 
+        className={isPassword ? "flex-1 bg-transparent text-white outline-none" : ""}
       />
+      {isPassword && (
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="text-white/60 hover:text-white transition ml-2"
+          style={{ marginLeft: 'auto' }}
+        >
+          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      )}
     </div>
   );
 };
@@ -251,7 +252,6 @@ const AuthPage = () => {
   const [pendingEmail, setPendingEmail] = useState("");
   const [otpError, setOtpError] = useState("");
 
-  // 🔥 حالات 2FA
   const [show2FAModal, setShow2FAModal] = useState(false);
   const [pending2FAEmail, setPending2FAEmail] = useState('');
   const [otp2FACode, setOtp2FACode] = useState(['', '', '', '', '', '']);
@@ -268,67 +268,31 @@ const AuthPage = () => {
   const [loginData, setLoginData] = useState({ email: "", password: "" });
 
   const [studentData, setStudentData] = useState({
-    username: "",
-    email: "",
-    password: "",
-    confirm_password: "",
-    full_name: "",
-    wilaya: "",
-    skills: [],
-    github: "",
-    portfolio: "",
-    education_level: "",
-    university: "",
-    major: "",
-    graduation_year: "",
+    username: "", email: "", password: "", confirm_password: "", full_name: "",
+    wilaya: "", skills: [], github: "", portfolio: "", education_level: "",
+    university: "", major: "", graduation_year: "",
   });
 
   const [companyData, setCompanyData] = useState({
-    username: "",
-    email: "",
-    password: "",
-    confirm_password: "",
-    sub_role: "",
-    company_manager_email: "",
-    company_name_for_hiring: "",
-    company_name: "",
-    description: "",
-    location: "",
-    website: "",
-    industry: "",
+    username: "", email: "", password: "", confirm_password: "", sub_role: "",
+    company_manager_email: "", company_name_for_hiring: "", company_name: "",
+    description: "", location: "", website: "", industry: "",
   });
 
   const [adminData, setAdminData] = useState({
-    username: "",
-    email: "",
-    password: "",
-    confirm_password: "",
-    sub_role: "",
-    dept_head_email: "",
-    university_for_verification: "",
-    full_name: "",
-    wilaya: "",
-    university: "",
+    username: "", email: "", password: "", confirm_password: "", sub_role: "",
+    dept_head_email: "", university_for_verification: "", full_name: "",
+    wilaya: "", university: "",
   });
 
   const [skillInput, setSkillInput] = useState("");
 
   const validatePassword = (password) => {
-    if (password.length < 8) {
-      return 'Password must be at least 8 characters.';
-    }
-    if (/^\d+$/.test(password)) {
-      return 'Password cannot be only digits.';
-    }
-    if (!/[A-Z]/.test(password)) {
-      return 'Password must contain at least one uppercase letter.';
-    }
-    if (!/[a-z]/.test(password)) {
-      return 'Password must contain at least one lowercase letter.';
-    }
-    if (!/[0-9]/.test(password)) {
-      return 'Password must contain at least one number.';
-    }
+    if (password.length < 8) return 'Password must be at least 8 characters.';
+    if (/^\d+$/.test(password)) return 'Password cannot be only digits.';
+    if (!/[A-Z]/.test(password)) return 'Password must contain at least one uppercase letter.';
+    if (!/[a-z]/.test(password)) return 'Password must contain at least one lowercase letter.';
+    if (!/[0-9]/.test(password)) return 'Password must contain at least one number.';
     return null;
   };
 
@@ -358,8 +322,132 @@ const AuthPage = () => {
   const { login, verify2FACode, completeSignup } = useAuth();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      const role = localStorage.getItem("user_role");
+      if (role === 'student') navigate('/student/dashboard');
+      else if (role === 'company') navigate('/company/dashboard');
+      else if (role === 'admin') navigate('/admin/dashboard');
+      return;
+    }
+
+    window.history.pushState(null, '', window.location.href);
+    const handlePopState = () => {
+      window.location.href = '/';
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [navigate]);
+
+  // Fonction pour extraire et formater les erreurs du backend
+  const extractErrorMessage = (result) => {
+    if (result.errors) {
+      if (typeof result.errors === 'object') {
+        const firstErrorField = Object.values(result.errors)[0];
+        if (Array.isArray(firstErrorField) && firstErrorField.length > 0) {
+          return firstErrorField[0];
+        }
+        if (typeof firstErrorField === 'string') {
+          return firstErrorField;
+        }
+      }
+      if (typeof result.errors === 'string') {
+        return result.errors;
+      }
+    }
+    if (result.message) {
+      return result.message;
+    }
+    return null;
+  };
+
+  const registerStudent = async (data) => {
+    try {
+      const cleanData = {
+        username: data.username, email: data.email, password: data.password,
+        confirm_password: data.confirm_password, full_name: data.full_name,
+        wilaya: data.wilaya, skills: data.skills || [], github: data.github || '',
+        portfolio: data.portfolio || '', education_level: data.education_level,
+        university: data.university, major: data.major,
+        graduation_year: parseInt(data.graduation_year),
+      };
+      const initiateData = { role: 'student', ...cleanData };
+      const response = await fetch('http://localhost:8000/api/auth/initiate-signup/', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(initiateData)
+      });
+      const result = await response.json();
+      
+      if (response.status === 200 && result.success) {
+        return { success: true, email: data.email };
+      }
+      
+      const errorMessage = extractErrorMessage(result);
+      return { success: false, message: errorMessage || "Failed to send verification code", errors: result.errors };
+    } catch (error) {
+      return { success: false, message: 'Network error. Please try again.' };
+    }
+  };
+
+  const registerCompany = async (data) => {
+    try {
+      const cleanData = {
+        username: data.username, email: data.email, password: data.password,
+        confirm_password: data.confirm_password, sub_role: data.sub_role,
+        company_manager_email: data.company_manager_email || '',
+        company_name_for_hiring: data.company_name_for_hiring || '',
+        company_name: data.company_name || '', description: data.description || '',
+        location: data.location || '', website: data.website || '', industry: data.industry || '',
+      };
+      const response = await fetch('http://localhost:8000/api/auth/initiate-signup/', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'company', ...cleanData })
+      });
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        return { success: true, email: data.email };
+      }
+      
+      const errorMessage = extractErrorMessage(result);
+      return { success: false, message: errorMessage || "Registration failed. Please check your information.", errors: result.errors };
+    } catch (error) {
+      return { success: false, message: 'Network error. Please try again.' };
+    }
+  };
+
+  const registerAdmin = async (data) => {
+    try {
+      const cleanData = {
+        username: data.username, email: data.email, password: data.password,
+        confirm_password: data.confirm_password, sub_role: data.sub_role,
+        dept_head_email: data.dept_head_email || '',
+        university_for_verification: data.university_for_verification || '',
+        full_name: data.full_name || '', wilaya: data.wilaya || '', university: data.university || '',
+      };
+      const response = await fetch('http://localhost:8000/api/auth/initiate-signup/', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'admin', ...cleanData })
+      });
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        return { success: true, email: data.email };
+      }
+      
+      const errorMessage = extractErrorMessage(result);
+      return { success: false, message: errorMessage || "Registration failed. Please check your information.", errors: result.errors };
+    } catch (error) {
+      return { success: false, message: 'Network error. Please try again.' };
+    }
+  };
+
   const handleLogin = async (e) => {
-    e.preventDefault();
+    if (e) {
+      e.preventDefault();
+    }
+    
     setLoginErrors([]);
     setLoading(true);
     
@@ -369,124 +457,91 @@ const AuthPage = () => {
       return;
     }
     
-    const result = await login(loginData.email, loginData.password);
-    if (result.success) {
-      if (result.requires_2fa) {
-        setPending2FAEmail(result.email);
-        setShow2FAModal(true);
-        setOtp2FACode(['', '', '', '', '', '']);
-        setOtp2FAError('');
+    try {
+      const result = await login(loginData.email, loginData.password);
+      
+      if (result.success) {
+        if (result.requires_2fa) {
+          setPending2FAEmail(result.email);
+          setShow2FAModal(true);
+          setOtp2FACode(['', '', '', '', '', '']);
+          setOtp2FAError('');
+        } else if (result.redirectUrl) {
+          navigate(result.redirectUrl);
+        }
       } else {
-        navigate(result.redirectUrl);
-      }
-    } else {
-      if (result.message) {
-        setLoginErrors([result.message]);
-      } else if (result.errors) {
-        const errors = extractErrors(result.errors);
-        if (errors.length > 0) {
-          setLoginErrors(errors);
+        if (result.message) {
+          setLoginErrors([result.message]);
+        } else if (result.errors) {
+          const errors = extractErrors(result.errors);
+          if (errors.length > 0) {
+            setLoginErrors(errors);
+          } else {
+            setLoginErrors([VALIDATION_MESSAGES.LOGIN_INVALID]);
+          }
         } else {
           setLoginErrors([VALIDATION_MESSAGES.LOGIN_INVALID]);
         }
-      } else {
-        setLoginErrors([VALIDATION_MESSAGES.LOGIN_INVALID]);
       }
+    } catch (error) {
+      console.error("Login error:", error);
+      setLoginErrors([ERROR_MESSAGES.SERVER_ERROR || "Erreur de connexion"]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  // 🔥 التحقق من كود 2FA
   const handleVerify2FA = async () => {
     const code = otp2FACode.join('');
-    if (code.length !== 6) {
-      setOtp2FAError('Le code doit contenir exactement 6 chiffres');
-      return;
-    }
-    
+    if (code.length !== 6) { setOtp2FAError('6 chiffres requis'); return; }
     setVerifying2FA(true);
     setOtp2FAError('');
-    
     const result = await verify2FACode(pending2FAEmail, code);
-    
     if (result.success) {
       setShow2FAModal(false);
       setOtp2FACode(['', '', '', '', '', '']);
       navigate(result.redirectUrl);
     } else {
-      setOtp2FAError(result.error || 'Code invalide. Veuillez réessayer.');
+      setOtp2FAError(result.error || 'Code invalide');
       setOtp2FACode(['', '', '', '', '', '']);
       document.getElementById('2fa-0')?.focus();
     }
     setVerifying2FA(false);
   };
 
-  // 🔥 إعادة إرسال كود 2FA
   const handleResend2FA = async () => {
     setOtp2FAError('');
     try {
       const response = await fetch('http://localhost:8000/api/auth/send-2fa-code/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: pending2FAEmail })
       });
       const data = await response.json();
-      if (data.success) {
-        toast.success('Un nouveau code a été envoyé à votre email');
-      } else {
-        setOtp2FAError(data.error || 'Erreur lors de l\'envoi du code');
-      }
-    } catch (error) {
-      setOtp2FAError('Erreur de connexion');
-    }
+      if (data.success) alert('Nouveau code envoyé');
+      else setOtp2FAError(data.error || 'Erreur');
+    } catch (error) { setOtp2FAError('Erreur de connexion'); }
   };
 
   const handleStudentRegister = async (e) => {
     e.preventDefault();
     setStudentErrors([]);
-    setCompanyPending("");
-    setAdminPending("");
-
     if (studentData.password !== studentData.confirm_password) {
-      setStudentErrors([VALIDATION_MESSAGES.PASSWORD_MISMATCH]);
-      return;
+      setStudentErrors([VALIDATION_MESSAGES.PASSWORD_MISMATCH]); return;
     }
-    
     const passwordError = validatePassword(studentData.password);
-    if (passwordError) {
-      setStudentErrors([passwordError]);
-      return;
+    if (passwordError) { setStudentErrors([passwordError]); return; }
+    if (studentData.skills.length === 0) { setStudentErrors([VALIDATION_MESSAGES.SKILLS_REQUIRED]); return; }
+    if (!studentData.email.includes('univ') || !studentData.email.includes('.dz')) {
+      setStudentErrors([VALIDATION_MESSAGES.STUDENT_EMAIL_UNIVERSITY]); return;
     }
-    
-    if (studentData.skills.length === 0) {
-      setStudentErrors([VALIDATION_MESSAGES.SKILLS_REQUIRED]);
-      return;
-    }
-    
-    const email = studentData.email;
-    if (!email.includes('univ') || !email.includes('.dz')) {
-      setStudentErrors([VALIDATION_MESSAGES.STUDENT_EMAIL_UNIVERSITY]);
-      return;
-    }
-
     setLoading(true);
-    
-    const result = await registerStudent({
-      ...studentData,
-      graduation_year: parseInt(studentData.graduation_year),
-    });
-    
+    const result = await registerStudent(studentData);
     if (result.success) {
       setPendingEmail(result.email);
-      localStorage.setItem('pending_signup_data', JSON.stringify({
-        role: 'student',
-        data: { ...studentData, graduation_year: parseInt(studentData.graduation_year) }
-      }));
+      localStorage.setItem('pending_signup_data', JSON.stringify({ role: 'student', data: studentData }));
       setShowOTP(true);
     } else {
-      setStudentErrors(
-        result.errors ? extractErrors(result.errors) : [result.message || "Registration failed."]
-      );
+      setStudentErrors([result.message || "Registration failed."]);
     }
     setLoading(false);
   };
@@ -494,39 +549,20 @@ const AuthPage = () => {
   const handleCompanyRegister = async (e) => {
     e.preventDefault();
     setCompanyErrors([]);
-    setCompanyPending("");
-
     if (companyData.password !== companyData.confirm_password) {
-      setCompanyErrors([VALIDATION_MESSAGES.PASSWORD_MISMATCH]);
-      return;
+      setCompanyErrors([VALIDATION_MESSAGES.PASSWORD_MISMATCH]); return;
     }
-    
     const passwordError = validatePassword(companyData.password);
-    if (passwordError) {
-      setCompanyErrors([passwordError]);
-      return;
-    }
-    
-    if (!companyData.sub_role) {
-      setCompanyErrors([VALIDATION_MESSAGES.ROLE_REQUIRED]);
-      return;
-    }
-
+    if (passwordError) { setCompanyErrors([passwordError]); return; }
+    if (!companyData.sub_role) { setCompanyErrors([VALIDATION_MESSAGES.ROLE_REQUIRED]); return; }
     setLoading(true);
-    
     const result = await registerCompany(companyData);
-    
     if (result.success) {
       setPendingEmail(result.email);
-      localStorage.setItem('pending_signup_data', JSON.stringify({
-        role: 'company',
-        data: companyData
-      }));
+      localStorage.setItem('pending_signup_data', JSON.stringify({ role: 'company', data: companyData }));
       setShowOTP(true);
     } else {
-      setCompanyErrors(
-        result.errors ? extractErrors(result.errors) : [result.message || "Registration failed."]
-      );
+      setCompanyErrors([result.message]);
     }
     setLoading(false);
   };
@@ -534,87 +570,43 @@ const AuthPage = () => {
   const handleAdminRegister = async (e) => {
     e.preventDefault();
     setAdminErrors([]);
-    setAdminPending("");
-
     if (adminData.password !== adminData.confirm_password) {
-      setAdminErrors([VALIDATION_MESSAGES.PASSWORD_MISMATCH]);
-      return;
+      setAdminErrors([VALIDATION_MESSAGES.PASSWORD_MISMATCH]); return;
     }
-    
     const passwordError = validatePassword(adminData.password);
-    if (passwordError) {
-      setAdminErrors([passwordError]);
-      return;
-    }
-    
-    if (!adminData.sub_role) {
-      setAdminErrors([VALIDATION_MESSAGES.ROLE_REQUIRED]);
-      return;
-    }
-
+    if (passwordError) { setAdminErrors([passwordError]); return; }
+    if (!adminData.sub_role) { setAdminErrors([VALIDATION_MESSAGES.ROLE_REQUIRED]); return; }
     setLoading(true);
-    
     const result = await registerAdmin(adminData);
-    
     if (result.success) {
       setPendingEmail(result.email);
-      localStorage.setItem('pending_signup_data', JSON.stringify({
-        role: 'admin',
-        data: adminData
-      }));
+      localStorage.setItem('pending_signup_data', JSON.stringify({ role: 'admin', data: adminData }));
       setShowOTP(true);
     } else {
-      setAdminErrors(
-        result.errors ? extractErrors(result.errors) : [result.message || "Registration failed."]
-      );
+      setAdminErrors([result.message]);
     }
     setLoading(false);
   };
 
   const handleVerifyOTP = async (email, code) => {
     const result = await completeSignup(email, code);
-    
     if (result.success) {
-      if (result.redirectUrl) {
-        navigate(result.redirectUrl);
-      } else if (result.pending) {
-        if (result.sub_role === 'company_manager') {
-          setCompanyPending("Your account has been created and is pending approval. Please wait for an administrator to activate your account.");
-        } else if (result.sub_role === 'hiring_manager') {
-          setCompanyPending("Your account has been created and is pending approval. Please wait for your Company Manager to activate your account.");
-        } else if (result.sub_role === 'admin') {
-          setAdminPending("Your account has been created and is pending approval. Please wait for a superior administrator to activate your account.");
-        } else if (result.sub_role === 'co_dept_head') {
-          setAdminPending("Your account has been created and is pending approval. Please wait for the Department Head of your university to activate your account.");
-        } else {
-          setCompanyPending(result.message);
-        }
-        setShowOTP(false);
-        setPendingEmail("");
-        localStorage.removeItem('pending_signup_data');
-        setOtpError("");
+      if (result.redirectUrl) navigate(result.redirectUrl);
+      else if (result.pending) {
+        if (result.sub_role === 'company_manager') setCompanyPending("Account pending approval by administrator.");
+        else if (result.sub_role === 'hiring_manager') setCompanyPending("Account pending approval by Company Manager.");
+        else if (result.sub_role === 'admin') setAdminPending("Account pending approval by superior administrator.");
+        else if (result.sub_role === 'co_dept_head') setAdminPending("Account pending approval by Department Head.");
+        else setCompanyPending(result.message);
+        setShowOTP(false); setPendingEmail(""); localStorage.removeItem('pending_signup_data'); setOtpError("");
       }
     } else {
-      if (result.message) {
-        setOtpError(result.message);
-      } else if (result.errors) {
-        const errorMessages = extractErrors(result.errors);
-        if (errorMessages.length > 0) {
-          setOtpError(errorMessages[0]);
-        } else {
-          setOtpError("Invalid code. Please try again.");
-        }
-      } else {
-        setOtpError("Invalid code. Please try again.");
-      }
+      setOtpError(result.message || "Invalid code. Please try again.");
     }
   };
 
   const handleBackToForm = () => {
-    setShowOTP(false);
-    setPendingEmail("");
-    localStorage.removeItem('pending_signup_data');
-    setOtpError("");
+    setShowOTP(false); setPendingEmail(""); localStorage.removeItem('pending_signup_data'); setOtpError("");
   };
 
   const addSkill = () => {
@@ -629,20 +621,12 @@ const AuthPage = () => {
     setStudentData({ ...studentData, skills: studentData.skills.filter((s) => s !== skill) });
   };
 
-  const selectStyle = {
-    background: "transparent",
-    color: "white",
-    width: "100%",
-    border: "none",
-    outline: "none",
-  };
-
+  const selectStyle = { background: "transparent", color: "white", width: "100%", border: "none", outline: "none" };
   const optStyle = { background: "#120d1d" };
 
   return (
     <div className="auth-page-wrapper">
       <div className="main-container">
-
         <motion.div
           animate={{ x: isLogin ? "100%" : "0%" }}
           transition={{ type: "spring", stiffness: 50, damping: 15 }}
@@ -651,17 +635,12 @@ const AuthPage = () => {
           <div className="panel-content">
             <h1 className="welcome-text">{isLogin ? "WELCOME BACK!" : "WELCOME!"}</h1>
             <p className="sub-text">
-              {isLogin
-                ? "Login to access your internship dashboard."
-                : (
-                  <>
-                    Create your account to start your internship journey.
-                    <br />
-                    <span className="panel-login-link" onClick={() => setIsLogin(true)}>
-                      Already have an account? Log in
-                    </span>
-                  </>
-                )}
+              {isLogin ? "Login to access your internship dashboard." : (
+                <>
+                  Create your account to start your internship journey.<br />
+                  <span className="panel-login-link" onClick={() => setIsLogin(true)}>Already have an account? Log in</span>
+                </>
+              )}
             </p>
           </div>
         </motion.div>
@@ -670,81 +649,34 @@ const AuthPage = () => {
         <div className={`form-section ${isLogin ? "form-visible" : "form-hidden"}`}>
           <h2 className="form-title">Login</h2>
           <form onSubmit={handleLogin} className="input-stack">
-            <InputGroup
-              icon={<Mail size={20} />}
-              label="Email"
-              type="email"
-              value={loginData.email}
-              onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-              required
-            />
-            <InputGroup
-              icon={<Lock size={20} />}
-              label="Password"
-              type="password"
-              value={loginData.password}
-              onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-              required
-            />
+            <InputGroup icon={<Mail size={20} />} label="Email" type="email" value={loginData.email} onChange={(e) => setLoginData({ ...loginData, email: e.target.value })} required />
+            <InputGroup icon={<Lock size={20} />} label="Password" type="password" value={loginData.password} onChange={(e) => setLoginData({ ...loginData, password: e.target.value })} required />
             <FormError messages={loginErrors} />
-            <button type="submit" className="auth-btn" disabled={loading}>
-              {loading ? "Loading..." : "Login"}
-            </button>
-            
+            <button type="submit" className="auth-btn" disabled={loading}>{loading ? "Loading..." : "Login"}</button>
             <div className="text-right mt-2">
-              <button
-                type="button"
-                onClick={() => navigate('/forgot-password')}
-                className="text-purple-400 text-sm hover:underline"
-              >
-                Forgot password?
-              </button>
+              <button type="button" onClick={() => navigate('/forgot-password')} className="text-purple-400 text-sm hover:underline">Forgot password?</button>
             </div>
-            
-            <p className="toggle-text">
-              Don't have an account?{" "}
-              <span onClick={() => setIsLogin(false)}>Sign Up</span>
-            </p>
+            <p className="toggle-text">Don't have an account? <span onClick={() => setIsLogin(false)}>Sign Up</span></p>
           </form>
         </div>
 
         {/* Signup Form */}
         <div className={`form-section right ${!isLogin ? "form-visible" : "form-hidden"}`}>
           <h2 className="form-title">Sign Up</h2>
-
           <div className="role-container" style={{ marginBottom: "20px" }}>
             <div className="role-selector" onClick={() => setShowRoles(!showRoles)}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 {selectedRole && roles.find((r) => r.value === selectedRole)?.icon}
-                <span style={{ color: selectedRole ? "white" : "#9ca3af" }}>
-                  {selectedRole
-                    ? roles.find((r) => r.value === selectedRole)?.label
-                    : "Select your role"}
-                </span>
+                <span style={{ color: selectedRole ? "white" : "#9ca3af" }}>{selectedRole ? roles.find((r) => r.value === selectedRole)?.label : "Select your role"}</span>
               </div>
-              <ChevronDown
-                size={18}
-                style={{ transform: showRoles ? "rotate(180deg)" : "none" }}
-              />
+              <ChevronDown size={18} style={{ transform: showRoles ? "rotate(180deg)" : "none" }} />
             </div>
             <AnimatePresence>
               {showRoles && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="role-dropdown-bottom"
-                >
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="role-dropdown-bottom">
                   {roles.map((r) => (
-                    <div
-                      key={r.value}
-                      onClick={() => { setSelectedRole(r.value); setShowRoles(false); }}
-                      className="role-item"
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        {r.icon}
-                        <span>{r.label}</span>
-                      </div>
+                    <div key={r.value} onClick={() => { setSelectedRole(r.value); setShowRoles(false); }} className="role-item">
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>{r.icon}<span>{r.label}</span></div>
                       {selectedRole === r.value && <CheckSquare size={14} color="#a855f7" />}
                     </div>
                   ))}
@@ -754,52 +686,24 @@ const AuthPage = () => {
           </div>
 
           {showOTP ? (
-            <OTPVerification
-              email={pendingEmail}
-              onVerify={handleVerifyOTP}
-              onBack={handleBackToForm}
-              loading={loading}
-              error={otpError}
-              setError={setOtpError}
-            />
+            <OTPVerification email={pendingEmail} onVerify={handleVerifyOTP} onBack={handleBackToForm} loading={loading} error={otpError} setError={setOtpError} />
           ) : (
             <>
               {companyPending && <PendingBanner message={companyPending} />}
               {adminPending && <PendingBanner message={adminPending} />}
-              
               {!companyPending && !adminPending && (
                 <AnimatePresence mode="wait">
                   {selectedRole === "Student" && (
-                    <motion.div
-                      key="student"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      className="form-scrollable"
-                    >
+                    <motion.div key="student" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="form-scrollable">
                       <form onSubmit={handleStudentRegister} className="input-stack">
-                        <h3 style={{ color: "white", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px" }}>
-                          <GraduationCap size={20} /> Student Registration
-                        </h3>
-                        <InputGroup icon={<User size={18} />} label="Username" type="text"
-                          value={studentData.username}
-                          onChange={(e) => setStudentData({ ...studentData, username: e.target.value })} required />
-                        <InputGroup icon={<Mail size={18} />} label="University Email (must contain univ and .dz)" type="email"
-                          value={studentData.email}
-                          onChange={(e) => setStudentData({ ...studentData, email: e.target.value })} required />
-                        <InputGroup icon={<Lock size={18} />} label="Password" type="password"
-                          value={studentData.password}
-                          onChange={(e) => setStudentData({ ...studentData, password: e.target.value })} required />
-                        <InputGroup icon={<Lock size={18} />} label="Confirm Password" type="password"
-                          value={studentData.confirm_password}
-                          onChange={(e) => setStudentData({ ...studentData, confirm_password: e.target.value })} required />
-                        <InputGroup icon={<User size={18} />} label="Full Name" type="text"
-                          value={studentData.full_name}
-                          onChange={(e) => setStudentData({ ...studentData, full_name: e.target.value })} required />
+                        <h3 style={{ color: "white", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px" }}><GraduationCap size={20} /> Student Registration</h3>
+                        <InputGroup icon={<User size={18} />} label="Username" type="text" value={studentData.username} onChange={(e) => setStudentData({ ...studentData, username: e.target.value })} required />
+                        <InputGroup icon={<Mail size={18} />} label="University Email (must contain univ and .dz)" type="email" value={studentData.email} onChange={(e) => setStudentData({ ...studentData, email: e.target.value })} required />
+                        <InputGroup icon={<Lock size={18} />} label="Password" type="password" value={studentData.password} onChange={(e) => setStudentData({ ...studentData, password: e.target.value })} required />
+                        <InputGroup icon={<Lock size={18} />} label="Confirm Password" type="password" value={studentData.confirm_password} onChange={(e) => setStudentData({ ...studentData, confirm_password: e.target.value })} required />
+                        <InputGroup icon={<User size={18} />} label="Full Name" type="text" value={studentData.full_name} onChange={(e) => setStudentData({ ...studentData, full_name: e.target.value })} required />
                         <div className="input-group">
-                          <select value={studentData.wilaya}
-                            onChange={(e) => setStudentData({ ...studentData, wilaya: e.target.value })}
-                            required style={selectStyle}>
+                          <select value={studentData.wilaya} onChange={(e) => setStudentData({ ...studentData, wilaya: e.target.value })} required style={selectStyle}>
                             <option value="" style={optStyle}>Select Wilaya</option>
                             {wilayas.map((w) => <option key={w} value={w} style={optStyle}>{w}</option>)}
                           </select>
@@ -807,96 +711,44 @@ const AuthPage = () => {
                         </div>
                         <div className="input-group" style={{ flexDirection: "column", alignItems: "stretch" }}>
                           <div style={{ display: "flex", gap: "10px" }}>
-                            <input type="text" placeholder="Add a skill" value={skillInput}
-                              onChange={(e) => setSkillInput(e.target.value)}
-                              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())}
-                              style={{ background: "transparent", color: "white", border: "none", outline: "none", flex: 1 }} />
+                            <input type="text" placeholder="Add a skill" value={skillInput} onChange={(e) => setSkillInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())} style={{ background: "transparent", color: "white", border: "none", outline: "none", flex: 1 }} />
                             <button type="button" onClick={addSkill} style={{ color: "#a855f7" }}>Add</button>
                           </div>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginTop: "5px" }}>
                             {studentData.skills.map((skill) => (
-                              <span key={skill} style={{
-                                background: "#2d1b4d", padding: "2px 8px", borderRadius: "12px",
-                                fontSize: "12px", display: "flex", alignItems: "center", gap: "4px",
-                              }}>
-                                {skill}
-                                <button type="button" onClick={() => removeSkill(skill)} style={{ color: "#ef4444" }}>×</button>
+                              <span key={skill} style={{ background: "#2d1b4d", padding: "2px 8px", borderRadius: "12px", fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}>
+                                {skill}<button type="button" onClick={() => removeSkill(skill)} style={{ color: "#ef4444" }}>×</button>
                               </span>
                             ))}
                           </div>
                         </div>
-                        <InputGroup icon={<Github size={18} />} label="GitHub (optional)" type="url"
-                          value={studentData.github}
-                          onChange={(e) => setStudentData({ ...studentData, github: e.target.value })} />
-                        <InputGroup icon={<Globe size={18} />} label="Portfolio (optional)" type="url"
-                          value={studentData.portfolio}
-                          onChange={(e) => setStudentData({ ...studentData, portfolio: e.target.value })} />
+                        <InputGroup icon={<Github size={18} />} label="GitHub (optional)" type="url" value={studentData.github} onChange={(e) => setStudentData({ ...studentData, github: e.target.value })} />
+                        <InputGroup icon={<Globe size={18} />} label="Portfolio (optional)" type="url" value={studentData.portfolio} onChange={(e) => setStudentData({ ...studentData, portfolio: e.target.value })} />
                         <div className="input-group">
-                          <select value={studentData.education_level}
-                            onChange={(e) => setStudentData({ ...studentData, education_level: e.target.value })}
-                            required style={selectStyle}>
+                          <select value={studentData.education_level} onChange={(e) => setStudentData({ ...studentData, education_level: e.target.value })} required style={selectStyle}>
                             <option value="" style={optStyle}>Education Level</option>
                             {educationLevels.map((l) => <option key={l} value={l} style={optStyle}>{l}</option>)}
                           </select>
                           <GraduationCap size={18} className="icon" />
                         </div>
-                        <InputGroup icon={<BookOpen size={18} />} label="University" type="text"
-                          value={studentData.university}
-                          onChange={(e) => setStudentData({ ...studentData, university: e.target.value })} required />
-                        <InputGroup icon={<Award size={18} />} label="Major" type="text"
-                          value={studentData.major}
-                          onChange={(e) => setStudentData({ ...studentData, major: e.target.value })} required />
-                        <InputGroup icon={<Calendar size={18} />} label="Graduation Year" type="number"
-                          value={studentData.graduation_year}
-                          onChange={(e) => setStudentData({ ...studentData, graduation_year: e.target.value })} required />
+                        <InputGroup icon={<BookOpen size={18} />} label="University" type="text" value={studentData.university} onChange={(e) => setStudentData({ ...studentData, university: e.target.value })} required />
+                        <InputGroup icon={<Award size={18} />} label="Major" type="text" value={studentData.major} onChange={(e) => setStudentData({ ...studentData, major: e.target.value })} required />
+                        <InputGroup icon={<Calendar size={18} />} label="Graduation Year" type="number" value={studentData.graduation_year} onChange={(e) => setStudentData({ ...studentData, graduation_year: e.target.value })} required />
                         <FormError messages={studentErrors} />
-                        <button type="submit" className="auth-btn" disabled={loading}>
-                          {loading ? "Creating..." : "Sign up as Student"}
-                        </button>
+                        <button type="submit" className="auth-btn" disabled={loading}>{loading ? "Creating..." : "Sign up as Student"}</button>
                       </form>
                     </motion.div>
                   )}
-
                   {selectedRole === "Company" && (
-                    <motion.div
-                      key="company"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      className="form-scrollable"
-                    >
+                    <motion.div key="company" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="form-scrollable">
                       <form onSubmit={handleCompanyRegister} className="input-stack">
-                        <h3 style={{ color: "white", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px" }}>
-                          <Briefcase size={20} /> Company Registration
-                        </h3>
-                        <InputGroup icon={<User size={18} />} label="Username" type="text"
-                          value={companyData.username}
-                          onChange={(e) => setCompanyData({ ...companyData, username: e.target.value })} required />
-                        <InputGroup icon={<Mail size={18} />} label="Email" type="email"
-                          value={companyData.email}
-                          onChange={(e) => setCompanyData({ ...companyData, email: e.target.value })} required />
-                        <InputGroup icon={<Lock size={18} />} label="Password" type="password"
-                          value={companyData.password}
-                          onChange={(e) => setCompanyData({ ...companyData, password: e.target.value })} required />
-                        <InputGroup icon={<Lock size={18} />} label="Confirm Password" type="password"
-                          value={companyData.confirm_password}
-                          onChange={(e) => setCompanyData({ ...companyData, confirm_password: e.target.value })} required />
+                        <h3 style={{ color: "white", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px" }}><Briefcase size={20} /> Company Registration</h3>
+                        <InputGroup icon={<User size={18} />} label="Username" type="text" value={companyData.username} onChange={(e) => setCompanyData({ ...companyData, username: e.target.value })} required />
+                        <InputGroup icon={<Mail size={18} />} label="Email" type="email" value={companyData.email} onChange={(e) => setCompanyData({ ...companyData, email: e.target.value })} required />
+                        <InputGroup icon={<Lock size={18} />} label="Password" type="password" value={companyData.password} onChange={(e) => setCompanyData({ ...companyData, password: e.target.value })} required />
+                        <InputGroup icon={<Lock size={18} />} label="Confirm Password" type="password" value={companyData.confirm_password} onChange={(e) => setCompanyData({ ...companyData, confirm_password: e.target.value })} required />
                         <div className="input-group">
-                          <select value={companyData.sub_role}
-                            onChange={(e) => {
-                              setCompanyData({ 
-                                ...companyData, 
-                                sub_role: e.target.value,
-                                company_manager_email: "",
-                                company_name_for_hiring: "",
-                                company_name: "",
-                                description: "",
-                                location: "",
-                                industry: "",
-                                website: ""
-                              });
-                            }}
-                            required style={selectStyle}>
+                          <select value={companyData.sub_role} onChange={(e) => setCompanyData({ ...companyData, sub_role: e.target.value, company_manager_email: "", company_name_for_hiring: "", company_name: "", description: "", location: "", industry: "", website: "" })} required style={selectStyle}>
                             <option value="" style={optStyle}>Select your role</option>
                             <option value="company_manager" style={optStyle}>Company Manager</option>
                             <option value="hiring_manager" style={optStyle}>Hiring Manager</option>
@@ -905,101 +757,35 @@ const AuthPage = () => {
                         </div>
                         {companyData.sub_role === "company_manager" && (
                           <>
-                            <InputGroup icon={<Building2 size={18} />} label="Company Name" type="text"
-                              value={companyData.company_name}
-                              onChange={(e) => setCompanyData({ ...companyData, company_name: e.target.value })} required />
-                            <div className="input-group">
-                              <textarea placeholder="Description" value={companyData.description}
-                                onChange={(e) => setCompanyData({ ...companyData, description: e.target.value })}
-                                required rows="2"
-                                style={{ background: "transparent", color: "white", width: "100%", border: "none", outline: "none", resize: "vertical" }} />
-                              <FileText size={18} className="icon" style={{ top: "10px" }} />
-                            </div>
-                            <div className="input-group">
-                              <select value={companyData.location}
-                                onChange={(e) => setCompanyData({ ...companyData, location: e.target.value })}
-                                required style={selectStyle}>
-                                <option value="" style={optStyle}>Location (Wilaya)</option>
-                                {wilayas.map((w) => <option key={w} value={w} style={optStyle}>{w}</option>)}
-                              </select>
-                              <MapPin size={18} className="icon" />
-                            </div>
-                            <div className="input-group">
-                              <select value={companyData.industry}
-                                onChange={(e) => setCompanyData({ ...companyData, industry: e.target.value })}
-                                required style={selectStyle}>
-                                <option value="" style={optStyle}>Industry</option>
-                                {industries.map((ind) => <option key={ind} value={ind} style={optStyle}>{ind}</option>)}
-                              </select>
-                              <Briefcase size={18} className="icon" />
-                            </div>
-                            <InputGroup icon={<Globe size={18} />} label="Website (optional)" type="url"
-                              value={companyData.website}
-                              onChange={(e) => setCompanyData({ ...companyData, website: e.target.value })} />
+                            <InputGroup icon={<Building2 size={18} />} label="Company Name" type="text" value={companyData.company_name} onChange={(e) => setCompanyData({ ...companyData, company_name: e.target.value })} required />
+                            <div className="input-group"><textarea placeholder="Description" value={companyData.description} onChange={(e) => setCompanyData({ ...companyData, description: e.target.value })} required rows="2" style={{ background: "transparent", color: "white", width: "100%", border: "none", outline: "none", resize: "vertical" }} /><FileText size={18} className="icon" style={{ top: "10px" }} /></div>
+                            <div className="input-group"><select value={companyData.location} onChange={(e) => setCompanyData({ ...companyData, location: e.target.value })} required style={selectStyle}><option value="" style={optStyle}>Location (Wilaya)</option>{wilayas.map((w) => <option key={w} value={w} style={optStyle}>{w}</option>)}</select><MapPin size={18} className="icon" /></div>
+                            <div className="input-group"><select value={companyData.industry} onChange={(e) => setCompanyData({ ...companyData, industry: e.target.value })} required style={selectStyle}><option value="" style={optStyle}>Industry</option>{industries.map((ind) => <option key={ind} value={ind} style={optStyle}>{ind}</option>)}</select><Briefcase size={18} className="icon" /></div>
+                            <InputGroup icon={<Globe size={18} />} label="Website (optional)" type="url" value={companyData.website} onChange={(e) => setCompanyData({ ...companyData, website: e.target.value })} />
                           </>
                         )}
                         {companyData.sub_role === "hiring_manager" && (
                           <>
-                            <InputGroup icon={<Mail size={18} />} label="Company Manager Email" type="email"
-                              value={companyData.company_manager_email}
-                              onChange={(e) => setCompanyData({ ...companyData, company_manager_email: e.target.value })}
-                              required />
-                            <InputGroup icon={<Building2 size={18} />} label="Company Name (to verify)" type="text"
-                              value={companyData.company_name_for_hiring}
-                              onChange={(e) => setCompanyData({ ...companyData, company_name_for_hiring: e.target.value })}
-                              placeholder="Enter the company name as registered"
-                              required />
-                            <div style={{ fontSize: "12px", color: "#9ca3af", marginTop: "-10px", marginBottom: "10px" }}>
-                              ⓘ Enter the exact company name of the Company Manager
-                            </div>
+                            <InputGroup icon={<Mail size={18} />} label="Company Manager Email" type="email" value={companyData.company_manager_email} onChange={(e) => setCompanyData({ ...companyData, company_manager_email: e.target.value })} required />
+                            <InputGroup icon={<Building2 size={18} />} label="Company Name (to verify)" type="text" value={companyData.company_name_for_hiring} onChange={(e) => setCompanyData({ ...companyData, company_name_for_hiring: e.target.value })} placeholder="Enter the company name as registered" required />
+                            <div style={{ fontSize: "12px", color: "#9ca3af", marginTop: "-10px", marginBottom: "10px" }}>ⓘ Enter the exact company name of the Company Manager</div>
                           </>
                         )}
                         <FormError messages={companyErrors} />
-                        <button type="submit" className="auth-btn" disabled={loading}>
-                          {loading ? "Creating..." : "Register Company"}
-                        </button>
+                        <button type="submit" className="auth-btn" disabled={loading}>{loading ? "Creating..." : "Register Company"}</button>
                       </form>
                     </motion.div>
                   )}
-
                   {selectedRole === "Administration" && (
-                    <motion.div
-                      key="admin"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      className="form-scrollable"
-                    >
+                    <motion.div key="admin" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="form-scrollable">
                       <form onSubmit={handleAdminRegister} className="input-stack">
-                        <h3 style={{ color: "white", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px" }}>
-                          <Shield size={20} /> Administration Registration
-                        </h3>
-                        <InputGroup icon={<User size={18} />} label="Username" type="text"
-                          value={adminData.username}
-                          onChange={(e) => setAdminData({ ...adminData, username: e.target.value })} required />
-                        <InputGroup icon={<Mail size={18} />} label="Email" type="email"
-                          value={adminData.email}
-                          onChange={(e) => setAdminData({ ...adminData, email: e.target.value })} required />
-                        <InputGroup icon={<Lock size={18} />} label="Password" type="password"
-                          value={adminData.password}
-                          onChange={(e) => setAdminData({ ...adminData, password: e.target.value })} required />
-                        <InputGroup icon={<Lock size={18} />} label="Confirm Password" type="password"
-                          value={adminData.confirm_password}
-                          onChange={(e) => setAdminData({ ...adminData, confirm_password: e.target.value })} required />
+                        <h3 style={{ color: "white", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px" }}><Shield size={20} /> Administration Registration</h3>
+                        <InputGroup icon={<User size={18} />} label="Username" type="text" value={adminData.username} onChange={(e) => setAdminData({ ...adminData, username: e.target.value })} required />
+                        <InputGroup icon={<Mail size={18} />} label="Email" type="email" value={adminData.email} onChange={(e) => setAdminData({ ...adminData, email: e.target.value })} required />
+                        <InputGroup icon={<Lock size={18} />} label="Password" type="password" value={adminData.password} onChange={(e) => setAdminData({ ...adminData, password: e.target.value })} required />
+                        <InputGroup icon={<Lock size={18} />} label="Confirm Password" type="password" value={adminData.confirm_password} onChange={(e) => setAdminData({ ...adminData, confirm_password: e.target.value })} required />
                         <div className="input-group">
-                          <select value={adminData.sub_role}
-                            onChange={(e) => {
-                              setAdminData({ 
-                                ...adminData, 
-                                sub_role: e.target.value,
-                                dept_head_email: "",
-                                university_for_verification: "",
-                                full_name: "",
-                                wilaya: "",
-                                university: ""
-                              });
-                            }}
-                            required style={selectStyle}>
+                          <select value={adminData.sub_role} onChange={(e) => setAdminData({ ...adminData, sub_role: e.target.value, dept_head_email: "", university_for_verification: "", full_name: "", wilaya: "", university: "" })} required style={selectStyle}>
                             <option value="" style={optStyle}>Select your role</option>
                             <option value="admin" style={optStyle}>Department Head</option>
                             <option value="co_dept_head" style={optStyle}>Co Department Head</option>
@@ -1008,44 +794,20 @@ const AuthPage = () => {
                         </div>
                         {adminData.sub_role === "admin" && (
                           <>
-                            <InputGroup icon={<User size={18} />} label="Full Name" type="text"
-                              value={adminData.full_name}
-                              onChange={(e) => setAdminData({ ...adminData, full_name: e.target.value })} required />
-                            <div className="input-group">
-                              <select value={adminData.wilaya}
-                                onChange={(e) => setAdminData({ ...adminData, wilaya: e.target.value })}
-                                required style={selectStyle}>
-                                <option value="" style={optStyle}>Select Wilaya</option>
-                                {wilayas.map((w) => <option key={w} value={w} style={optStyle}>{w}</option>)}
-                              </select>
-                              <MapPin size={18} className="icon" />
-                            </div>
-                            <InputGroup icon={<BookOpen size={18} />} label="University" type="text"
-                              value={adminData.university}
-                              onChange={(e) => setAdminData({ ...adminData, university: e.target.value })} required />
+                            <InputGroup icon={<User size={18} />} label="Full Name" type="text" value={adminData.full_name} onChange={(e) => setAdminData({ ...adminData, full_name: e.target.value })} required />
+                            <div className="input-group"><select value={adminData.wilaya} onChange={(e) => setAdminData({ ...adminData, wilaya: e.target.value })} required style={selectStyle}><option value="" style={optStyle}>Select Wilaya</option>{wilayas.map((w) => <option key={w} value={w} style={optStyle}>{w}</option>)}</select><MapPin size={18} className="icon" /></div>
+                            <InputGroup icon={<BookOpen size={18} />} label="University" type="text" value={adminData.university} onChange={(e) => setAdminData({ ...adminData, university: e.target.value })} required />
                           </>
                         )}
                         {adminData.sub_role === "co_dept_head" && (
                           <>
-                            <InputGroup icon={<Mail size={18} />} label="Department Head Email" type="email"
-                              value={adminData.dept_head_email}
-                              onChange={(e) => setAdminData({ ...adminData, dept_head_email: e.target.value })}
-                              placeholder="Email of the Department Head"
-                              required />
-                            <InputGroup icon={<BookOpen size={18} />} label="University (to verify)" type="text"
-                              value={adminData.university_for_verification}
-                              onChange={(e) => setAdminData({ ...adminData, university_for_verification: e.target.value })}
-                              placeholder="Enter the university name as registered"
-                              required />
-                            <div style={{ fontSize: "12px", color: "#9ca3af", marginTop: "-10px", marginBottom: "10px" }}>
-                              ⓘ Enter the exact university name of the Department Head
-                            </div>
+                            <InputGroup icon={<Mail size={18} />} label="Department Head Email" type="email" value={adminData.dept_head_email} onChange={(e) => setAdminData({ ...adminData, dept_head_email: e.target.value })} placeholder="Email of the Department Head" required />
+                            <InputGroup icon={<BookOpen size={18} />} label="University (to verify)" type="text" value={adminData.university_for_verification} onChange={(e) => setAdminData({ ...adminData, university_for_verification: e.target.value })} placeholder="Enter the university name as registered" required />
+                            <div style={{ fontSize: "12px", color: "#9ca3af", marginTop: "-10px", marginBottom: "10px" }}>ⓘ Enter the exact university name of the Department Head</div>
                           </>
                         )}
                         <FormError messages={adminErrors} />
-                        <button type="submit" className="auth-btn" disabled={loading}>
-                          {loading ? "Creating..." : "Register as Admin"}
-                        </button>
+                        <button type="submit" className="auth-btn" disabled={loading}>{loading ? "Creating..." : "Register as Admin"}</button>
                       </form>
                     </motion.div>
                   )}
@@ -1053,88 +815,31 @@ const AuthPage = () => {
               )}
             </>
           )}
-
           {!selectedRole && !isLogin && !showOTP && !companyPending && !adminPending && (
-            <p className="toggle-text" style={{ marginTop: "20px" }}>
-              Already have an account?{" "}
-              <span onClick={() => setIsLogin(true)}>Login</span>
-            </p>
+            <p className="toggle-text" style={{ marginTop: "20px" }}>Already have an account? <span onClick={() => setIsLogin(true)}>Login</span></p>
           )}
         </div>
       </div>
 
-      {/* 🔥 2FA Modal - عند تسجيل الدخول */}
+      {/* 2FA Modal */}
       {show2FAModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[10000]">
           <div className="bg-[#1e293b] border border-slate-700 rounded-2xl w-full max-w-md p-6">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Mail className="w-8 h-8 text-purple-400" />
-              </div>
+              <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4"><Mail className="w-8 h-8 text-purple-400" /></div>
               <h2 className="text-xl font-bold text-white">Vérification à deux facteurs</h2>
-              <p className="text-white/60 text-sm mt-2">
-                Un code de vérification a été envoyé à<br/>
-                <strong className="text-purple-400">{pending2FAEmail}</strong>
-              </p>
-              <p className="text-white/40 text-xs mt-1">
-                Valable 15 minutes
-              </p>
+              <p className="text-white/60 text-sm mt-2">Un code de vérification a été envoyé à<br/><strong className="text-purple-400">{pending2FAEmail}</strong></p>
+              <p className="text-white/40 text-xs mt-1">Valable 15 minutes</p>
             </div>
-
             <div className="flex justify-center gap-3 mb-6">
               {otp2FACode.map((digit, index) => (
-                <input
-                  key={index}
-                  id={`2fa-${index}`}
-                  type="text"
-                  maxLength="1"
-                  value={digit}
-                  onChange={(e) => {
-                    const newCode = [...otp2FACode];
-                    newCode[index] = e.target.value;
-                    setOtp2FACode(newCode);
-                    if (e.target.value && index < 5) {
-                      document.getElementById(`2fa-${index + 1}`)?.focus();
-                    }
-                  }}
-                  className="w-12 h-12 text-center text-2xl font-bold bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                  autoFocus={index === 0}
-                />
+                <input key={index} id={`2fa-${index}`} type="text" maxLength="1" value={digit} onChange={(e) => { const newCode = [...otp2FACode]; newCode[index] = e.target.value; setOtp2FACode(newCode); if (e.target.value && index < 5) document.getElementById(`2fa-${index + 1}`)?.focus(); }} className="w-12 h-12 text-center text-2xl font-bold bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-purple-500" autoFocus={index === 0} />
               ))}
             </div>
-
-            {otp2FAError && (
-              <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300 text-sm text-center">
-                {otp2FAError}
-              </div>
-            )}
-
-            <button
-              onClick={handleVerify2FA}
-              disabled={verifying2FA}
-              className="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold text-white transition disabled:opacity-50"
-            >
-              {verifying2FA ? 'Vérification...' : 'Vérifier et se connecter'}
-            </button>
-
-            <div className="text-center mt-3">
-              <button
-                onClick={handleResend2FA}
-                className="text-purple-400 text-sm hover:underline"
-              >
-                Renvoyer le code
-              </button>
-            </div>
-
-            <button
-              onClick={() => {
-                setShow2FAModal(false);
-                setOtp2FACode(['', '', '', '', '', '']);
-              }}
-              className="w-full mt-3 py-2 text-white/60 hover:text-white transition text-sm"
-            >
-              ← Annuler
-            </button>
+            {otp2FAError && <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300 text-sm text-center">{otp2FAError}</div>}
+            <button onClick={handleVerify2FA} disabled={verifying2FA} className="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold text-white transition disabled:opacity-50">{verifying2FA ? 'Vérification...' : 'Vérifier et se connecter'}</button>
+            <div className="text-center mt-3"><button onClick={handleResend2FA} className="text-purple-400 text-sm hover:underline">Renvoyer le code</button></div>
+            <button onClick={() => { setShow2FAModal(false); setOtp2FACode(['', '', '', '', '', '']); }} className="w-full mt-3 py-2 text-white/60 hover:text-white transition text-sm">← Annuler</button>
           </div>
         </div>
       )}

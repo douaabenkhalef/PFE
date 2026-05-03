@@ -1,8 +1,7 @@
 // frontend/src/page/ForgotPassword.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { Mail, Lock, ArrowLeft, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -16,6 +15,10 @@ const ForgotPassword = () => {
   const [otpError, setOtpError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [usingRecovery, setUsingRecovery] = useState(false);
+  
+  // États pour afficher/masquer les mots de passe
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const validatePassword = (password) => {
     if (password.length < 8) {
@@ -70,7 +73,6 @@ const ForgotPassword = () => {
     setLoading(true);
     
     try {
-      // Use the endpoint that supports recovery email
       const response = await fetch('http://localhost:8000/api/auth/forgot-password-recovery/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -86,8 +88,6 @@ const ForgotPassword = () => {
           return;
         }
         
-        // Show appropriate message based on whether recovery email was used
-        toast.success(data.message);
         setUsingRecovery(data.using_recovery || false);
         setStep('otp');
       } else {
@@ -185,7 +185,7 @@ const ForgotPassword = () => {
       if (data.success && data.email_exists !== false) {
         setCode(['', '', '', '', '', '']);
         setOtpError('');
-        toast.success('New code sent to your email');
+        alert('New code sent to your email');
       } else {
         setOtpError('No account found with this email.');
         setStep('email');
@@ -198,13 +198,29 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 to-indigo-900 flex items-center justify-center p-4">
-      <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 w-full max-w-md border border-white/20">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{
+      background: '#0c0a1c',
+      backgroundImage: `
+        radial-gradient(ellipse 40% 35% at 7% 12%, rgba(172,67,217,0.38) 0%, rgba(32,20,115,0.18) 50%, transparent 78%),
+        radial-gradient(ellipse 32% 30% at 5% 80%, rgba(172,67,217,0.35) 0%, rgba(32,20,115,0.15) 48%, transparent 75%),
+        radial-gradient(ellipse 50% 46% at 70% 54%, rgba(160,50,180,0.42) 0%, rgba(32,20,115,0.22) 42%, rgba(26,27,47,0.10) 65%, transparent 82%)
+      `,
+      backgroundAttachment: 'fixed',
+      backgroundSize: '100% 100%',
+      backgroundRepeat: 'no-repeat'
+    }}>
+      {/* Logo en haut à gauche */}
+      <div className="fixed top-6 left-6 flex items-center gap-2 z-10">
+        <img src="/images/logo.png" alt="UnivStage Logo" className="h-10 w-auto" />
+        <span className="text-white text-xl font-bold" style={{ fontFamily: "'Times New Roman', Times, serif" }}>UnivStage</span>
+      </div>
+
+      <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 w-full max-w-md border border-white/20 shadow-2xl">
         {step === 'email' && (
           <>
             <button
               onClick={() => navigate('/login')}
-              className="mb-4 text-white/60 hover:text-white transition flex items-center gap-2"
+              className="mb-6 text-white/60 hover:text-white transition flex items-center gap-2"
             >
               <ArrowLeft size={20} />
               Back
@@ -230,7 +246,7 @@ const ForgotPassword = () => {
                     setEmail(e.target.value);
                     if (emailError) setEmailError('');
                   }}
-                  className="bg-transparent flex-1 ml-3 text-white outline-none"
+                  className="bg-transparent flex-1 ml-3 text-white outline-none placeholder:text-white/40"
                   required
                 />
               </div>
@@ -240,11 +256,18 @@ const ForgotPassword = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold text-white transition disabled:opacity-50"
+                className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 rounded-lg font-semibold text-white transition disabled:opacity-50"
               >
                 {loading ? 'Sending...' : 'Send Code'}
               </button>
             </form>
+
+            <p className="text-center text-white/50 text-sm mt-6">
+              Remember your password?{' '}
+              <button onClick={() => navigate('/login')} className="text-purple-400 hover:underline">
+                Login
+              </button>
+            </p>
           </>
         )}
 
@@ -252,7 +275,7 @@ const ForgotPassword = () => {
           <>
             <button
               onClick={() => setStep('email')}
-              className="mb-4 text-white/60 hover:text-white transition flex items-center gap-2"
+              className="mb-6 text-white/60 hover:text-white transition flex items-center gap-2"
             >
               <ArrowLeft size={20} />
               Back
@@ -263,7 +286,7 @@ const ForgotPassword = () => {
               </div>
               <h2 className="text-2xl font-bold text-white">Verification</h2>
               <p className="text-white/60 mt-2">
-                A code has been sent to {usingRecovery ? 'your recovery email' : <strong>{email}</strong>}
+                A code has been sent to {usingRecovery ? 'your recovery email' : <strong className="text-purple-400">{email}</strong>}
               </p>
               {usingRecovery && (
                 <p className="text-purple-400 text-xs mt-1">
@@ -300,16 +323,23 @@ const ForgotPassword = () => {
                 <div className="border-b border-white/20 py-3 flex items-center">
                   <Lock className="w-5 h-5 text-white/60" />
                   <input
-                    type="password"
+                    type={showNewPassword ? "text" : "password"}
                     placeholder="New Password"
                     value={newPassword}
                     onChange={(e) => {
                       setNewPassword(e.target.value);
                       if (passwordError) setPasswordError('');
                     }}
-                    className="bg-transparent flex-1 ml-3 text-white outline-none"
+                    className="bg-transparent flex-1 ml-3 text-white outline-none placeholder:text-white/40"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="text-white/60 hover:text-white transition ml-2"
+                  >
+                    {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
                 <p className="text-white/40 text-xs mt-1">
                   Min. 8 characters, 1 uppercase, 1 lowercase, 1 number
@@ -321,16 +351,23 @@ const ForgotPassword = () => {
                 <div className="border-b border-white/20 py-3 flex items-center">
                   <Lock className="w-5 h-5 text-white/60" />
                   <input
-                    type="password"
+                    type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm Password"
                     value={confirmPassword}
                     onChange={(e) => {
                       setConfirmPassword(e.target.value);
                       if (passwordError) setPasswordError('');
                     }}
-                    className="bg-transparent flex-1 ml-3 text-white outline-none"
+                    className="bg-transparent flex-1 ml-3 text-white outline-none placeholder:text-white/40"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="text-white/60 hover:text-white transition ml-2"
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
               </div>
 
@@ -339,7 +376,7 @@ const ForgotPassword = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold text-white transition disabled:opacity-50"
+                className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 rounded-lg font-semibold text-white transition disabled:opacity-50"
               >
                 {loading ? 'Resetting...' : 'Reset Password'}
               </button>
@@ -368,7 +405,7 @@ const ForgotPassword = () => {
             </p>
             <button
               onClick={() => navigate('/login')}
-              className="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold text-white transition"
+              className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 rounded-lg font-semibold text-white transition"
             >
               Back to Login
             </button>

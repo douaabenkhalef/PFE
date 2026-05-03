@@ -3,14 +3,35 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   User, Building2, FileText, Users, Activity, LogOut, Search,
-  GraduationCap, LayoutDashboard
+  GraduationCap, LayoutDashboard, UsersRound
 } from 'lucide-react';
-import UserAvatar from './UserAvatar';
+
+const API = 'http://localhost:8000/api';
 
 const AdminSidebar = ({ user, onLogout, onClose }) => {
   const location = useLocation();
   const isDeptHead = user?.sub_role === 'admin';
   const isCoDeptHead = user?.sub_role === 'co_dept_head';
+
+  const getInitials = () => {
+    if (user?.full_name) {
+      return user.full_name.charAt(0).toUpperCase();
+    }
+    if (user?.username) {
+      return user.username.charAt(0).toUpperCase();
+    }
+    if (user?.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    return 'U';
+  };
+
+  const getDisplayName = () => {
+    if (user?.full_name) return user.full_name;
+    if (user?.username) return user.username;
+    if (user?.email) return user.email.split('@')[0];
+    return 'User';
+  };
 
   const baseItems = [
     { path: isDeptHead ? '/admin/dashboard' : '/co-dept-head/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -23,6 +44,7 @@ const AdminSidebar = ({ user, onLogout, onClose }) => {
     { path: '/admin/manage-co-dept-heads',  label: 'Manage Co Dept Heads',    icon: Users },
     { path: '/admin/activity-logs',         label: 'Dept Head Activity Logs', icon: Activity },
     { path: '/admin/validations',           label: 'Convention Requests',     icon: FileText },
+    { path: '/university/team',             label: 'My Team',                  icon: UsersRound },
   ];
 
   const coDeptHeadItems = [
@@ -30,6 +52,7 @@ const AdminSidebar = ({ user, onLogout, onClose }) => {
     { path: '/admin/university-profile',        label: 'University Profile',   icon: Building2 },
     { path: '/admin/manage-students',           label: 'Manage Students',      icon: GraduationCap },
     { path: '/co-dept-head/validations',        label: 'Convention Requests',  icon: FileText },
+    { path: '/university/team',                 label: 'My Team',              icon: UsersRound },
   ];
 
   const items = isDeptHead ? deptHeadItems : coDeptHeadItems;
@@ -39,12 +62,15 @@ const AdminSidebar = ({ user, onLogout, onClose }) => {
     <div className="fixed inset-0 z-[9999] flex">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
       <div className="relative w-64 bg-gradient-to-b from-[#1a0840] to-[#0e0c27] h-full shadow-xl border-r border-purple-500/30 flex flex-col animate-slide-in">
+        
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <UserAvatar />
-            <div>
-              <p className="text-white font-medium text-sm">{user?.full_name || user?.email}</p>
-              <p className="text-white/50 text-xs">{user?.email}</p>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">
+              {getInitials()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-medium text-sm truncate">{getDisplayName()}</p>
+              <p className="text-white/50 text-xs truncate">{user?.email || ''}</p>
             </div>
           </div>
         </div>
@@ -98,10 +124,31 @@ const AdminSidebar = ({ user, onLogout, onClose }) => {
   );
 };
 
+// Composant AdminSidebarInline (sidebar fixe)
 export const AdminSidebarInline = ({ user, onLogout }) => {
   const location = useLocation();
   const isDeptHead = user?.sub_role === 'admin';
   const isCoDeptHead = user?.sub_role === 'co_dept_head';
+
+  const getInitials = () => {
+    if (user?.full_name) {
+      return user.full_name.charAt(0).toUpperCase();
+    }
+    if (user?.username) {
+      return user.username.charAt(0).toUpperCase();
+    }
+    if (user?.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    return 'U';
+  };
+
+  const getDisplayName = () => {
+    if (user?.full_name) return user.full_name;
+    if (user?.username) return user.username;
+    if (user?.email) return user.email.split('@')[0];
+    return 'User';
+  };
 
   const baseItems = [
     { path: isDeptHead ? '/admin/dashboard' : '/co-dept-head/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -114,6 +161,7 @@ export const AdminSidebarInline = ({ user, onLogout }) => {
     { path: '/admin/manage-co-dept-heads',  label: 'Manage Co Dept Heads',    icon: Users },
     { path: '/admin/activity-logs',         label: 'Dept Head Activity Logs', icon: Activity },
     { path: '/admin/validations',           label: 'Convention Requests',     icon: FileText },
+    { path: '/university/team',             label: 'My Team',                  icon: UsersRound },
   ];
 
   const coDeptHeadItems = [
@@ -121,6 +169,7 @@ export const AdminSidebarInline = ({ user, onLogout }) => {
     { path: '/admin/university-profile',        label: 'University Profile',   icon: Building2 },
     { path: '/admin/manage-students',           label: 'Manage Students',      icon: GraduationCap },
     { path: '/co-dept-head/validations',        label: 'Convention Requests',  icon: FileText },
+    { path: '/university/team',                 label: 'My Team',              icon: UsersRound },
   ];
 
   const items = isDeptHead ? deptHeadItems : coDeptHeadItems;
@@ -130,10 +179,12 @@ export const AdminSidebarInline = ({ user, onLogout }) => {
     <div className="w-64 bg-gradient-to-b from-[#1a0840] to-[#0e0c27] h-full fixed left-0 top-0 overflow-y-auto border-r border-purple-500/30 flex flex-col z-40">
       <div className="p-4 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <UserAvatar />
-          <div>
-            <p className="text-white font-medium text-sm">{user?.full_name || user?.email}</p>
-            <p className="text-white/50 text-xs">{user?.email}</p>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">
+            {getInitials()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-white font-medium text-sm truncate">{getDisplayName()}</p>
+            <p className="text-white/50 text-xs truncate">{user?.email || ''}</p>
           </div>
         </div>
       </div>

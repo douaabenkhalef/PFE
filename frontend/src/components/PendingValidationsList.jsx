@@ -1,195 +1,234 @@
 // frontend/src/components/PendingValidationsList.jsx
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Clock, CheckCircle, XCircle, Eye, FileText, 
-  Building2, GraduationCap, MapPin, Calendar, Code,
-  Mail, User, BookOpen, Award, Github, Globe,
-  ArrowLeft, Loader2, AlertCircle, CheckCircle2, X,
-  PenTool, Download, Stamp
-} from 'lucide-react';
-import toast from 'react-hot-toast';
-import SignaturePad from './SignaturePad';
-import StampPad from './StampPad';
+import React, { useState, useEffect } from "react";
+import {
+  Eye,
+  FileText,
+  Building2,
+  GraduationCap,
+  MapPin,
+  Calendar,
+  Code,
+  Mail,
+  User,
+  BookOpen,
+  Award,
+  Github,
+  Globe,
+  Loader2,
+  AlertCircle,
+  X,
+  PenTool,
+  Download,
+  Stamp,
+  CheckCircle,
+  XCircle,
+  FileSignature,
+  Clock,
+  CheckCircle2,
+} from "lucide-react";
+import toast from "react-hot-toast";
+import SignaturePad from "./SignaturePad";
+import StampPad from "./StampPad";
 
-const API = 'http://localhost:8000/api';
+const API = "http://localhost:8000/api";
 
 const authHeaders = () => ({
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${localStorage.getItem("access_token")}`,
 });
 
-const StatusBadge = ({ status }) => {
-  const statusMap = {
-    'pending': { label: 'En attente entreprise', color: 'bg-yellow-500/20 text-yellow-300' },
-    'accepted_by_company': { label: 'Accepté par entreprise', color: 'bg-blue-500/20 text-blue-300' },
-    'validated_by_co_dept': { label: 'Validé - En attente signature', color: 'bg-purple-500/20 text-purple-300' },
-    'rejected_by_co_dept': { label: 'Refusé', color: 'bg-red-500/20 text-red-300' },
-    'rejected_by_company': { label: 'Refusé par entreprise', color: 'bg-red-500/20 text-red-300' },
-    'fully_signed': { label: 'Complètement signé', color: 'bg-green-500/20 text-green-300' }
+// StatusBadge component
+function StatusBadge({ status }) {
+  const getStatusConfig = () => {
+    switch (status) {
+      case "accepted_by_company":
+        return { label: "En attente de validation", color: "bg-blue-500/20 text-blue-300 border-blue-500/30" };
+      case "validated_by_co_dept":
+        return { label: "Validée - Prête à signer", color: "bg-purple-500/20 text-purple-300 border-purple-500/30" };
+      case "rejected_by_co_dept":
+        return { label: "Refusée", color: "bg-red-500/20 text-red-300 border-red-500/30" };
+      case "fully_signed":
+        return { label: "Complètement signée", color: "bg-green-500/20 text-green-300 border-green-500/30" };
+      default:
+        return { label: status || "En attente", color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30" };
+    }
   };
-  const s = statusMap[status] || { label: status, color: 'bg-gray-500/20 text-gray-300' };
+  
+  const config = getStatusConfig();
   return (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${s.color}`}>
-      {s.label}
+    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${config.color}`}>
+      {config.label}
     </span>
+  );
+}
+
+// DonutChart component - same as dashboard
+const DonutChart = ({ percentage, color, trackColor, size = 80, stroke = 8 }) => {
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const [pct, setPct] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setPct(percentage), 200);
+    return () => clearTimeout(timer);
+  }, [percentage]);
+
+  const dash = (pct / 100) * circ;
+
+  return (
+    <svg width={size} height={size} style={{ transform: "rotate(-90deg)", display: "block" }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={trackColor} strokeWidth={stroke} />
+      <circle
+        cx={size/2} cy={size/2} r={r}
+        fill="none" stroke={color} strokeWidth={stroke}
+        strokeDasharray={`${dash} ${circ}`}
+        strokeLinecap="round"
+        style={{ transition: "stroke-dasharray 1.2s cubic-bezier(0.4,0,0.2,1)" }}
+      />
+    </svg>
   );
 };
 
-const InlineFormError = ({ messages, onClose }) => {
-  if (!messages || messages.length === 0) return null;
-  const messageArray = Array.isArray(messages) ? messages : [messages];
-  
-  const isPermissionError = messageArray.some(msg => 
-    msg?.toLowerCase().includes('permission') || 
-    msg?.toLowerCase().includes('pas les droits') ||
-    msg?.toLowerCase().includes('pas autorisé') ||
-    msg?.toLowerCase().includes('non autorisé')
-  );
-  
-  return (
-    <div className={`rounded-lg p-4 mb-4 ${
-      isPermissionError 
-        ? 'bg-orange-500/10 border border-orange-500/30' 
-        : 'bg-red-500/10 border border-red-500/30'
-    }`}>
-      <div className="flex items-start gap-3">
-        {isPermissionError ? (
-          <ShieldIcon className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" />
-        ) : (
-          <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-        )}
-        <div className="flex-1">
-          {messageArray.map((msg, index) => (
-            <p key={index} className={`text-sm ${isPermissionError ? 'text-orange-300' : 'text-red-300'}`}>
-              {msg}
-            </p>
-          ))}
-          {isPermissionError && (
-            <p className="text-orange-300/70 text-xs mt-2">
-              💡 Veuillez contacter votre Department Head pour demander les permissions nécessaires.
-            </p>
-          )}
-        </div>
-        {onClose && (
-          <button 
-            onClick={onClose} 
-            className={`${isPermissionError ? 'text-orange-400/70 hover:text-orange-300' : 'text-red-400/70 hover:text-red-300'} transition ml-2`}
-          >
-            ✕
-          </button>
-        )}
+// StatsCards component - same style as dashboard
+const StatsCards = ({ stats, loading }) => {
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20 animate-pulse">
+            <div className="h-12 bg-white/20 rounded w-20 mb-2"></div>
+            <div className="h-6 bg-white/20 rounded w-32"></div>
+          </div>
+        ))}
       </div>
+    );
+  }
+
+  const donutConfigs = [
+    {
+      title: "Total",
+      value: stats.total,
+      percentage: 100,
+      color: "#8b5cf6",
+      trackColor: "#2d1d5e",
+      icon: FileSignature,
+      iconColor: "text-purple-400",
+      bgColor: "bg-purple-500/20",
+    },
+    {
+      title: "En attente",
+      value: stats.pending,
+      percentage: stats.total > 0 ? Math.round((stats.pending / stats.total) * 100) : 0,
+      color: "#fbbf24",
+      trackColor: "#3d2a00",
+      icon: Clock,
+      iconColor: "text-yellow-400",
+      bgColor: "bg-yellow-500/20",
+    },
+    {
+      title: "Validées",
+      value: stats.validated,
+      percentage: stats.total > 0 ? Math.round((stats.validated / stats.total) * 100) : 0,
+      color: "#34d399",
+      trackColor: "#063d28",
+      icon: CheckCircle2,
+      iconColor: "text-green-400",
+      bgColor: "bg-green-500/20",
+    },
+    {
+      title: "Refusées",
+      value: stats.rejected,
+      percentage: stats.total > 0 ? Math.round((stats.rejected / stats.total) * 100) : 0,
+      color: "#f97316",
+      trackColor: "#3b1200",
+      icon: XCircle,
+      iconColor: "text-orange-400",
+      bgColor: "bg-orange-500/20",
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      {donutConfigs.map((config, idx) => {
+        const IconComponent = config.icon;
+        return (
+          <div
+            key={idx}
+            className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-5 hover:border-purple-500/50 transition-all duration-300"
+            style={{
+              background: "rgba(255,255,255,0.07)",
+              border: "1px solid rgba(255,255,255,0.13)",
+              backdropFilter: "blur(14px)",
+            }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-xs font-bold text-white/60 uppercase tracking-wider">
+                {config.title}
+              </span>
+              <div className={`w-8 h-8 ${config.bgColor} rounded-full flex items-center justify-center`}>
+                <IconComponent size={16} className={config.iconColor} />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center mb-4">
+              <div className="relative">
+                <DonutChart
+                  percentage={config.percentage}
+                  color={config.color}
+                  trackColor={config.trackColor}
+                  size={100}
+                  stroke={10}
+                />
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl font-bold text-white">{config.value}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-center gap-4 text-center">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full" style={{ background: config.color }} />
+                <span className="text-xs text-white/50">{config.title}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full" style={{ background: config.trackColor }} />
+                <span className="text-xs text-white/50">Restant</span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };
 
-// Helper icon component
-const ShieldIcon = ({ className }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    <path d="M12 8v4" />
-    <circle cx="12" cy="16" r="0.5" fill="currentColor" />
-  </svg>
-);
-
-const DetailsModal = ({ 
-  application, 
-  onClose, 
-  onValidate, 
-  onReject, 
-  onAddSignature, 
-  initialSignatureStatus, 
-  initialStampStatus,
-  onPermissionError
-}) => {
+// DetailsModal component
+const DetailsModal = ({ application, onClose, onValidate, onReject, onAddSignature, onPermissionError }) => {
   const [showRejectForm, setShowRejectForm] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
+  const [rejectReason, setRejectReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [showStampModal, setShowStampModal] = useState(false);
-  const [modalError, setModalError] = useState(null);
   const [cvUrl, setCvUrl] = useState(null);
   const [loadingCv, setLoadingCv] = useState(false);
   const [conventionUrl, setConventionUrl] = useState(null);
   const [loadingConvention, setLoadingConvention] = useState(false);
-  const [signatureInfo, setSignatureInfo] = useState(initialSignatureStatus || {
-    university_signed: false,
-    university_signed_by: null,
-    university_signature_date: null
-  });
-  const [stampInfo, setStampInfo] = useState(initialStampStatus || {
-    has_stamp: false,
-    stamp_added_by: null,
-    stamp_date: null
-  });
+  const [signatureInfo, setSignatureInfo] = useState({ university_signed: false });
+  const [stampInfo, setStampInfo] = useState({ has_stamp: false });
 
-  const showError = (errorMsg) => {
-    console.log("🔴 showError called:", errorMsg);
-    setModalError(errorMsg);
-    setTimeout(() => setModalError(null), 5000);
-    if (onPermissionError) {
-      console.log("🔴 Calling onPermissionError from showError");
-      onPermissionError(errorMsg);
-    }
-  };
-
-  useEffect(() => {
-    checkSignatureStatus();
-    checkStampStatus();
-    if (application.status === 'validated_by_co_dept' && application.convention_url) {
-      loadConvention();
-    }
-  }, []);
-
-  const checkSignatureStatus = async () => {
-    try {
-      const res = await fetch(`${API}/signature/status/${application.id}/`, { headers: authHeaders() });
-      const data = await res.json();
-      if (data.success) {
-        setSignatureInfo({
-          university_signed: data.university_signed,
-          university_signed_by: data.university_signed_by,
-          university_signature_date: data.university_signature_date,
-          company_signed: data.company_signed,
-          student_signed: data.student_signed,
-          signature_status: data.signature_status
-        });
-      }
-    } catch (err) {
-      console.error("Erreur chargement statut signature:", err);
-    }
-  };
-
-  const checkStampStatus = async () => {
-    try {
-      const res = await fetch(`${API}/stamp/status/${application.id}/`, { headers: authHeaders() });
-      const data = await res.json();
-      if (data.success) {
-        setStampInfo({
-          has_stamp: data.has_stamp,
-          stamp_added_by: data.stamp_added_by,
-          stamp_date: data.stamp_date
-        });
-      }
-    } catch (err) {
-      console.error("Erreur chargement statut cachet:", err);
-    }
-  };
-
-  const loadCV = async () => {
+  const loadCv = async () => {
     if (!application.cv_file_url) return;
     setLoadingCv(true);
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem("access_token");
       const res = await fetch(`http://localhost:8000${application.cv_file_url}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       setCvUrl(url);
     } catch (err) {
-      toast.error('Erreur lors du chargement du CV');
+      toast.error("Erreur lors du chargement du CV");
     } finally {
       setLoadingCv(false);
     }
@@ -199,33 +238,27 @@ const DetailsModal = ({
     if (!application.convention_url) return;
     setLoadingConvention(true);
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem("access_token");
       const res = await fetch(`http://localhost:8000${application.convention_url}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) {
-        console.log("Convention non encore disponible");
-        return;
-      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       setConventionUrl(url);
     } catch (err) {
-      console.error("Erreur lors du chargement de la convention:", err);
+      console.error("Erreur chargement convention:", err);
     } finally {
       setLoadingConvention(false);
     }
   };
 
   const handleValidate = async () => {
-    console.log("🔵 handleValidate called in DetailsModal");
-    setModalError(null);
     setSubmitting(true);
     try {
       await onValidate(application.id);
+      onClose();
     } catch (err) {
-      console.log("🔴 Error caught in handleValidate:", err.message);
-      showError(err.message || "Vous n'avez pas les permissions pour valider cette convention.");
+      // Error already handled in parent
     } finally {
       setSubmitting(false);
     }
@@ -233,99 +266,118 @@ const DetailsModal = ({
 
   const handleRejectSubmit = async () => {
     if (!rejectReason.trim()) {
-      showError('Veuillez entrer une raison de refus');
+      toast.error("Veuillez entrer une raison de refus");
       return;
     }
-    setModalError(null);
     setSubmitting(true);
     try {
       await onReject(application.id, rejectReason);
+      onClose();
     } catch (err) {
-      showError(err.message || "Vous n'avez pas les permissions pour refuser cette convention.");
+      // Error already handled in parent
     } finally {
       setSubmitting(false);
       setShowRejectForm(false);
-      setRejectReason('');
+      setRejectReason("");
     }
   };
 
   const handleSignatureSave = async (signatureData) => {
-    setModalError(null);
     setSubmitting(true);
     try {
       const res = await fetch(`${API}/signature/university/${application.id}/`, {
-        method: 'POST',
+        method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ signature: signatureData })
+        body: JSON.stringify({ signature: signatureData }),
       });
       const data = await res.json();
-      
+
       if (res.status === 403) {
-        const errorMsg = data.error || data.detail || "Vous n'avez pas les permissions pour signer cette convention. Veuillez contacter le Department Head.";
-        console.log("🔴 Signature permission error:", errorMsg);
-        showError(errorMsg);
-        setShowSignatureModal(false);
+        const errorMsg = "Vous n'avez pas les permissions pour signer cette convention.";
+        if (onPermissionError) onPermissionError(errorMsg);
+        toast.error(errorMsg);
         return;
       }
-      
+
       if (data.success) {
-        toast.success('Signature ajoutée avec succès !');
-        setShowSignatureModal(false);
-        setSignatureInfo({
-          university_signed: true,
-          university_signed_by: data.signed_by || 'Université',
-          university_signature_date: new Date().toLocaleString()
-        });
-        setTimeout(() => loadConvention(), 1000);
+        toast.success("Signature ajoutée avec succès !");
+        setSignatureInfo({ university_signed: true });
         if (onAddSignature) onAddSignature();
+        setTimeout(() => loadConvention(), 500);
       } else {
-        showError(data.error || 'Erreur lors de l\'ajout de la signature');
+        toast.error(data.error || "Erreur lors de l'ajout de la signature");
       }
     } catch (err) {
-      showError('Erreur de connexion au serveur');
+      toast.error("Erreur de connexion");
     } finally {
       setSubmitting(false);
+      setShowSignatureModal(false);
     }
   };
 
   const handleStampSave = async (stampData) => {
-    setModalError(null);
     setSubmitting(true);
     try {
       const res = await fetch(`${API}/stamp/university/${application.id}/`, {
-        method: 'POST',
+        method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ stamp: stampData })
+        body: JSON.stringify({ stamp: stampData }),
       });
       const data = await res.json();
-      
+
       if (res.status === 403) {
-        const errorMsg = data.error || data.detail || "Vous n'avez pas les permissions pour ajouter le cachet. Veuillez contacter le Department Head.";
-        console.log("🔴 Stamp permission error:", errorMsg);
-        showError(errorMsg);
-        setShowStampModal(false);
+        const errorMsg = "Vous n'avez pas les permissions pour ajouter le cachet.";
+        if (onPermissionError) onPermissionError(errorMsg);
+        toast.error(errorMsg);
         return;
       }
-      
+
       if (data.success) {
-        toast.success('Cachet ajouté avec succès !');
-        setShowStampModal(false);
-        setStampInfo({
-          has_stamp: true,
-          stamp_added_by: data.added_by,
-          stamp_date: new Date().toLocaleString()
-        });
-        setTimeout(() => loadConvention(), 1000);
+        toast.success("Cachet ajouté avec succès !");
+        setStampInfo({ has_stamp: true });
         if (onAddSignature) onAddSignature();
+        setTimeout(() => loadConvention(), 500);
       } else {
-        showError(data.error || 'Erreur lors de l\'ajout du cachet');
+        toast.error(data.error || "Erreur lors de l'ajout du cachet");
       }
     } catch (err) {
-      showError('Erreur de connexion au serveur');
+      toast.error("Erreur de connexion");
     } finally {
       setSubmitting(false);
+      setShowStampModal(false);
     }
   };
+
+  const handleDownloadConvention = async () => {
+    if (!conventionUrl) return;
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(conventionUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `convention_${application.student?.full_name || "stage"}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("Convention téléchargée avec succès");
+    } catch (error) {
+      toast.error("Erreur lors du téléchargement");
+    }
+  };
+
+  useEffect(() => {
+    if (application.cv_file_url) loadCv();
+    if (application.status === "validated_by_co_dept" && application.convention_url) {
+      loadConvention();
+    }
+  }, []);
+
+  if (!application) return null;
 
   const isSigned = signatureInfo.university_signed;
   const hasStamp = stampInfo.has_stamp;
@@ -340,76 +392,59 @@ const DetailsModal = ({
       )}
 
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
-        <div className="bg-[#1e293b] border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-          <div className="sticky top-0 bg-[#1e293b] border-b border-slate-700 p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <h2 className="text-xl font-bold text-white">{application.offer.title}</h2>
-                <p className="text-slate-400 text-sm mt-1">Candidature de <span className="text-white font-medium">{application.student.full_name}</span></p>
-              </div>
-              <button onClick={onClose} className="text-slate-500 hover:text-white"><X size={24} /></button>
+        <div className="bg-[#1e293b] border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="sticky top-0 bg-[#1e293b] border-b border-slate-700 p-5 flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-bold text-white">{application.offer?.title || "N/A"}</h2>
+              <p className="text-slate-400 text-sm mt-1">
+                Candidature de <span className="text-white font-medium">{application.student?.full_name || "N/A"}</span>
+              </p>
             </div>
-            <div className="flex flex-wrap gap-2 mt-3">
+            <div className="flex items-center gap-3">
               <StatusBadge status={application.status} />
-              {isSigned && <StatusBadge status="fully_signed" />}
-              {hasStamp && <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300">Cachet apposé</span>}
+              <button onClick={onClose} className="text-slate-500 hover:text-white">
+                <X size={20} />
+              </button>
             </div>
           </div>
 
           <div className="p-6 space-y-6">
-            <InlineFormError messages={modalError} onClose={() => setModalError(null)} />
-
-            {/* Infos offre */}
-            <div className="bg-slate-800/60 rounded-xl p-5">
-              <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <Building2 size={15} /> Offre de stage
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div><p className="text-xs text-slate-500">Entreprise</p><p className="text-sm text-white font-medium">{application.company.company_name}</p></div>
-                <div><p className="text-xs text-slate-500">Wilaya</p><p className="text-sm text-white">{application.offer.wilaya}</p></div>
-                <div><p className="text-xs text-slate-500">Type</p><p className="text-sm text-white">{application.offer.internship_type}</p></div>
-                <div><p className="text-xs text-slate-500">Durée</p><p className="text-sm text-white">{application.offer.duration}</p></div>
+            {/* Offer Info */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-slate-800 rounded-lg p-3">
+                <p className="text-xs text-slate-500 mb-1">Type</p>
+                <p className="text-sm text-white">{application.offer?.internship_type || "—"}</p>
               </div>
-              <div className="mt-4"><p className="text-xs text-slate-500 mb-2">Description</p><p className="text-sm text-slate-300">{application.offer.description}</p></div>
-              {application.offer.required_skills?.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-xs text-slate-500 mb-2 flex items-center gap-1"><Code size={12} /> Compétences requises</p>
-                  <div className="flex flex-wrap gap-2">
-                    {application.offer.required_skills.map(skill => (
-                      <span key={skill} className="bg-indigo-900/60 text-indigo-300 text-xs px-2.5 py-1 rounded-full">{skill}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="bg-slate-800 rounded-lg p-3">
+                <p className="text-xs text-slate-500 mb-1">Wilaya</p>
+                <p className="text-sm text-white">{application.offer?.wilaya || "—"}</p>
+              </div>
+              <div className="bg-slate-800 rounded-lg p-3">
+                <p className="text-xs text-slate-500 mb-1">Durée</p>
+                <p className="text-sm text-white">{application.offer?.duration || "—"}</p>
+              </div>
             </div>
 
-            {/* Infos étudiant */}
+            {/* Student Profile */}
             <div className="bg-slate-800/60 rounded-xl p-5">
-              <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <GraduationCap size={15} /> Profil étudiant
+              <h3 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
+                <User size={15} /> Profil étudiant
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-2"><User size={14} className="text-slate-500" /><span className="text-white">{application.student.full_name}</span></div>
-                <div className="flex items-center gap-2"><Mail size={14} className="text-slate-500" /><span className="text-white">{application.student.email}</span></div>
-                <div className="flex items-center gap-2"><MapPin size={14} className="text-slate-500" /><span className="text-white">{application.student.wilaya}</span></div>
-                <div className="flex items-center gap-2"><BookOpen size={14} className="text-slate-500" /><span className="text-white">{application.student.university}</span></div>
-                <div className="flex items-center gap-2"><Award size={14} className="text-slate-500" /><span className="text-white">{application.student.major} - {application.student.education_level}</span></div>
-                <div className="flex items-center gap-2"><Calendar size={14} className="text-slate-500" /><span className="text-white">Promotion {application.student.graduation_year}</span></div>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2"><Mail size={14} className="text-slate-500" />{application.student?.email || "—"}</div>
+                <div className="flex items-center gap-2"><MapPin size={14} className="text-slate-500" />{application.student?.wilaya || "—"}</div>
+                <div className="flex items-center gap-2"><BookOpen size={14} className="text-slate-500" />{application.student?.university || "—"}</div>
+                <div className="flex items-center gap-2"><Award size={14} className="text-slate-500" />{application.student?.major || "—"} · {application.student?.education_level || "—"}</div>
+                <div className="flex items-center gap-2"><Calendar size={14} className="text-slate-500" />Promotion: {application.student?.graduation_year || "—"}</div>
               </div>
-              {application.student.skills?.length > 0 && (
+              {application.student?.skills?.length > 0 && (
                 <div className="mt-4">
-                  <p className="text-xs text-slate-500 mb-2 flex items-center gap-1"><Code size={12} /> Compétences</p>
+                  <p className="text-xs text-slate-500 mb-2">Compétences</p>
                   <div className="flex flex-wrap gap-2">
-                    {application.student.skills.map(skill => (
-                      <span key={skill} className="bg-purple-900/60 text-purple-300 text-xs px-2.5 py-1 rounded-full">{skill}</span>
+                    {application.student.skills.map((s) => (
+                      <span key={s} className="bg-indigo-900/60 text-indigo-300 text-xs px-2.5 py-1 rounded-full">{s}</span>
                     ))}
                   </div>
-                </div>
-              )}
-              {(application.student.github || application.student.portfolio) && (
-                <div className="mt-4 flex gap-4">
-                  {application.student.github && <a href={application.student.github} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-indigo-400 text-sm hover:underline"><Github size={14} /> GitHub</a>}
-                  {application.student.portfolio && <a href={application.student.portfolio} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-indigo-400 text-sm hover:underline"><Globe size={14} /> Portfolio</a>}
                 </div>
               )}
             </div>
@@ -417,111 +452,114 @@ const DetailsModal = ({
             {/* CV */}
             {application.cv_file_url && (
               <div className="bg-slate-800/60 rounded-xl p-5">
-                <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <FileText size={15} /> CV de l'étudiant
+                <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                  <FileText size={15} /> CV
                 </h3>
-                {!cvUrl && !loadingCv && <button onClick={loadCV} className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm">Charger le CV</button>}
-                {loadingCv && <p className="text-slate-400">Chargement...</p>}
-                {cvUrl && <iframe src={cvUrl} title="CV" className="w-full h-96 rounded-lg border border-slate-600" />}
+                {!cvUrl && !loadingCv && (
+                  <button onClick={loadCv} className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm">
+                    Charger le CV
+                  </button>
+                )}
+                {loadingCv && <p className="text-slate-300 text-sm">Chargement...</p>}
+                {cvUrl && <iframe src={cvUrl} title="CV" className="w-full h-96 rounded-lg border border-slate-600 mt-3" />}
               </div>
             )}
 
             {/* Convention PDF */}
-            {application.status === 'validated_by_co_dept' && application.convention_url && (
-              <div className="bg-slate-800/60 rounded-xl p-5">
-                <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+            {application.status === "validated_by_co_dept" && application.convention_url && (
+              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-5">
+                <h3 className="text-sm font-semibold text-green-300 mb-3 flex items-center gap-2">
                   <FileText size={15} /> Convention de stage
                 </h3>
-                {!conventionUrl && !loadingConvention && <button onClick={loadConvention} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">Charger la convention</button>}
-                {loadingConvention && <p className="text-slate-400">Chargement...</p>}
+                {!conventionUrl && !loadingConvention && (
+                  <button onClick={loadConvention} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm">
+                    Charger la convention
+                  </button>
+                )}
+                {loadingConvention && <p className="text-green-300 text-sm">Chargement...</p>}
                 {conventionUrl && (
-                  <div>
-                    <iframe src={conventionUrl} title="Convention" className="w-full h-96 rounded-lg border border-slate-600 mb-3" />
-                    <a href={conventionUrl} download={`convention_${application.student.full_name}_${application.company.company_name}.pdf`} className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm transition">
+                  <>
+                    <iframe src={conventionUrl} title="Convention" className="w-full h-96 rounded-lg border border-green-500/30 mt-3" />
+                    <button onClick={handleDownloadConvention} className="mt-3 flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm">
                       <Download size={14} /> Télécharger la convention
-                    </a>
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Rejection reason */}
+            {application.status === "rejected_by_co_dept" && application.co_dept_notes && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                <p className="text-xs text-red-400 font-semibold mb-1">Motif du refus</p>
+                <p className="text-sm text-red-300">{application.co_dept_notes}</p>
+              </div>
+            )}
+
+            {/* Validation/Rejection Actions */}
+            {application.status === "accepted_by_company" && (
+              <div className="border-t border-slate-700 pt-5">
+                {showRejectForm ? (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                    <p className="text-red-300 text-sm font-medium mb-3">Motif du refus <span className="text-red-400">*</span></p>
+                    <textarea
+                      className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white resize-none min-h-[80px] mb-3"
+                      placeholder="Expliquez pourquoi cette demande est refusée..."
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                    />
+                    <div className="flex gap-3">
+                      <button onClick={handleRejectSubmit} disabled={submitting} className="bg-red-600 hover:bg-red-500 text-white px-5 py-2 rounded-lg text-sm font-semibold">
+                        {submitting ? <Loader2 size={15} className="animate-spin" /> : <XCircle size={15} />}
+                        Confirmer le refus
+                      </button>
+                      <button onClick={() => { setShowRejectForm(false); setRejectReason(""); }} className="px-5 py-2 rounded-lg text-sm text-slate-400 hover:text-white">
+                        Annuler
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-3">
+                    <button onClick={handleValidate} disabled={submitting} className="bg-green-600 hover:bg-green-500 text-white px-5 py-2.5 rounded-lg text-sm font-semibold">
+                      {submitting ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={16} />}
+                      Valider et générer la convention
+                    </button>
+                    <button onClick={() => setShowRejectForm(true)} className="bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-600/30 px-5 py-2.5 rounded-lg text-sm font-semibold">
+                      <XCircle size={16} /> Refuser
+                    </button>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Signature status */}
-            {isSigned && (
-              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
-                <p className="text-green-400 text-sm font-medium flex items-center gap-2"><CheckCircle size={16} /> Convention signée par l'université</p>
-                <p className="text-green-300/70 text-xs mt-1">Signée par {signatureInfo.university_signed_by} le {signatureInfo.university_signature_date}</p>
-              </div>
-            )}
-
-            {/* Stamp status */}
-            {hasStamp && (
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-                <p className="text-blue-400 text-sm font-medium flex items-center gap-2"><Stamp size={16} /> Cachet officiel apposé</p>
-                <p className="text-blue-300/70 text-xs mt-1">Ajouté par {stampInfo.stamp_added_by} le {stampInfo.stamp_date}</p>
-              </div>
-            )}
-
-            {/* Lettre de motivation */}
-            {application.cover_letter && (
-              <div className="bg-slate-800/60 rounded-xl p-5">
-                <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">📝 Lettre de motivation</h3>
-                <p className="text-sm text-slate-300 whitespace-pre-wrap">{application.cover_letter}</p>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="border-t border-slate-700 pt-6">
-              {application.status === 'accepted_by_company' && (
-                <>
-                  {showRejectForm ? (
-                    <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-5">
-                      <p className="text-red-300 text-sm font-medium mb-3">Motif du refus <span className="text-red-400">*</span></p>
-                      <textarea className="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white text-sm resize-none min-h-[100px] focus:outline-none focus:border-red-500" placeholder="Expliquez pourquoi cette demande est refusée..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
-                      <div className="flex gap-3 mt-4">
-                        <button onClick={handleRejectSubmit} disabled={submitting} className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white px-5 py-2 rounded-lg text-sm font-semibold">
-                          {submitting ? <Loader2 size={15} className="animate-spin" /> : <XCircle size={15} />} Confirmer le refus
-                        </button>
-                        <button onClick={() => { setShowRejectForm(false); setRejectReason(''); }} className="px-5 py-2 rounded-lg text-sm text-slate-400 hover:text-white">Annuler</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex gap-4">
-                      <button onClick={handleValidate} disabled={submitting} className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-lg font-semibold">
-                        {submitting ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />} Valider et générer la convention
-                      </button>
-                      <button onClick={() => setShowRejectForm(true)} className="flex items-center gap-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 px-6 py-3 rounded-lg font-semibold">
-                        <XCircle size={18} /> Refuser
-                      </button>
-                    </div>
+            {/* Signature & Stamp Actions */}
+            {application.status === "validated_by_co_dept" && (
+              <div className="border-t border-slate-700 pt-5 space-y-4">
+                <h3 className="text-sm font-semibold text-white">Signature et Cachet</h3>
+                <div className="flex flex-wrap gap-3">
+                  {!isSigned && (
+                    <button onClick={() => setShowSignatureModal(true)} disabled={submitting} className="bg-purple-600 hover:bg-purple-500 text-white px-5 py-2 rounded-lg text-sm font-semibold">
+                      <PenTool size={16} /> Signer la convention
+                    </button>
                   )}
-                </>
-              )}
-
-              {application.status === 'validated_by_co_dept' && (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap gap-4">
-                    {!isSigned ? (
-                      <button onClick={() => setShowSignatureModal(true)} disabled={submitting} className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg font-semibold transition">
-                        <PenTool size={18} /> Signer la convention
-                      </button>
-                    ) : (
-                      <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex-1">
-                        <p className="text-green-400 text-sm font-medium flex items-center gap-2"><CheckCircle size={16} /> Convention déjà signée</p>
-                      </div>
-                    )}
-                    {!hasStamp ? (
-                      <button onClick={() => setShowStampModal(true)} disabled={submitting} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold transition">
-                        <Stamp size={18} /> Ajouter le cachet
-                      </button>
-                    ) : (
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 flex-1">
-                        <p className="text-blue-400 text-sm font-medium flex items-center gap-2"><Stamp size={16} /> Cachet déjà apposé</p>
-                      </div>
-                    )}
-                  </div>
+                  {!hasStamp && (
+                    <button onClick={() => setShowStampModal(true)} disabled={submitting} className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg text-sm font-semibold">
+                      <Stamp size={16} /> Ajouter le cachet
+                    </button>
+                  )}
                 </div>
-              )}
-            </div>
+                {isSigned && (
+                  <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
+                    <p className="text-green-400 text-sm font-medium">✅ Signature apposée</p>
+                  </div>
+                )}
+                {hasStamp && (
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+                    <p className="text-blue-400 text-sm font-medium">🏛️ Cachet apposé</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -529,69 +567,48 @@ const DetailsModal = ({
   );
 };
 
-// Composant principal réutilisable
-export default function PendingValidationsList({ 
-  fetchEndpoint, 
-  validateEndpoint, 
+// Main PendingValidationsList component
+export default function PendingValidationsList({
+  fetchEndpoint,
+  validateEndpoint,
   rejectEndpoint,
-  downloadConventionEndpoint = 'co-dept',
+  downloadConventionEndpoint = "co-dept",
   title = "Validations des conventions",
   emptyMessage = "Aucune convention en attente",
-  onBack,
-  backUrl,
-  onPermissionError
+  onPermissionError,
 }) {
-  const navigate = useNavigate();
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedApp, setSelectedApp] = useState(null);
-  const [signatureStatuses, setSignatureStatuses] = useState({});
-  const [stampStatuses, setStampStatuses] = useState({});
-  const [stats, setStats] = useState({ pending: 0, total: 0, validated: 0 });
+  const [filter, setFilter] = useState("all");
+
+  // Calculate statistics
+  const stats = {
+    total: applications.length,
+    pending: applications.filter((a) => a.status === "accepted_by_company").length,
+    validated: applications.filter((a) => a.status === "validated_by_co_dept").length,
+    rejected: applications.filter((a) => a.status === "rejected_by_co_dept").length,
+  };
 
   const fetchPendingValidations = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}${fetchEndpoint}`, { headers: authHeaders() });
-      const data = await res.json();
+      const response = await fetch(`${API}${fetchEndpoint}`, { headers: authHeaders() });
+      const data = await response.json();
       if (data.success) {
-        const appsWithUrl = (data.applications || []).map(app => ({
+        const appsWithUrl = (data.applications || []).map((app) => ({
           ...app,
-          convention_url: app.status === 'validated_by_co_dept' 
-            ? (app.convention_url || `/api/${downloadConventionEndpoint}/download-convention/${app.id}/`)
-            : null
+          convention_url: app.status === "validated_by_co_dept"
+            ? app.convention_url || `/api/${downloadConventionEndpoint}/download-convention/${app.id}/`
+            : null,
         }));
         setApplications(appsWithUrl);
-        setStats({
-          pending: appsWithUrl.filter(a => a.status === 'accepted_by_company').length,
-          validated: appsWithUrl.filter(a => a.status === 'validated_by_co_dept').length,
-          total: appsWithUrl.length
-        });
-        
-        for (const app of appsWithUrl) {
-          if (app.status === 'validated_by_co_dept') {
-            try {
-              const sigRes = await fetch(`${API}/signature/status/${app.id}/`, { headers: authHeaders() });
-              const sigData = await sigRes.json();
-              if (sigData.success) {
-                setSignatureStatuses(prev => ({ ...prev, [app.id]: sigData }));
-              }
-            } catch (err) { console.error("Erreur chargement signature:", err); }
-            
-            try {
-              const stampRes = await fetch(`${API}/stamp/status/${app.id}/`, { headers: authHeaders() });
-              const stampData = await stampRes.json();
-              if (stampData.success) {
-                setStampStatuses(prev => ({ ...prev, [app.id]: stampData }));
-              }
-            } catch (err) { console.error("Erreur chargement cachet:", err); }
-          }
-        }
       } else {
-        toast.error(data.error || 'Erreur de chargement');
+        toast.error(data.error || "Erreur de chargement");
       }
     } catch (err) {
-      toast.error('Erreur de connexion');
+      console.error("Erreur:", err);
+      toast.error("Erreur de connexion");
     } finally {
       setLoading(false);
     }
@@ -602,175 +619,162 @@ export default function PendingValidationsList({
   }, []);
 
   const handleValidate = async (applicationId) => {
-    console.log("🔵 handleValidate called for application:", applicationId);
-    console.log("🔵 validateEndpoint:", validateEndpoint);
-    console.log("🔵 onPermissionError exists?", !!onPermissionError);
-    
     try {
-      const res = await fetch(`${API}${validateEndpoint}${applicationId}/`, {
-        method: 'POST',
-        headers: authHeaders()
+      const response = await fetch(`${API}${validateEndpoint}${applicationId}/`, {
+        method: "POST",
+        headers: authHeaders(),
       });
-      
-      const data = await res.json();
-      
-      console.log("🔍 Response status:", res.status);
-      console.log("🔍 Response data:", data);
-      
-      if (res.status === 403) {
-        const errorMsg = data.error || data.detail || data.message || "Vous n'avez pas les permissions pour valider cette convention. Veuillez contacter le Department Head.";
-        console.log("🔴 403 detected, calling onPermissionError with:", errorMsg);
-        if (onPermissionError) {
-          onPermissionError(errorMsg);
-        } else {
-          console.log("🔴 WARNING: onPermissionError is not defined!");
-        }
-        throw new Error(errorMsg);
+      const data = await response.json();
+
+      if (response.status === 403) {
+        const errorMsg = "Vous n'avez pas les permissions pour valider cette convention.";
+        if (onPermissionError) onPermissionError(errorMsg);
+        toast.error(errorMsg);
+        return;
       }
-      
+
       if (data.success) {
-        toast.success('Convention validée et générée avec succès !');
+        toast.success("Convention validée et générée avec succès !");
         await fetchPendingValidations();
         setSelectedApp(null);
       } else {
-        const errorMsg = data.error || data.detail || data.message || 'Erreur lors de la validation';
-        console.log("🔴 Validation error:", errorMsg);
-        if (onPermissionError) onPermissionError(errorMsg);
-        throw new Error(errorMsg);
+        toast.error(data.error || "Erreur lors de la validation");
       }
     } catch (err) {
-      console.error("❌ Erreur dans handleValidate:", err);
-      throw err;
+      console.error("Erreur validation:", err);
+      toast.error("Erreur de connexion");
     }
   };
 
   const handleReject = async (applicationId, reason) => {
-    console.log("🔵 handleReject called for application:", applicationId);
-    
     try {
-      const res = await fetch(`${API}${rejectEndpoint}${applicationId}/`, {
-        method: 'POST',
+      const response = await fetch(`${API}${rejectEndpoint}${applicationId}/`, {
+        method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ rejection_reason: reason })
+        body: JSON.stringify({ rejection_reason: reason }),
       });
-      
-      const data = await res.json();
-      
-      console.log("🔍 Reject response status:", res.status);
-      console.log("🔍 Reject response data:", data);
-      
-      if (res.status === 403) {
-        const errorMsg = data.error || data.detail || data.message || "Vous n'avez pas les permissions pour refuser cette convention. Veuillez contacter le Department Head.";
-        console.log("🔴 403 detected in reject, calling onPermissionError with:", errorMsg);
-        if (onPermissionError) {
-          onPermissionError(errorMsg);
-        }
-        throw new Error(errorMsg);
+      const data = await response.json();
+
+      if (response.status === 403) {
+        const errorMsg = "Vous n'avez pas les permissions pour refuser cette convention.";
+        if (onPermissionError) onPermissionError(errorMsg);
+        toast.error(errorMsg);
+        return;
       }
-      
+
       if (data.success) {
-        toast.success('Candidature refusée');
+        toast.success("Candidature refusée");
         await fetchPendingValidations();
         setSelectedApp(null);
       } else {
-        const errorMsg = data.error || data.detail || data.message || 'Erreur lors du refus';
-        console.log("🔴 Reject error:", errorMsg);
-        if (onPermissionError) onPermissionError(errorMsg);
-        throw new Error(errorMsg);
+        toast.error(data.error || "Erreur lors du refus");
       }
     } catch (err) {
-      console.error("❌ Erreur dans handleReject:", err);
-      throw err;
+      console.error("Erreur refus:", err);
+      toast.error("Erreur de connexion");
     }
   };
 
-  const pendingCount = stats.pending;
-  const validatedCount = stats.validated;
+  const filtered = filter === "all" ? applications : applications.filter((a) => a.status === filter);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black">
-      <nav className="bg-white/10 backdrop-blur-lg border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-4">
-              {onBack && <button onClick={() => onBack()} className="flex items-center gap-2 text-white/70 hover:text-white transition"><ArrowLeft size={18} /> Retour</button>}
-              {backUrl && <button onClick={() => navigate(backUrl)} className="flex items-center gap-2 text-white/70 hover:text-white transition"><ArrowLeft size={18} /> Retour</button>}
-              {title && <><span className="text-white/30">|</span><h1 className="text-xl font-bold text-white">{title}</h1></>}
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div>
+      {/* Stats Cards with Donut Charts - same style as dashboard */}
+      <StatsCards stats={stats} loading={loading} />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-            <div className="flex items-center justify-between">
-              <div><p className="text-white/60 text-sm">En attente de validation</p><p className="text-3xl font-bold text-white">{pendingCount}</p></div>
-              <div className="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center"><Clock className="w-6 h-6 text-yellow-400" /></div>
-            </div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-            <div className="flex items-center justify-between">
-              <div><p className="text-white/60 text-sm">Validées (prêtes à signer)</p><p className="text-3xl font-bold text-white">{validatedCount}</p></div>
-              <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center"><PenTool className="w-6 h-6 text-purple-400" /></div>
-            </div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-            <div className="flex items-center justify-between">
-              <div><p className="text-white/60 text-sm">Total traitées</p><p className="text-3xl font-bold text-white">{stats.total}</p></div>
-              <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center"><FileText className="w-6 h-6 text-green-400" /></div>
-            </div>
-          </div>
-        </div>
+      {/* Filter buttons */}
+      <div className="flex gap-2 mb-6 flex-wrap p-4 pb-0 bg-white/5 rounded-t-xl">
+        <button
+          onClick={() => setFilter("all")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+            filter === "all" ? "bg-white/20 text-white" : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
+          }`}
+        >
+          Toutes ({stats.total})
+        </button>
+        <button
+          onClick={() => setFilter("accepted_by_company")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+            filter === "accepted_by_company" ? "bg-yellow-600 text-white" : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
+          }`}
+        >
+          En attente ({stats.pending})
+        </button>
+        <button
+          onClick={() => setFilter("validated_by_co_dept")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+            filter === "validated_by_co_dept" ? "bg-purple-600 text-white" : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
+          }`}
+        >
+          Validées ({stats.validated})
+        </button>
+        <button
+          onClick={() => setFilter("rejected_by_co_dept")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+            filter === "rejected_by_co_dept" ? "bg-red-600 text-white" : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
+          }`}
+        >
+          Refusées ({stats.rejected})
+        </button>
+      </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-20"><Loader2 size={32} className="animate-spin text-purple-400" /></div>
-        ) : applications.length === 0 ? (
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-12 text-center border border-white/20">
-            <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">{emptyMessage}</h3>
-            <p className="text-white/60">Toutes les conventions ont été traitées.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {applications.map((app) => {
-              const sigStatus = signatureStatuses[app.id];
-              const stampStatus = stampStatuses[app.id];
-              const isSigned = sigStatus?.university_signed || false;
-              const hasStamp = stampStatus?.has_stamp || false;
-              
-              return (
-                <div key={app.id} className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:border-purple-500 transition-all">
-                  <div className="flex flex-wrap justify-between items-start gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2 flex-wrap">
-                        <h3 className="text-lg font-semibold text-white">{app.offer.title}</h3>
-                        <StatusBadge status={app.status} />
-                        {isSigned && <StatusBadge status="fully_signed" />}
-                        {hasStamp && <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300">Cachet apposé</span>}
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                        <div><p className="text-white/60">Étudiant</p><p className="text-white font-medium">{app.student.full_name}</p><p className="text-white/40 text-xs">{app.student.email}</p></div>
-                        <div><p className="text-white/60">Entreprise</p><p className="text-white font-medium">{app.company.company_name}</p><p className="text-white/40 text-xs">{app.company.location}</p></div>
-                        <div>
-                          <p className="text-white/60">Candidature</p>
-                          <p className="text-white">Acceptée le {app.company_response_date}</p>
-                          {isSigned && sigStatus?.university_signature_date && <p className="text-green-400 text-xs">✓ Signée le {sigStatus.university_signature_date}</p>}
-                          {hasStamp && stampStatus?.stamp_date && <p className="text-blue-400 text-xs">✓ Cachet le {stampStatus.stamp_date}</p>}
-                          {app.status === 'validated_by_co_dept' && !isSigned && <p className="text-purple-400 text-xs">✎ En attente de signature</p>}
-                        </div>
-                      </div>
-                    </div>
-                    <button onClick={() => setSelectedApp({ ...app, convention_url: app.convention_url })} className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 rounded-lg transition">
-                      <Eye size={16} /> Voir détails
+      {loading ? (
+        <div className="flex items-center justify-center py-20 bg-white/5 rounded-b-xl">
+          <Loader2 size={32} className="animate-spin text-purple-400" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="p-16 text-center bg-white/5 rounded-b-xl">
+          <FileSignature size={48} className="mx-auto mb-3 text-white/20" />
+          <p className="text-white/50">{emptyMessage}</p>
+        </div>
+      ) : (
+        <div className="bg-white/5 rounded-b-xl border border-white/10 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-white/10 text-white/50 text-xs uppercase">
+              <tr>
+                <th className="px-4 py-3 text-left">Étudiant</th>
+                <th className="px-4 py-3 text-left">Offre</th>
+                <th className="px-4 py-3 text-left">Entreprise</th>
+                <th className="px-4 py-3 text-left">Date</th>
+                <th className="px-4 py-3 text-left">Statut</th>
+                <th className="px-4 py-3 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {filtered.map((app) => (
+                <tr key={app.id} className="hover:bg-white/5 transition">
+                  <td className="px-4 py-3">
+                    <p className="font-semibold text-white">{app.student?.full_name || "N/A"}</p>
+                    <p className="text-white/40 text-xs">{app.student?.email || "N/A"}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <p className="text-white">{app.offer?.title || "N/A"}</p>
+                    <p className="text-white/40 text-xs">{app.offer?.internship_type || "N/A"}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <p className="text-white">{app.company?.company_name || "N/A"}</p>
+                    <p className="text-white/40 text-xs">{app.company?.location || "N/A"}</p>
+                  </td>
+                  <td className="px-4 py-3 text-white/60">
+                    {app.applied_at ? new Date(app.applied_at).toLocaleDateString() : "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <StatusBadge status={app.status} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => setSelectedApp(app)}
+                      className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 text-xs font-medium transition"
+                    >
+                      <Eye size={14} /> Détails
                     </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </main>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {selectedApp && (
         <DetailsModal
@@ -779,8 +783,6 @@ export default function PendingValidationsList({
           onValidate={handleValidate}
           onReject={handleReject}
           onAddSignature={fetchPendingValidations}
-          initialSignatureStatus={signatureStatuses[selectedApp.id]}
-          initialStampStatus={stampStatuses[selectedApp.id]}
           onPermissionError={onPermissionError}
         />
       )}

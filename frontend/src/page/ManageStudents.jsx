@@ -9,7 +9,8 @@ import {
   TrendingUp, Award, BarChart3, Loader2, Clock,
   ChevronDown, ChevronUp, PieChart, TrendingDown, Download,
   User, Building2, UserCog, LogOut, Activity, SlidersHorizontal,
-  Settings, FileText, CheckSquare, BarChart
+  Settings, FileText, CheckSquare, BarChart, FileSignature,
+  FileText as FileTextIcon, CheckCircle2, XCircle as XCircleIcon
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AdminSidebarInline } from '../components/AdminSidebar';
@@ -20,6 +21,298 @@ const authHeaders = () => ({
   'Content-Type': 'application/json',
   'Authorization': `Bearer ${localStorage.getItem('access_token')}`
 });
+
+// ==================== DonutChart Component ====================
+const DonutChart = ({ percentage, color, trackColor, size = 140, stroke = 15 }) => {
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const [pct, setPct] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setPct(percentage), 200);
+    return () => clearTimeout(timer);
+  }, [percentage]);
+
+  const dash = (pct / 100) * circ;
+
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', display: 'block' }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={trackColor} strokeWidth={stroke} />
+      <circle
+        cx={size/2} cy={size/2} r={r}
+        fill="none" stroke={color} strokeWidth={stroke}
+        strokeDasharray={`${dash} ${circ}`}
+        strokeLinecap="round"
+        style={{ transition: 'stroke-dasharray 1.2s cubic-bezier(0.4,0,0.2,1)' }}
+      />
+    </svg>
+  );
+};
+
+const DonutCard = ({ title, percentage, count, label, color, trackColor, legendA, legendB, delay = 0 }) => {
+  const [visible, setVisible] = useState(false);
+  const ref = React.useRef(null);
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setTimeout(() => setVisible(true), delay); obs.disconnect(); } },
+      { threshold: 0.1 }
+    );
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, [delay]);
+
+  return (
+    <div
+      ref={ref}
+      className="donut-card"
+      style={{
+        background: 'rgba(255,255,255,0.07)',
+        border: '1px solid rgba(255,255,255,0.13)',
+        backdropFilter: 'blur(14px)',
+        borderRadius: 16,
+        padding: '18px 14px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: 12,
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(28px)',
+        transition: 'opacity 0.6s ease, transform 0.6s ease',
+        transitionDelay: `${delay}ms`,
+        width: '100%',
+        maxWidth: '100%',
+      }}
+    >
+      <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+        {title}
+      </span>
+      <div style={{ position: 'relative', alignSelf: 'center' }}>
+        <DonutChart percentage={visible ? percentage : 0} color={color} trackColor={trackColor} />
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: 26, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{percentage}%</span>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 3 }}>{count} {label}</span>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 12, alignSelf: 'center' }}>
+        {[{ c: color, l: legendA }, { c: trackColor, l: legendB }].map(({ c, l }) => (
+          <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 9, height: 9, borderRadius: '50%', background: c, display: 'inline-block' }} />
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>{l}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const SummaryCard = ({ label, value, accent, delay = 0 }) => {
+  const [v, setV] = useState(false);
+  const ref = React.useRef(null);
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setTimeout(() => setV(true), delay); obs.disconnect(); } }, { threshold: 0.1 });
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, [delay]);
+
+  return (
+    <div ref={ref} style={{
+      background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.13)',
+      backdropFilter: 'blur(14px)', borderRadius: 14, padding: '22px 28px', textAlign: 'center',
+      opacity: v ? 1 : 0, transform: v ? 'translateY(0)' : 'translateY(22px)',
+      transition: 'opacity 0.55s ease, transform 0.55s ease', transitionDelay: `${delay}ms`,
+    }}>
+      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>{label}</p>
+      <p style={{ fontSize: 38, fontWeight: 800, color: accent || '#fff', lineHeight: 1 }}>{value}</p>
+    </div>
+  );
+};
+
+// ==================== Statistics Section Complete ====================
+const StatisticsSection = ({ stats, loading, onBackToList, totalStudents }) => {
+  const [expandedSection, setExpandedSection] = useState(null);
+  
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
+        <div style={{ width: 38, height: 38, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#a855f7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      </div>
+    );
+  }
+
+  const g = stats?.global || {};
+  const totalStu = g.total_students || 0;
+  const placed = g.placed_students || 0;
+  const unplaced = g.unplaced_students || 0;
+  const placedPct = totalStu > 0 ? Math.round(placed / totalStu * 100) : 0;
+  const unplacedPct = totalStu > 0 ? Math.round(unplaced / totalStu * 100) : 0;
+
+  const donuts = [
+    { title: "Placed Students", percentage: placedPct, count: placed, label: "students", color: "#8b5cf6", trackColor: "#2d1d5e", legendA: "Placed", legendB: "Not Placed" },
+    { title: "Unplaced Students", percentage: unplacedPct, count: unplaced, label: "students", color: "#f472b6", trackColor: "#4a1340", legendA: "Unplaced", legendB: "Placed" },
+  ];
+
+  return (
+    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', width: '100%' }}>
+      {/* Bouton retour */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-bold text-white">Statistiques détaillées</h2>
+        <button
+          onClick={onBackToList}
+          className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition shadow-lg flex items-center gap-2"
+        >
+          <Users size={16} />
+          Voir la liste des étudiants
+        </button>
+      </div>
+
+      {/* Donuts */}
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginBottom: '36px' }}>
+        {donuts.map((d, i) => <DonutCard key={d.title} {...d} delay={i * 90} />)}
+      </div>
+      
+      {/* Summary Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 36 }}>
+        <SummaryCard label="Total Students" value={totalStu} delay={0} />
+        <SummaryCard label="Placement Rate" value={`${g.placement_rate || 0}%`} accent="#a855f7" delay={80} />
+        <SummaryCard label="Total Applications" value={stats?.total_applications || 0} delay={160} />
+      </div>
+
+      {/* Par filière */}
+      <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden mb-6">
+        <button
+          onClick={() => setExpandedSection(expandedSection === 'major' ? null : 'major')}
+          className="w-full p-5 flex justify-between items-center hover:bg-white/5 transition"
+        >
+          <div className="flex items-center gap-3">
+            <BookOpen className="w-5 h-5 text-purple-400" />
+            <h3 className="text-lg font-semibold text-white">Par filière</h3>
+          </div>
+          {expandedSection === 'major' ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        </button>
+        
+        {expandedSection === 'major' && (
+          <div className="p-5 pt-0 border-t border-white/10">
+            <div className="space-y-3">
+              {stats?.by_major && stats.by_major.map(major => (
+                <div key={major.name} className="bg-slate-800/60 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-white font-medium">{major.name}</span>
+                    <span className="text-purple-400 text-sm">{major.placement_rate}%</span>
+                  </div>
+                  <div className="flex gap-4 text-sm">
+                    <span className="text-green-400">✅ {major.placed} placés</span>
+                    <span className="text-yellow-400">⏳ {major.unplaced} en recherche</span>
+                    <span className="text-slate-400">📊 Total: {major.total}</span>
+                  </div>
+                  <div className="mt-2 h-2 bg-slate-700 rounded-full overflow-hidden">
+                    <div className="h-full bg-green-500 rounded-full" style={{ width: `${major.placement_rate}%` }} />
+                  </div>
+                </div>
+              ))}
+              {(!stats?.by_major || stats.by_major.length === 0) && (
+                <p className="text-white/40 text-center py-4">Aucune donnée par filière</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Par promotion */}
+      <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden mb-6">
+        <button
+          onClick={() => setExpandedSection(expandedSection === 'year' ? null : 'year')}
+          className="w-full p-5 flex justify-between items-center hover:bg-white/5 transition"
+        >
+          <div className="flex items-center gap-3">
+            <Calendar className="w-5 h-5 text-purple-400" />
+            <h3 className="text-lg font-semibold text-white">Par promotion</h3>
+          </div>
+          {expandedSection === 'year' ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        </button>
+        
+        {expandedSection === 'year' && (
+          <div className="p-5 pt-0 border-t border-white/10">
+            <div className="space-y-3">
+              {stats?.by_graduation_year && stats.by_graduation_year.sort((a,b) => b.year - a.year).map(year => (
+                <div key={year.year} className="bg-slate-800/60 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-white font-medium">Promotion {year.year}</span>
+                    <span className="text-purple-400 text-sm">{year.placement_rate}%</span>
+                  </div>
+                  <div className="flex gap-4 text-sm">
+                    <span className="text-green-400">✅ {year.placed} placés</span>
+                    <span className="text-yellow-400">⏳ {year.unplaced} en recherche</span>
+                    <span className="text-slate-400">📊 Total: {year.total}</span>
+                  </div>
+                  <div className="mt-2 h-2 bg-slate-700 rounded-full overflow-hidden">
+                    <div className="h-full bg-green-500 rounded-full" style={{ width: `${year.placement_rate}%` }} />
+                  </div>
+                </div>
+              ))}
+              {(!stats?.by_graduation_year || stats.by_graduation_year.length === 0) && (
+                <p className="text-white/40 text-center py-4">Aucune donnée par promotion</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Top compétences */}
+      <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
+        <button
+          onClick={() => setExpandedSection(expandedSection === 'skills' ? null : 'skills')}
+          className="w-full p-5 flex justify-between items-center hover:bg-white/5 transition"
+        >
+          <div className="flex items-center gap-3">
+            <Award className="w-5 h-5 text-purple-400" />
+            <h3 className="text-lg font-semibold text-white">Top compétences</h3>
+          </div>
+          {expandedSection === 'skills' ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        </button>
+        
+        {expandedSection === 'skills' && (
+          <div className="p-5 pt-0 border-t border-white/10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-green-400 font-semibold mb-3 flex items-center gap-2">
+                  <CheckCircle size={16} /> Étudiants placés
+                </h4>
+                <div className="space-y-2">
+                  {stats?.top_skills && stats.top_skills.placed && stats.top_skills.placed.slice(0, 8).map(skill => (
+                    <div key={skill.skill} className="flex justify-between items-center bg-green-500/10 rounded-lg p-2">
+                      <span className="text-white text-sm">{skill.skill}</span>
+                      <span className="text-green-400 text-sm font-semibold">{skill.count} étudiants</span>
+                    </div>
+                  ))}
+                  {(!stats?.top_skills?.placed || stats.top_skills.placed.length === 0) && (
+                    <p className="text-white/40 text-center py-4">Aucune donnée</p>
+                  )}
+                </div>
+              </div>
+              <div>
+                <h4 className="text-yellow-400 font-semibold mb-3 flex items-center gap-2">
+                  <Clock size={16} /> Étudiants en recherche
+                </h4>
+                <div className="space-y-2">
+                  {stats?.top_skills && stats.top_skills.unplaced && stats.top_skills.unplaced.slice(0, 8).map(skill => (
+                    <div key={skill.skill} className="flex justify-between items-center bg-yellow-500/10 rounded-lg p-2">
+                      <span className="text-white text-sm">{skill.skill}</span>
+                      <span className="text-yellow-400 text-sm font-semibold">{skill.count} étudiants</span>
+                    </div>
+                  ))}
+                  {(!stats?.top_skills?.unplaced || stats.top_skills.unplaced.length === 0) && (
+                    <p className="text-white/40 text-center py-4">Aucune donnée</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 // ==================== StudentCard Component ====================
 const StudentCard = ({ student, onClick }) => {
@@ -153,19 +446,6 @@ const StudentDetailsModal = ({ student, onClose }) => {
                 </div>
               </div>
             )}
-            
-            <div className="mt-4 flex gap-4">
-              {student.github && (
-                <a href={student.github} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-indigo-400 text-sm hover:underline">
-                  <Github size={14} /> GitHub
-                </a>
-              )}
-              {student.portfolio && (
-                <a href={student.portfolio} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-indigo-400 text-sm hover:underline">
-                  <Globe size={14} /> Portfolio
-                </a>
-              )}
-            </div>
           </div>
           
           <div className="bg-slate-800/60 rounded-xl p-5">
@@ -227,222 +507,6 @@ const StudentDetailsModal = ({ student, onClose }) => {
             )}
           </div>
         </div>
-      </div>
-    </div>
-  );
-};
-
-// ==================== StatisticsPanel Component ====================
-const StatisticsPanel = ({ stats, loading }) => {
-  const [expandedSection, setExpandedSection] = useState(null);
-  
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
-      </div>
-    );
-  }
-  
-  if (!stats) return null;
-  
-  const { global, by_major, by_graduation_year, top_skills, timeline } = stats;
-  
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-blue-600/20 to-blue-800/20 rounded-xl p-5 border border-blue-500/30">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-white/60 text-sm">Total étudiants</p>
-              <p className="text-3xl font-bold text-white">{global.total_students}</p>
-            </div>
-            <Users className="w-10 h-10 text-blue-400 opacity-60" />
-          </div>
-        </div>
-        
-        <div className="bg-gradient-to-br from-green-600/20 to-green-800/20 rounded-xl p-5 border border-green-500/30">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-white/60 text-sm">Stages trouvés</p>
-              <p className="text-3xl font-bold text-green-400">{global.placed_students}</p>
-            </div>
-            <TrendingUp className="w-10 h-10 text-green-400 opacity-60" />
-          </div>
-        </div>
-        
-        <div className="bg-gradient-to-br from-yellow-600/20 to-yellow-800/20 rounded-xl p-5 border border-yellow-500/30">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-white/60 text-sm">En recherche</p>
-              <p className="text-3xl font-bold text-yellow-400">{global.unplaced_students}</p>
-            </div>
-            <TrendingDown className="w-10 h-10 text-yellow-400 opacity-60" />
-          </div>
-        </div>
-        
-        <div className="bg-gradient-to-br from-purple-600/20 to-purple-800/20 rounded-xl p-5 border border-purple-500/30">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-white/60 text-sm">Taux de placement</p>
-              <p className="text-3xl font-bold text-purple-400">{global.placement_rate}%</p>
-            </div>
-            <PieChart className="w-10 h-10 text-purple-400 opacity-60" />
-          </div>
-        </div>
-      </div>
-      
-      {/* Par filière */}
-      <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
-        <button
-          onClick={() => setExpandedSection(expandedSection === 'major' ? null : 'major')}
-          className="w-full p-5 flex justify-between items-center hover:bg-white/5 transition"
-        >
-          <div className="flex items-center gap-3">
-            <BookOpen className="w-5 h-5 text-purple-400" />
-            <h3 className="text-lg font-semibold text-white">Par filière</h3>
-          </div>
-          {expandedSection === 'major' ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-        </button>
-        
-        {expandedSection === 'major' && (
-          <div className="p-5 pt-0 border-t border-white/10">
-            <div className="space-y-3">
-              {by_major && by_major.map(major => (
-                <div key={major.name} className="bg-slate-800/60 rounded-lg p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-white font-medium">{major.name}</span>
-                    <span className="text-purple-400 text-sm">{major.placement_rate}%</span>
-                  </div>
-                  <div className="flex gap-4 text-sm">
-                    <span className="text-green-400">✅ {major.placed} placés</span>
-                    <span className="text-yellow-400">⏳ {major.unplaced} en recherche</span>
-                    <span className="text-slate-400">📊 Total: {major.total}</span>
-                  </div>
-                  <div className="mt-2 h-2 bg-slate-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-green-500 rounded-full" style={{ width: `${major.placement_rate}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-      
-      {/* Par promotion */}
-      <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
-        <button
-          onClick={() => setExpandedSection(expandedSection === 'year' ? null : 'year')}
-          className="w-full p-5 flex justify-between items-center hover:bg-white/5 transition"
-        >
-          <div className="flex items-center gap-3">
-            <Calendar className="w-5 h-5 text-purple-400" />
-            <h3 className="text-lg font-semibold text-white">Par promotion</h3>
-          </div>
-          {expandedSection === 'year' ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-        </button>
-        
-        {expandedSection === 'year' && (
-          <div className="p-5 pt-0 border-t border-white/10">
-            <div className="space-y-3">
-              {by_graduation_year && by_graduation_year.sort((a,b) => b.year - a.year).map(year => (
-                <div key={year.year} className="bg-slate-800/60 rounded-lg p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-white font-medium">Promotion {year.year}</span>
-                    <span className="text-purple-400 text-sm">{year.placement_rate}%</span>
-                  </div>
-                  <div className="flex gap-4 text-sm">
-                    <span className="text-green-400">✅ {year.placed} placés</span>
-                    <span className="text-yellow-400">⏳ {year.unplaced} en recherche</span>
-                    <span className="text-slate-400">📊 Total: {year.total}</span>
-                  </div>
-                  <div className="mt-2 h-2 bg-slate-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-green-500 rounded-full" style={{ width: `${year.placement_rate}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-      
-      {/* Top compétences */}
-      <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
-        <button
-          onClick={() => setExpandedSection(expandedSection === 'skills' ? null : 'skills')}
-          className="w-full p-5 flex justify-between items-center hover:bg-white/5 transition"
-        >
-          <div className="flex items-center gap-3">
-            <Award className="w-5 h-5 text-purple-400" />
-            <h3 className="text-lg font-semibold text-white">Top compétences</h3>
-          </div>
-          {expandedSection === 'skills' ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-        </button>
-        
-        {expandedSection === 'skills' && (
-          <div className="p-5 pt-0 border-t border-white/10">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="text-green-400 font-semibold mb-3 flex items-center gap-2">
-                  <CheckCircle size={16} /> Étudiants placés
-                </h4>
-                <div className="space-y-2">
-                  {top_skills && top_skills.placed && top_skills.placed.slice(0, 8).map(skill => (
-                    <div key={skill.skill} className="flex justify-between items-center bg-green-500/10 rounded-lg p-2">
-                      <span className="text-white text-sm">{skill.skill}</span>
-                      <span className="text-green-400 text-sm font-semibold">{skill.count} étudiants</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h4 className="text-yellow-400 font-semibold mb-3 flex items-center gap-2">
-                  <Clock size={16} /> Étudiants en recherche
-                </h4>
-                <div className="space-y-2">
-                  {top_skills && top_skills.unplaced && top_skills.unplaced.slice(0, 8).map(skill => (
-                    <div key={skill.skill} className="flex justify-between items-center bg-yellow-500/10 rounded-lg p-2">
-                      <span className="text-white text-sm">{skill.skill}</span>
-                      <span className="text-yellow-400 text-sm font-semibold">{skill.count} étudiants</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-      
-      {/* Timeline */}
-      <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
-        <button
-          onClick={() => setExpandedSection(expandedSection === 'timeline' ? null : 'timeline')}
-          className="w-full p-5 flex justify-between items-center hover:bg-white/5 transition"
-        >
-          <div className="flex items-center gap-3">
-            <BarChart3 className="w-5 h-5 text-purple-400" />
-            <h3 className="text-lg font-semibold text-white">Évolution des placements</h3>
-          </div>
-          {expandedSection === 'timeline' ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-        </button>
-        
-        {expandedSection === 'timeline' && (
-          <div className="p-5 pt-0 border-t border-white/10">
-            <div className="space-y-3">
-              {timeline && timeline.map(item => (
-                <div key={item.month} className="bg-slate-800/60 rounded-lg p-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-white text-sm">{item.month}</span>
-                    <span className="text-green-400 text-sm font-semibold">{item.placed} placements</span>
-                  </div>
-                  <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-green-500 rounded-full" style={{ width: `${Math.min(100, item.placed * 5)}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -514,7 +578,17 @@ export default function ManageStudents() {
     try {
       const res = await fetch(`${API}/admin/placement-stats/`, { headers: authHeaders() });
       const data = await res.json();
-      if (data.success) setPlacementStats(data.stats);
+      if (data.success) {
+        // Calculer total des applications
+        let totalApps = 0;
+        if (students.length > 0) {
+          totalApps = students.reduce((sum, s) => sum + (s.applications_count || 0), 0);
+        }
+        setPlacementStats({
+          ...data.stats,
+          total_applications: totalApps
+        });
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -524,12 +598,13 @@ export default function ManageStudents() {
 
   useEffect(() => {
     fetchStudents();
-    fetchPlacementStats();
-  }, []);
+  }, [filters]);
 
   useEffect(() => {
-    fetchStudents();
-  }, [filters]);
+    if (students.length > 0) {
+      fetchPlacementStats();
+    }
+  }, [students]);
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -552,21 +627,17 @@ export default function ManageStudents() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Fixed sidebar - using existing component - no changes */}
       <AdminSidebarInline user={user} onLogout={handleLogout} />
 
-      {/* Main content area - exactly like CompanyActivityLogs.jsx */}
       <div className="ml-64 flex-1 min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Back button to admin dashboard */}
+          {/* Back button */}
           <button
             onClick={() => {
               if (user?.sub_role === 'admin') {
                 navigate('/admin/dashboard');
-              } else if (user?.sub_role === 'co_dept_head') {
-                navigate('/co-dept-head/dashboard');
               } else {
-                navigate('/admin/dashboard'); // fallback
+                navigate('/co-dept-head/dashboard');
               }
             }}
             className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
@@ -576,19 +647,12 @@ export default function ManageStudents() {
           </button>
 
           {showStats ? (
-            <>
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-white">Statistiques détaillées</h2>
-                <button
-                  onClick={() => setShowStats(false)}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition shadow-lg flex items-center gap-2"
-                >
-                  <Users size={16} />
-                  Voir la liste des étudiants
-                </button>
-              </div>
-              <StatisticsPanel stats={placementStats} loading={statsLoading} />
-            </>
+            <StatisticsSection 
+              stats={placementStats} 
+              loading={statsLoading} 
+              onBackToList={() => setShowStats(false)}
+              totalStudents={students.length}
+            />
           ) : (
             <>
               {/* Professional Filter Section */}
@@ -723,7 +787,6 @@ export default function ManageStudents() {
         </div>
       </div>
 
-      {/* Modal for student details */}
       {selectedStudent && (
         <StudentDetailsModal student={selectedStudent} onClose={() => setSelectedStudent(null)} />
       )}

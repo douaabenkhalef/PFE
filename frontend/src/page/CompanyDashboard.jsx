@@ -10,7 +10,8 @@ import toast from 'react-hot-toast';
 import CompanySidebar from '../components/CompanySidebar';
 import ChatWidget from '../components/ChatWidget';
 import PrivateChat from '../components/PrivateChat';
-
+// AJOUTER cette ligne
+import LanguageSelector from '../components/LanguageSelector';
 const API = 'http://localhost:8000/api';
 const BACKEND = 'http://localhost:8000';
 

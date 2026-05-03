@@ -361,6 +361,7 @@ def initiate_signup(request):
         role = request.data.get('role')
         clean_data = {k: v for k, v in request.data.items() if k != 'role'}
 
+        # ============ VALIDATION DU RÔLE ============
         if role == 'student':
             serializer = StudentRegistrationSerializer(data=clean_data)
         elif role == 'company':
@@ -368,82 +369,242 @@ def initiate_signup(request):
         elif role == 'admin':
             serializer = AdminRegistrationSerializer(data=clean_data)
         else:
-            return Response({'success': False, 'message': 'Invalid role'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'success': False, 
+                'errors': {'role': ['❌ Invalid role. Please select Student, Company, or Administration.']}
+            }, status=status.HTTP_400_BAD_REQUEST)
 
+        # ============ VALIDATION DU SERIALIZER ============
         if not serializer.is_valid():
-            return Response({'success': False, 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            # Renvoyer les erreurs du serializer directement
+            return Response({
+                'success': False, 
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
         email = data['email']
+        username = data['username']
 
+        # ============ VÉRIFICATION EMAIL EXISTANT ============
         if User.objects(email=email).first():
-            return Response({'success': False, 'errors': {'email': ['Email already in use.']}},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'success': False, 
+                'errors': {'email': ['❌ This email is already in use. Please use a different email or login.']}
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        if role == 'student' and ('univ' not in email or '.dz' not in email):
-            return Response({'success': False, 'errors': {'email': ['University email required.']}},
-                            status=status.HTTP_400_BAD_REQUEST)
+        # ============ VÉRIFICATION USERNAME EXISTANT ============
+        if User.objects(username=username).first():
+            return Response({
+                'success': False, 
+                'errors': {'username': ['❌ This username is already taken. Please choose another username.']}
+            }, status=status.HTTP_400_BAD_REQUEST)
 
+        # ============ VALIDATION EMAIL ÉTUDIANT ============
+        if role == 'student':
+            if 'univ' not in email.lower() or '.dz' not in email.lower():
+                return Response({
+                    'success': False, 
+                    'errors': {
+                        'email': ['❌ University email required. Email must contain "univ" and end with ".dz"']
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            if not data.get('skills') or len(data.get('skills', [])) == 0:
+                return Response({
+                    'success': False, 
+                    'errors': {
+                        'skills': ['❌ At least one skill is required. Type a skill and press Enter or click "Add"']
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        # ============ VALIDATION COMPANY MANAGER ============
+        if role == 'company' and data.get('sub_role') == 'company_manager':
+            required_fields = ['company_name', 'description', 'location', 'industry']
+            missing = [f for f in required_fields if not data.get(f)]
+            if missing:
+                field_names = {
+                    'company_name': 'Company Name',
+                    'description': 'Description',
+                    'location': 'Location (Wilaya)',
+                    'industry': 'Industry'
+                }
+                errors = {}
+                for field in missing:
+                    errors[field] = [f'❌ {field_names.get(field, field)} is required for Company Manager.']
+                return Response({'success': False, 'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        # ============ VALIDATION HIRING MANAGER ============
         if role == 'company' and data.get('sub_role') == 'hiring_manager':
             manager_email = data.get('company_manager_email')
             company_name = data.get('company_name_for_hiring')
+            
+            if not manager_email:
+                return Response({
+                    'success': False, 
+                    'errors': {
+                        'company_manager_email': ['❌ Company Manager Email is required for Hiring Manager.']
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            if not company_name:
+                return Response({
+                    'success': False, 
+                    'errors': {
+                        'company_name_for_hiring': ['❌ Company Name is required for Hiring Manager.']
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Vérifier si l'email du manager existe
             manager_user = User.objects(
                 email=manager_email,
                 role='company',
                 sub_role='company_manager',
                 status=True
             ).first()
+            
             if not manager_user:
-                return Response({'success': False, 'errors': {'company_manager_email': ['No approved company manager found.']}},
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response({
+                    'success': False, 
+                    'errors': {
+                        'company_manager_email': [f'❌ No approved Company Manager found with email "{manager_email}". Please verify the email.']
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Récupérer l'entreprise du manager
             manager_company = Company.objects(user=manager_user).first()
             if not manager_company:
-                return Response({'success': False, 'errors': {'company_manager_email': ['Company profile not found.']}},
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response({
+                    'success': False, 
+                    'errors': {
+                        'company_manager_email': [f'❌ The Company Manager "{manager_email}" does not have a company profile.']
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Vérifier si le nom de l'entreprise correspond
             if manager_company.company_name.lower() != company_name.lower():
-                return Response({'success': False,
-                                 'errors': {'company_name_for_hiring': ['Company name does not match manager\'s company.']}},
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response({
+                    'success': False, 
+                    'errors': {
+                        'company_name_for_hiring': [
+                            f'❌ Company name "{company_name}" does not match.\n'
+                            f'📌 The Company Manager belongs to: "{manager_company.company_name}"\n'
+                            f'✅ Please enter exactly: "{manager_company.company_name}"'
+                        ]
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
 
+        # ============ VALIDATION DEPARTMENT HEAD ============
+        if role == 'admin' and data.get('sub_role') == 'admin':
+            required_fields = ['full_name', 'wilaya', 'university']
+            missing = [f for f in required_fields if not data.get(f)]
+            if missing:
+                field_names = {
+                    'full_name': 'Full Name',
+                    'wilaya': 'Wilaya',
+                    'university': 'University'
+                }
+                errors = {}
+                for field in missing:
+                    errors[field] = [f'❌ {field_names.get(field, field)} is required for Department Head.']
+                return Response({'success': False, 'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Vérifier si l'université existe
+            from .models import UniversityProfile
+            existing_university = UniversityProfile.objects(university=data['university']).first()
+            if not existing_university:
+                return Response({
+                    'success': False, 
+                    'errors': {
+                        'university': [f'❌ University "{data["university"]}" does not exist in the system. Please contact the administrator.']
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        # ============ VALIDATION CO DEPARTMENT HEAD ============
         if role == 'admin' and data.get('sub_role') == 'co_dept_head':
             dept_head_email = data.get('dept_head_email')
             university_name = data.get('university_for_verification')
+            
+            if not dept_head_email:
+                return Response({
+                    'success': False, 
+                    'errors': {
+                        'dept_head_email': ['❌ Department Head Email is required for Co Department Head.']
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            if not university_name:
+                return Response({
+                    'success': False, 
+                    'errors': {
+                        'university_for_verification': ['❌ University name is required for Co Department Head.']
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Vérifier si l'email du Department Head existe
             dept_head_user = User.objects(
                 email=dept_head_email,
                 role='admin',
                 sub_role='admin',
                 status=True
             ).first()
+            
             if not dept_head_user:
-                return Response({'success': False, 'errors': {'dept_head_email': ['No approved department head found.']}},
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response({
+                    'success': False, 
+                    'errors': {
+                        'dept_head_email': [f'❌ No approved Department Head found with email "{dept_head_email}". Please verify the email.']
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Récupérer le profil admin du Department Head
             dept_head_admin = Admin.objects(user=dept_head_user).first()
             if not dept_head_admin:
-                return Response({'success': False, 'errors': {'dept_head_email': ['Admin profile not found.']}},
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response({
+                    'success': False, 
+                    'errors': {
+                        'dept_head_email': [f'❌ The Department Head "{dept_head_email}" does not have an admin profile.']
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Vérifier si le nom de l'université correspond
             if dept_head_admin.university.lower() != university_name.lower():
-                return Response({'success': False,
-                                 'errors': {'university_for_verification': ['University name does not match.']}},
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response({
+                    'success': False, 
+                    'errors': {
+                        'university_for_verification': [
+                            f'❌ University name "{university_name}" does not match.\n'
+                            f'📌 The Department Head is affiliated with: "{dept_head_admin.university}"\n'
+                            f'✅ Please enter exactly: "{dept_head_admin.university}"'
+                        ]
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
 
+        # ============ CRÉATION OTP ============
+        # 🔥 ON ARRIVE ICI SEULEMENT SI TOUTES LES VALIDATIONS SONT RÉUSSIES
         temp_data = {'role': role, 'data': data}
         code = create_otp_verification(email, temp_data)
         
+        # Toujours retourner succès (l'email peut échouer mais on garde le code dans la console)
+        print(f"\n🔐 ===== NEW SIGNUP =====\n📧 Email: {email}\n📝 Role: {role}\n🔑 OTP Code: {code}\n{'='*30}\n")
+        
         try:
-            email_sent = send_otp_email(email, code, "inscription")
+            send_otp_email(email, code, "inscription")
         except Exception as e:
-            print(f" Erreur lors de l'envoi de l'email: {e}")
-            email_sent = False
+            print(f"⚠️ Email sending error (ignored): {e}")
         
-        if not email_sent:
-            pass
-        
-        return Response({'success': True, 'message': 'Verification code sent', 'email': email})
+        return Response({
+            'success': True, 
+            'message': '✅ Verification code sent! Check your email (and spam folder).',
+            'email': email
+        })
 
     except Exception as e:
         traceback.print_exc()
-        return Response({'success': False, 'message': f'Erreur interne: {str(e)}'}, status=500)
-
+        return Response({
+            'success': False, 
+            'message': f'❌ Internal server error: {str(e)}'
+        }, status=500)
 
 @api_view(['POST'])
 def complete_signup(request):
@@ -1595,6 +1756,8 @@ def company_applications(request):
 
 # api/views.py - تعديل دالة respond_to_application
 
+# api/views.py
+
 @api_view(['POST'])
 @jwt_authenticated
 @role_required(allowed_roles=['company'])
@@ -1645,7 +1808,14 @@ def respond_to_application(request, application_id):
                     'reason': reason
                 }
             )
-        else:
+            
+            Notification.objects.create(
+                recipient=app.student.user,
+                message=f"❌ Votre candidature pour '{app.offer.title}' a été refusée par {company.company_name}.",
+                related_id=str(app.id)
+            )
+            
+        else:  # new_status == 'accepted'
             app.company_notes = request.data.get('notes', '')
             app.status = 'accepted_by_company'
             app.company_response_date = datetime.now()
@@ -1663,71 +1833,77 @@ def respond_to_application(request, application_id):
                 }
             )
 
-        app.save()
-
-        # 🔥 إرسال إشعار إلى الطالب (موجود بالفعل)
-        send_company_response_email(app.student.user.email, app.offer.title, new_status)
-
-        if new_status == 'accepted':
-            # 🔥 إضافة إشعار للطالب فور قبول الشركة
-            student_notification = Notification.objects.create(
+            # ========== NOTIFICATIONS ==========
+            
+            # 1. Notification pour l'étudiant
+            Notification.objects.create(
                 recipient=app.student.user,
                 message=f"✅ Félicitations ! Votre candidature pour '{app.offer.title}' a été acceptée par {company.company_name}. En attente de validation par votre université.",
                 related_id=str(app.id)
             )
-            print(f"✅ تم إرسال إشعار قبول الشركة للطالب {app.student.user.email}")
+            print(f"✅ Notification envoyée à l'étudiant {app.student.user.email}")
             
-            # البحث عن مسؤلي الجامعة (Co Dept Head) لإرسال إشعار لهم
-            student = app.student
-            student_university = student.university
+            # 2. Notification pour Department Head (admin avec sub_role='admin')
+            student_university = app.student.university
             
-            dept_head_admins = Admin.objects(university=student_university)
-            admin_list = []
+            # Récupérer les Department Heads (admin avec sub_role='admin')
+            dept_heads = Admin.objects(university=student_university)
             
-            for admin in dept_head_admins:
+            for admin in dept_heads:
                 if admin.user and admin.user.role == 'admin' and admin.user.sub_role == 'admin' and admin.user.status:
-                    admin_list.append(admin)
-            
-            if not admin_list:
-                for admin in dept_head_admins:
-                    if admin.user and admin.user.role == 'admin' and admin.user.sub_role == 'co_dept_head' and admin.user.status:
-                        admin_list.append(admin)
-            
-            for admin in admin_list:
-                admin_user = admin.user
-                if admin_user and admin_user.email:
-                    # إرسال إيميل لمسؤول الجامعة
-                    send_validation_pending_to_co_dept(
-                        co_dept_email=admin_user.email,
-                        co_dept_name=admin.full_name,
-                        student_name=student.full_name,
-                        company_name=company.company_name,
-                        offer_title=app.offer.title,
-                        application_id=str(app.id)
-                    )
-                    
-                    # 🔥 إضافة إشعار لمسؤول الجامعة
-                    admin_notification = Notification.objects.create(
-                        recipient=admin_user,
-                        message=f"📋 Nouvelle convention à valider : {student.full_name} - {app.offer.title}",
+                    Notification.objects.create(
+                        recipient=admin.user,
+                        message=f"📋 Nouvelle convention en attente de validation : {app.student.full_name} - {app.offer.title} ({company.company_name})",
                         related_id=str(app.id)
                     )
-                    print(f"✅ تم إرسال إشعار لمسؤول الجامعة {admin_user.email}")
+                    print(f"✅ Notification envoyée au Department Head {admin.user.email}")
             
-            # ❗ هذا الإشعار موجود بالفعل في الكود الأصلي، لكن قد يكون مكررًا. تأكد منه.
-            # Notification.objects.create(
-            #     recipient=app.student.user,
-            #     message=f"✅ Votre candidature pour '{app.offer.title}' a été acceptée par {company.company_name}. En attente de validation par votre université.",
-            #     related_id=str(app.id)
-            # )
-        
-        else:
-            # إشعار رفض الشركة (موجود بالفعل)
-            Notification.objects.create(
-                recipient=app.student.user,
-                message=f"❌ Votre candidature pour '{app.offer.title}' a été refusée par {company.company_name}.",
-                related_id=str(app.id)
+            # ==========================================================
+            # 3. Notification pour Co Department Head - CORRECTION ICI
+            # ==========================================================
+            
+            # Méthode 1: Filtrer d'abord les users co_dept_head
+            co_dept_users = User.objects(
+                role='admin',
+                sub_role='co_dept_head',
+                status=True
             )
+            
+            found_co_dept = False
+            for co_user in co_dept_users:
+                # Vérifier que l'admin appartient à la même université
+                co_admin = Admin.objects(user=co_user, university=student_university).first()
+                if co_admin:
+                    Notification.objects.create(
+                        recipient=co_user,
+                        message=f"📋 Nouvelle convention en attente de validation : {app.student.full_name} - {app.offer.title} ({company.company_name})",
+                        related_id=str(app.id)
+                    )
+                    found_co_dept = True
+                    print(f"✅ Notification envoyée au Co Department Head {co_user.email}")
+            
+            if not found_co_dept:
+                print(f"⚠️ Aucun Co Department Head trouvé pour l'université {student_university}")
+            
+            # ==========================================================
+            # 4. Envoi des emails
+            # ==========================================================
+            send_company_response_email(app.student.user.email, app.offer.title, new_status)
+            
+            # Récupérer un admin pour l'email (optionnel)
+            dept_head_email = dept_heads.first().user.email if dept_heads else None
+            dept_head_name = dept_heads.first().full_name if dept_heads else "Administrator"
+            
+            send_validation_pending_to_co_dept(
+                co_dept_email=dept_head_email,
+                co_dept_name=dept_head_name,
+                student_name=app.student.full_name,
+                company_name=company.company_name,
+                offer_title=app.offer.title,
+                application_id=str(app.id)
+            )
+
+        app.save()
 
         return Response({'success': True, 'message': f'Application {new_status} successfully.'})
 
@@ -1735,8 +1911,128 @@ def respond_to_application(request, application_id):
         print(f"❌ Erreur: {str(e)}")
         traceback.print_exc()
         return Response({'error': str(e)}, status=500)
+    # Dans views.py - Ajouter cet endpoint
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['co_dept_head'])
+def get_co_dept_pending_conventions(request):
+    """Récupère les conventions en attente de validation pour le Co Department Head"""
+    try:
+        co_dept = Admin.objects(user=request.user).first()
+        if not co_dept:
+            return Response({'success': False, 'error': 'Co Department Head profile not found'}, status=404)
+        
+        students = Student.objects(university=co_dept.university)
+        student_ids = [str(s.id) for s in students]
+        
+        pending_count = Application.objects(
+            student__in=student_ids,
+            status='accepted_by_company'
+        ).count()
+        
+        # Récupérer les détails des conventions en attente
+        pending_applications = Application.objects(
+            student__in=student_ids,
+            status='accepted_by_company'
+        ).order_by('-applied_at')
+        
+        pending_list = []
+        for app in pending_applications:
+            pending_list.append({
+                'id': str(app.id),
+                'student_name': app.student.full_name,
+                'offer_title': app.offer.title,
+                'company_name': app.offer.company.company_name,
+                'applied_at': app.applied_at.strftime('%d/%m/%Y %H:%M')
+            })
+        
+        return Response({
+            'success': True, 
+            'count': pending_count,
+            'pending_conventions': pending_list
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'])
+def get_pending_convention_notifications(request):
+    """Récupère les notifications de conventions en attente de validation"""
+    try:
+        notifications = Notification.objects(
+            recipient=request.user,
+            related_id__ne=None,  # Qui ont un related_id
+            is_read=False
+        ).order_by('-created_at')
+        
+        # Filtrer celles qui sont des conventions en attente
+        pending = []
+        for notif in notifications:
+            if 'attente de validation' in notif.message.lower() or 'nouvelle convention' in notif.message.lower():
+                # Récupérer la candidature associée
+                application = Application.objects(id=notif.related_id).first()
+                if application and application.status == 'accepted_by_company':
+                    pending.append({
+                        'id': str(notif.id),
+                        'message': notif.message,
+                        'created_at': notif.created_at.strftime("%d/%m/%Y %H:%M"),
+                        'application_id': notif.related_id,
+                        'student_name': application.student.full_name,
+                        'offer_title': application.offer.title,
+                        'company_name': application.offer.company.company_name
+                    })
+        
+        return Response({'success': True, 'pending_conventions': pending, 'count': len(pending)})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
 
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['admin', 'co_dept_head'])
+def get_pending_conventions_count(request):
+    """Récupère le nombre de conventions en attente de validation (pour Dept Head et Co Dept Head)"""
+    try:
+        admin_profile = Admin.objects(user=request.user).first()
+        if not admin_profile:
+            return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
+        
+        students = Student.objects(university=admin_profile.university)
+        student_ids = [str(s.id) for s in students]
+        
+        pending_count = Application.objects(
+            student__in=student_ids,
+            status='accepted_by_company'
+        ).count()
+        
+        return Response({'success': True, 'count': pending_count})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
 
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['co_dept_head'])
+def get_co_dept_pending_conventions_count(request):
+    """Récupère le nombre de conventions en attente de validation pour le Co Department Head"""
+    try:
+        co_dept = Admin.objects(user=request.user).first()
+        if not co_dept:
+            return Response({'success': False, 'error': 'Co Department Head profile not found'}, status=404)
+        
+        students = Student.objects(university=co_dept.university)
+        student_ids = [str(s.id) for s in students]
+        
+        pending_count = Application.objects(
+            student__in=student_ids,
+            status='accepted_by_company'
+        ).count()
+        
+        return Response({'success': True, 'count': pending_count})
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
 @api_view(['GET'])
 @jwt_authenticated
 @role_required(allowed_roles=['company'])
@@ -3129,7 +3425,7 @@ def generate_internship_agreement_pdf(application, admin_user):
     RIGHT_MARGIN = 1.5 * cm
     TOP_MARGIN = 1.5 * cm
     BOTTOM_MARGIN = 1.5 * cm
-    CONTENT_WIDTH = PAGE_W - LEFT_MARGIN - RIGHT_MARGIN  # ~17.7 cm
+    CONTENT_WIDTH = PAGE_W - LEFT_MARGIN - RIGHT_MARGIN
 
     doc = SimpleDocTemplate(
         buffer, pagesize=A4,
@@ -3138,7 +3434,6 @@ def generate_internship_agreement_pdf(application, admin_user):
     )
     styles = getSampleStyleSheet()
 
-    # ── Style definitions ──────────────────────────────────────────────────────
     title_style = ParagraphStyle(
         'DocTitle', parent=styles['Normal'],
         fontSize=13, fontName='Helvetica-Bold',
@@ -3177,50 +3472,43 @@ def generate_internship_agreement_pdf(application, admin_user):
     story = []
     today = datetime.now().strftime('%d/%m/%Y')
 
-    # ── Data shortcuts ─────────────────────────────────────────────────────────
-    company  = application.offer.company
-    student  = application.student
-    offer    = application.offer
+    company = application.offer.company
+    student = application.student
+    offer = application.offer
 
-    company_name     = getattr(company, 'company_name', '') or ''
+    company_name = getattr(company, 'company_name', '') or ''
     company_location = getattr(company, 'location', '') or ''
-    company_email    = getattr(company.user, 'email', '') if hasattr(company, 'user') else ''
-    company_phone    = getattr(company, 'phone', '') or ''
+    company_email = getattr(company.user, 'email', '') if hasattr(company, 'user') else ''
+    company_phone = getattr(company, 'phone', '') or ''
 
-    student_name  = getattr(student, 'full_name', '') or ''
+    student_name = getattr(student, 'full_name', '') or ''
     student_email = getattr(student.user, 'email', '') if hasattr(student, 'user') else ''
-    university    = getattr(student, 'university', '') or ''
-    major         = getattr(student, 'major', '') or ''
-    edu_level     = getattr(student, 'education_level', '') or ''
+    university = getattr(student, 'university', '') or ''
+    major = getattr(student, 'major', '') or ''
+    edu_level = getattr(student, 'education_level', '') or ''
 
     start_date = offer.start_date.strftime('%d/%m/%Y') if getattr(offer, 'start_date', None) else '___/___/______'
-    end_date   = offer.end_date.strftime('%d/%m/%Y')   if getattr(offer, 'end_date', None)   else '___/___/______'
-    duration   = getattr(offer, 'duration', '') or ''
+    end_date = offer.end_date.strftime('%d/%m/%Y') if getattr(offer, 'end_date', None) else '___/___/______'
+    duration = getattr(offer, 'duration', '') or ''
     offer_title = getattr(offer, 'title', '') or ''
 
     admin_name = getattr(admin_user, 'full_name', '') or ''
 
-    # ── Version stamp ──────────────────────────────────────────────────────────
     version_style = ParagraphStyle(
         'Version', parent=styles['Normal'],
         fontSize=7, fontName='Helvetica',
-        alignment=2,  # right
+        alignment=2,
     )
     story.append(Paragraph(f"Version du {today}", version_style))
     story.append(Spacer(1, 0.15 * cm))
 
-    # ── Titles ─────────────────────────────────────────────────────────────────
     story.append(Paragraph("<b>Convention de Stage EP1</b>", title_style))
     story.append(Paragraph(offer_title if offer_title else "Intitulé de la formation / du stage", subtitle_style))
     story.append(Spacer(1, 0.3 * cm))
 
-    # ═══════════════════════════════════════════════════════════════════════════
-    # SECTION 1 & 2  –  two-column table: Établissement | Organisme d'accueil
-    # ═══════════════════════════════════════════════════════════════════════════
     COL = CONTENT_WIDTH / 2
 
     def _field(label, value='', width=None):
-        """Return a Paragraph with label + underlined value or blank line."""
         val = value.strip() if value else ''
         line = '_' * 30 if not val else val
         return Paragraph(f"{label} : {line}", label_style)
@@ -3228,7 +3516,6 @@ def generate_internship_agreement_pdf(application, admin_user):
     def _line(label=''):
         return Paragraph(f"{label} ____________________________", label_style)
 
-    # Left column – Établissement de formation (static/university info)
     left_cell = [
         Paragraph("<b>1 - L'ÉTABLISSEMENT DE FORMATION</b>", section_header_style),
         Spacer(1, 0.2 * cm),
@@ -3245,7 +3532,6 @@ def generate_internship_agreement_pdf(application, admin_user):
         Paragraph(f"e-mail : {getattr(admin_user.user, 'email', '') if hasattr(admin_user, 'user') else ''}", label_style),
     ]
 
-    # Right column – Organisme d'accueil (company info)
     right_cell = [
         Paragraph("<b>2 - L'ORGANISME D'ACCUEIL</b>", section_header_style),
         Spacer(1, 0.2 * cm),
@@ -3267,39 +3553,38 @@ def generate_internship_agreement_pdf(application, admin_user):
         Paragraph("Lieu(x) du stage (si différent de l'adresse de l'organisme) : ____________________", label_style),
     ]
 
-    two_col = Table(
-        [[left_cell, right_cell]],
-        colWidths=[COL, COL],
-    )
+    two_col = Table([[left_cell, right_cell]], colWidths=[COL, COL])
     two_col.setStyle(TableStyle([
-        ('BOX',        (0, 0), (-1, -1), 0.8, colors.black),
-        ('LINEBEFORE',  (1, 0), (1, 0),  0.8, colors.black),
-        ('VALIGN',     (0, 0), (-1, -1), 'TOP'),
+        ('BOX', (0, 0), (-1, -1), 0.8, colors.black),
+        ('LINEBEFORE', (1, 0), (1, 0), 0.8, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('TOPPADDING', (0, 0), (-1, -1), 6),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
-        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
     ]))
     story.append(two_col)
     story.append(Spacer(1, 0.3 * cm))
 
-    # ═══════════════════════════════════════════════════════════════════════════
-    # SECTION 3  –  Le Stagiaire
-    # ═══════════════════════════════════════════════════════════════════════════
     birth_date = getattr(student, 'birth_date', None)
-    birth_str  = birth_date.strftime('%d/%m/%Y') if birth_date else '___/___/______'
+    birth_str = birth_date.strftime('%d/%m/%Y') if birth_date else '___/___/______'
+
+    # CORRECTION ICI : extraire nom et prénom avant la f-string
+    name_parts = student_name.split() if student_name else []
+    last_name = name_parts[-1] if name_parts else '____________________'
+    first_name = ' '.join(name_parts[:-1]) if len(name_parts) > 1 else '____________________'
 
     stagiaire_content = [
         Paragraph("<b>3 - LE STAGIAIRE</b>", section_header_style),
         Spacer(1, 0.25 * cm),
         Paragraph(
-            f"Nom : <b>{student_name.split()[-1] if student_name else '____________________'}</b>"
-            f"      Prénom : <b>{' '.join(student_name.split()[:-1]) if student_name else '____________________'}</b>"
+            f"Nom : <b>{last_name}</b>"
+            f"      Prénom : <b>{first_name}</b>"
             f"      Sexe : F ☐  M ☐      Né(e) le : {birth_str}",
             label_style,
         ),
         Spacer(1, 0.2 * cm),
-        Paragraph(f"Adresse : ____________________________", label_style),
+        Paragraph("Adresse : ____________________________", label_style),
         Spacer(1, 0.2 * cm),
         Paragraph(f"téléphone __________________      e-mail : {student_email}", label_style),
         Spacer(1, 0.25 * cm),
@@ -3312,18 +3597,15 @@ def generate_internship_agreement_pdf(application, admin_user):
 
     stagiaire_table = Table([[stagiaire_content]], colWidths=[CONTENT_WIDTH])
     stagiaire_table.setStyle(TableStyle([
-        ('BOX',           (0, 0), (-1, -1), 0.8, colors.black),
-        ('TOPPADDING',    (0, 0), (-1, -1), 6),
+        ('BOX', (0, 0), (-1, -1), 0.8, colors.black),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
-        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
     ]))
     story.append(stagiaire_table)
     story.append(Spacer(1, 0.3 * cm))
 
-    # ═══════════════════════════════════════════════════════════════════════════
-    # SECTION 4  –  Sujet de Stage / Dates
-    # ═══════════════════════════════════════════════════════════════════════════
     stage_content = [
         Paragraph(f"<u><b>Sujet de Stage</b></u> : {offer_title}", bold_label_style),
         Spacer(1, 0.2 * cm),
@@ -3334,36 +3616,29 @@ def generate_internship_agreement_pdf(application, admin_user):
         Paragraph("Et correspondant à _______ jours de présence effective", label_style),
         Spacer(1, 0.15 * cm),
         Paragraph(
-            "Répartition si présence discontinue : _______nombre d'heures par semaine ou nombre d'heures par jour "
-            "(rayer la mention inutile).",
+            "Répartition si présence discontinue : _______nombre d'heures par semaine ou nombre d'heures par jour (rayer la mention inutile).",
             label_style,
         ),
         Spacer(1, 0.15 * cm),
         Paragraph("Commentaire : ____________________________", label_style),
         Spacer(1, 0.2 * cm),
         Paragraph(
-            "<i>Chaque période au moins égale à sept heures de présence, consécutives ou non, est considérée "
-            "comme équivalente à un jour et chaque période au moins égale à vingt jours de présence, consécutifs "
-            "ou non, est considérée comme équivalente à un mois. (art D124-6 Code de l'éducation)</i>",
+            "Chaque période au moins égale à sept heures de présence, consécutives ou non, est considérée comme équivalente à un jour et chaque période au moins égale à vingt jours de présence, consécutifs ou non, est considérée comme équivalente à un mois. (art D124-6 Code de l'éducation)",
             small_italic_style,
         ),
     ]
 
     stage_table = Table([[stage_content]], colWidths=[CONTENT_WIDTH])
     stage_table.setStyle(TableStyle([
-        ('BOX',           (0, 0), (-1, -1), 0.8, colors.black),
-        ('TOPPADDING',    (0, 0), (-1, -1), 6),
+        ('BOX', (0, 0), (-1, -1), 0.8, colors.black),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
-        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
     ]))
     story.append(stage_table)
     story.append(Spacer(1, 0.3 * cm))
 
-    # ═══════════════════════════════════════════════════════════════════════════
-    # SECTION 5  –  Encadrement (two-column)
-    # ═══════════════════════════════════════════════════════════════════════════
-    # Load signature and stamp images
     signature_img = None
     stamp_img = None
 
@@ -3389,7 +3664,6 @@ def generate_internship_agreement_pdf(application, admin_user):
         except Exception as e:
             print(f"Erreur chargement cachet: {e}")
 
-    # Left: encadrement par établissement de formation
     enc_left = [
         Paragraph("<b>Encadrement du stagiaire par l'établissement de formation</b>", section_header_style),
         Spacer(1, 0.2 * cm),
@@ -3402,13 +3676,11 @@ def generate_internship_agreement_pdf(application, admin_user):
             label_style,
         ),
         Spacer(1, 0.3 * cm),
-        # ── Signature de l'université ──
         Paragraph("<b>Signature de l'université :</b>", bold_label_style),
         Spacer(1, 0.15 * cm),
         signature_img if signature_img else Paragraph("____________________________", label_style),
     ]
 
-    # Right: encadrement par organisme d'accueil (company)
     enc_right = [
         Paragraph("<b>Encadrement du stagiaire par L'organisme d'accueil</b>", section_header_style),
         Spacer(1, 0.2 * cm),
@@ -3416,7 +3688,6 @@ def generate_internship_agreement_pdf(application, admin_user):
         Spacer(1, 0.15 * cm),
         Paragraph("Fonction : ____________________", label_style),
         Spacer(1, 0.3 * cm),
-        # ── Cachet de l'université ──
         Paragraph("<b>Cachet de l'université :</b>", bold_label_style),
         Spacer(1, 0.15 * cm),
         stamp_img if stamp_img else Paragraph("____________________________", label_style),
@@ -3424,35 +3695,30 @@ def generate_internship_agreement_pdf(application, admin_user):
 
     enc_table = Table([[enc_left, enc_right]], colWidths=[COL, COL])
     enc_table.setStyle(TableStyle([
-        ('BOX',        (0, 0), (-1, -1), 0.8, colors.black),
-        ('LINEBEFORE',  (1, 0), (1, 0),  0.8, colors.black),
-        ('VALIGN',     (0, 0), (-1, -1), 'TOP'),
+        ('BOX', (0, 0), (-1, -1), 0.8, colors.black),
+        ('LINEBEFORE', (1, 0), (1, 0), 0.8, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('TOPPADDING', (0, 0), (-1, -1), 6),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
-        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
     ]))
     story.append(enc_table)
     story.append(Spacer(1, 0.4 * cm))
 
-    # ── Footer ────────────────────────────────────────────────────────────────
-    footer_lines = (
-        f"{university}  –  {getattr(admin_user, 'address', '') or 'Adresse de l\'université'}<br/>"
-        f"Tél : ____________________  –  Email : {getattr(admin_user.user, 'email', '') if hasattr(admin_user, 'user') else ''}<br/>"
-        "SIRET ____________________  –  APE ______  –  Déclaration d'activité enregistrée sous le numéro ____________________<br/>"
-        "auprès du préfet de région"
-    )
+    admin_email = getattr(admin_user.user, 'email', '') if hasattr(admin_user, 'user') else ''
+    admin_address = getattr(admin_user, 'address', '') or "Adresse de l'université"
+    
+    footer_lines = f"{university}  –  {admin_address}<br/>Tél : ____________________  –  Email : {admin_email}<br/>SIRET ____________________  –  APE ______  –  Déclaration d'activité enregistrée sous le numéro ____________________<br/>auprès du préfet de région"
     story.append(HRFlowable(width=CONTENT_WIDTH, thickness=0.5, color=colors.black))
     story.append(Spacer(1, 0.1 * cm))
     story.append(Paragraph(footer_lines, footer_style))
 
-    # ── Build ──────────────────────────────────────────────────────────────────
     doc.build(story)
 
     pdf_content = ContentFile(buffer.getvalue())
     pdf_content.name = f"convention_{student_name}_{company_name}.pdf"
     return pdf_content
-
 
 @api_view(['POST'])
 @jwt_authenticated
@@ -4687,6 +4953,48 @@ def dept_head_validated_validations(request):
         print(f" Erreur: {str(e)}")
         traceback.print_exc()
         return Response({'success': False, 'error': str(e)}, status=500)
+    
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'], allowed_sub_roles=['co_dept_head'])
+def co_dept_validated_validations(request):
+    """Récupère les conventions déjà validées par le Co Department Head"""
+    try:
+        co_dept = Admin.objects(user=request.user).first()
+        if not co_dept:
+            return Response({'success': False, 'error': 'Profil Co Department Head non trouvé'}, status=404)
+        
+        students = Student.objects(university=co_dept.university)
+        student_ids = [str(s.id) for s in students]
+        
+        applications = Application.objects(
+            student__in=student_ids,
+            status='validated_by_co_dept'
+        ).order_by('-co_dept_validation_date')
+        
+        result = []
+        for app in applications:
+            result.append({
+                'id': str(app.id),
+                'status': app.status,
+                'applied_at': app.applied_at.strftime('%Y-%m-%d %H:%M') if app.applied_at else None,
+                'student': {
+                    'full_name': app.student.full_name,
+                    'email': app.student.user.email if app.student.user else None,
+                },
+                'offer': {
+                    'title': app.offer.title,
+                },
+                'company': {
+                    'company_name': app.offer.company.company_name if app.offer.company else None,
+                }
+            })
+        
+        return Response({'success': True, 'applications': result})
+        
+    except Exception as e:
+        print(f"❌ Erreur: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=500)    
 
 
 @api_view(['POST'])
@@ -7032,6 +7340,203 @@ def get_offer_applicants_count(request, offer_id):
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
 
+# Dans views.py, ajouter :
+@api_view(['GET'])
+@jwt_authenticated
+def get_private_conversations(request):
+    """Get all users the current user has had private conversations with"""
+    try:
+        from .models import PrivateChatMessage
+        from mongoengine.queryset.visitor import Q
+        
+        user = request.user
+        
+        # Récupérer tous les IDs uniques des utilisateurs avec qui l'utilisateur a discuté
+        user_ids = set()
+        
+        # Utiliser Q objects pour une meilleure requête
+        try:
+            # Récupérer tous les messages uniques
+            all_messages = PrivateChatMessage.objects(
+                Q(sender_id=str(user.id)) | Q(receiver_id=str(user.id))
+            ).only('sender_id', 'receiver_id')
+            
+            for msg in all_messages:
+                if msg.sender_id and msg.sender_id != str(user.id):
+                    user_ids.add(msg.sender_id)
+                if msg.receiver_id and msg.receiver_id != str(user.id):
+                    user_ids.add(msg.receiver_id)
+        except Exception as e:
+            print(f"Erreur récupération messages: {e}")
+            return Response({'success': True, 'conversations': []})
+        
+        conversations = []
+        for uid in user_ids:
+            try:
+                other_user = User.objects(id=uid).first()
+                if not other_user:
+                    continue
+                
+                # Récupérer le dernier message avec une requête plus simple
+                last_msg = None
+                try:
+                    # Requête plus simple et robuste
+                    msgs = PrivateChatMessage.objects(
+                        sender_id=str(user.id),
+                        receiver_id=uid
+                    ).order_by('-created_at').limit(1)
+                    
+                    if msgs.count() == 0:
+                        msgs = PrivateChatMessage.objects(
+                            sender_id=uid,
+                            receiver_id=str(user.id)
+                        ).order_by('-created_at').limit(1)
+                    
+                    if msgs.count() > 0:
+                        last_msg = msgs.first()
+                except Exception as e:
+                    print(f"Erreur récupération dernier message: {e}")
+                
+                # Compter les messages non lus
+                unread_count = 0
+                try:
+                    unread_count = PrivateChatMessage.objects(
+                        sender_id=uid,
+                        receiver_id=str(user.id),
+                        is_read=False
+                    ).count()
+                except Exception as e:
+                    print(f"Erreur comptage messages non lus: {e}")
+                
+                # Obtenir le nom complet
+                full_name = other_user.username
+                if other_user.role == 'admin':
+                    admin = Admin.objects(user=other_user).first()
+                    if admin and admin.full_name:
+                        full_name = admin.full_name
+                elif other_user.role == 'student':
+                    student = Student.objects(user=other_user).first()
+                    if student and student.full_name:
+                        full_name = student.full_name
+                elif other_user.role == 'company':
+                    company = Company.objects(user=other_user).first()
+                    if company and company.company_name:
+                        full_name = company.company_name
+                
+                conversations.append({
+                    'user_id': uid,
+                    'username': other_user.username,
+                    'full_name': full_name,
+                    'is_online': other_user.is_online(),
+                    'unread_count': unread_count,
+                    'last_message': last_msg.message if last_msg else None,
+                    'last_message_time': last_msg.created_at.isoformat() if last_msg and last_msg.created_at else None
+                })
+            except Exception as e:
+                print(f"Erreur traitement conversation pour {uid}: {e}")
+                continue
+        
+        # Trier par date du dernier message
+        conversations.sort(key=lambda x: x['last_message_time'] or '', reverse=True)
+        
+        return Response({'success': True, 'conversations': conversations})
+        
+    except Exception as e:
+        print(f"Erreur get_private_conversations: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({'success': True, 'conversations': []})
+@api_view(['GET'])
+@jwt_authenticated
+def get_private_chat_history(request, user_id):
+    """Get chat history between current user and another user"""
+    try:
+        from .models import PrivateChatMessage
+        
+        current_user = request.user
+        other_user = User.objects(id=user_id).first()
+        
+        if not other_user:
+            return Response({'success': False, 'error': 'User not found'}, status=404)
+        
+        # Récupérer tous les messages entre les deux utilisateurs
+        messages = []
+        try:
+            messages = PrivateChatMessage.objects(
+                __raw__={
+                    '$or': [
+                        {'sender_id': str(current_user.id), 'receiver_id': user_id},
+                        {'sender_id': user_id, 'receiver_id': str(current_user.id)}
+                    ]
+                }
+            ).order_by('created_at')
+        except Exception as e:
+            print(f"Erreur récupération messages: {e}")
+        
+        # Marquer les messages non lus comme lus
+        try:
+            PrivateChatMessage.objects(
+                sender_id=user_id,
+                receiver_id=str(current_user.id),
+                is_read=False
+            ).update(set__is_read=True)
+        except Exception as e:
+            print(f"Erreur mise à jour messages lus: {e}")
+        
+        # Obtenir le nom complet
+        full_name = other_user.username
+        if other_user.role == 'admin':
+            admin = Admin.objects(user=other_user).first()
+            if admin and admin.full_name:
+                full_name = admin.full_name
+        elif other_user.role == 'student':
+            student = Student.objects(user=other_user).first()
+            if student and student.full_name:
+                full_name = student.full_name
+        elif other_user.role == 'company':
+            company = Company.objects(user=other_user).first()
+            if company and company.company_name:
+                full_name = company.company_name
+        
+        result = []
+        for msg in messages:
+            result.append({
+                'id': str(msg.id),
+                'sender_id': msg.sender_id,
+                'receiver_id': msg.receiver_id,
+                'message': msg.message,
+                'message_type': getattr(msg, 'message_type', 'text'),
+                'file_url': getattr(msg, 'file_url', ''),
+                'file_name': getattr(msg, 'file_name', ''),
+                'timestamp': msg.created_at.isoformat() if msg.created_at else None,
+                'is_read': msg.is_read,
+                'from_user_name': full_name if msg.sender_id == user_id else None
+            })
+        
+        # Compter les messages non lus
+        unread_count = PrivateChatMessage.objects(
+            sender_id=user_id,
+            receiver_id=str(current_user.id),
+            is_read=False
+        ).count()
+        
+        return Response({
+            'success': True,
+            'messages': result,
+            'unread_count': unread_count,
+            'other_user': {
+                'id': str(other_user.id),
+                'username': other_user.username,
+                'full_name': full_name,
+                'is_online': other_user.is_online()
+            }
+        })
+        
+    except Exception as e:
+        print(f"Erreur get_private_chat_history: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({'success': False, 'error': str(e)}, status=500)
 
 @api_view(['GET'])
 @jwt_authenticated

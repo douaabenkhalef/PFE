@@ -1,7 +1,7 @@
 // frontend/src/page/CoDeptHeadDashboard.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Clock, Users, FileCheck, FileText, Bell, CheckCheck, X,
   CheckCircle, XCircle, AlertTriangle, Search,
@@ -9,7 +9,6 @@ import {
   MapPin, BookOpen, Mail, User as UserIcon, Briefcase, Calendar
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import UniversityUsersStatus from '../components/UniversityUsersStatus';
 import ChatWidget from '../components/ChatWidget';
 import PrivateChat from '../components/PrivateChat';
 import AdminSidebar from '../components/AdminSidebar';
@@ -22,7 +21,7 @@ const authHeaders = () => ({
   'Authorization': `Bearer ${token()}`
 });
 
-// ─── Animated SVG Donut ───────────────────
+// ─── Animated SVG Donut ─────────────────────────────────
 const DonutChart = ({ percentage, color, trackColor, size = 140, stroke = 15 }) => {
   const r    = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
@@ -51,11 +50,27 @@ const DonutCard = ({ title, percentage, count, label, color, trackColor, legendA
     return () => obs.disconnect();
   }, [delay]);
   return (
-    <div ref={ref} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.13)',
-      backdropFilter: 'blur(14px)', borderRadius: 16, padding: '18px 14px 14px',
-      display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 12,
-      opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(28px)',
-      transition: 'opacity 0.6s ease, transform 0.6s ease', transitionDelay: `${delay}ms` }}>
+    <div
+      ref={ref}
+      className="donut-card"
+      style={{
+        background: 'rgba(255,255,255,0.07)',
+        border: '1px solid rgba(255,255,255,0.13)',
+        backdropFilter: 'blur(14px)',
+        borderRadius: 16,
+        padding: '18px 14px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: 12,
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(28px)',
+        transition: 'opacity 0.6s ease, transform 0.6s ease',
+        transitionDelay: `${delay}ms`,
+        width: '100%',
+        maxWidth: '100%',
+      }}
+    >
       <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{title}</span>
       <div style={{ position: 'relative', alignSelf: 'center' }}>
         <DonutChart percentage={visible ? percentage : 0} color={color} trackColor={trackColor} />
@@ -85,10 +100,12 @@ const SummaryCard = ({ label, value, accent, delay = 0 }) => {
     return () => obs.disconnect();
   }, [delay]);
   return (
-    <div ref={ref} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.13)',
+    <div ref={ref} style={{
+      background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.13)',
       backdropFilter: 'blur(14px)', borderRadius: 14, padding: '22px 28px', textAlign: 'center',
       opacity: v ? 1 : 0, transform: v ? 'translateY(0)' : 'translateY(22px)',
-      transition: 'opacity 0.55s ease, transform 0.55s ease', transitionDelay: `${delay}ms` }}>
+      transition: 'opacity 0.55s ease, transform 0.55s ease', transitionDelay: `${delay}ms`,
+    }}>
       <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>{label}</p>
       <p style={{ fontSize: 38, fontWeight: 800, color: accent || '#fff', lineHeight: 1 }}>{value}</p>
     </div>
@@ -118,8 +135,8 @@ const StatisticsSection = ({ stats, loading, requestStats }) => {
     { title: "Rejected Requests", percentage: rejPct,      count: rejected,  label: "requests", color: "#f97316", trackColor: "#3b1200", legendA: "Completed", legendB: "Remaining" },
   ];
   return (
-    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 14, marginBottom: 36 }}>
+    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', width: '100%' }}>
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '20px', marginBottom: '36px' }}>
         {donuts.map((d, i) => <DonutCard key={d.title} {...d} delay={i * 90} />)}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 36 }}>
@@ -155,7 +172,7 @@ const StudentDetailModal = ({ student, onClose }) => {
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white transition"><X size={20} /></button>
         <h2 className="text-2xl font-bold text-white mb-4">{student.full_name}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-slate-800/60 rounded-lg p-4"><p className="text-xs text-purple-400 uppercase mb-1">Email</p><p className="text-white flex items-center gap-2"><MailIcon size={14} className="text-slate-400"/>{student.email || '—'}</p></div>
+          <div className="bg-slate-800/60 rounded-lg p-4"><p className="text-xs text-purple-400 uppercase mb-1">Email</p><p className="text-white flex items-center gap-2"><Mail size={14} className="text-slate-400"/>{student.email || '—'}</p></div>
           <div className="bg-slate-800/60 rounded-lg p-4"><p className="text-xs text-purple-400 uppercase mb-1">Wilaya</p><p className="text-white flex items-center gap-2"><MapPin size={14} className="text-slate-400"/>{student.wilaya}</p></div>
           <div className="bg-slate-800/60 rounded-lg p-4"><p className="text-xs text-purple-400 uppercase mb-1">University</p><p className="text-white flex items-center gap-2"><BookOpen size={14} className="text-slate-400"/>{student.university}</p></div>
           <div className="bg-slate-800/60 rounded-lg p-4"><p className="text-xs text-purple-400 uppercase mb-1">Major</p><p className="text-white">{student.major}</p></div>
@@ -246,6 +263,7 @@ const CoDeptHeadDashboard = () => {
   const notifRef = useRef(null);
   const [privateChatOpen, setPrivateChatOpen] = useState(false);
   const [selectedChatUser, setSelectedChatUser] = useState(null);
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const [homeStudents, setHomeStudents] = useState([]);
   const [homeSearchLoading, setHomeSearchLoading] = useState(false);
@@ -261,47 +279,17 @@ const CoDeptHeadDashboard = () => {
   const homeRef     = useRef(null);
   const statsRef    = useRef(null);
   const studentsPageRef = useRef(null);
-  const teamRef     = useRef(null);
   const [activeSection, setActiveSection] = useState('home');
-
-  useEffect(() => {
-    fetchPlacementStats();
-    fetchRequestStats();
-    fetchNotifications();
-    fetchUserPermissions();
-    fetchUniversityProfile();
-    fetchAllStudents();
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => { if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false); };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => entries.forEach(e => { if (e.isIntersecting) setActiveSection(e.target.dataset.section); }),
-      { threshold: 0.3, rootMargin: '-70px 0px -70px 0px' }
-    );
-    const els = [homeRef.current, statsRef.current, studentsPageRef.current, teamRef.current].filter(Boolean);
-    els.forEach(el => observer.observe(el));
-    return () => els.forEach(el => observer.unobserve(el));
-  }, []);
-
-  const scrollTo = (id, ref) => {
-    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    setActiveSection(id);
-  };
+  const [sectionVisible, setSectionVisible] = useState({ home: true, stats: false, students: false });
 
   const fetchUserPermissions = async () => {
     try {
       const res = await fetch(`${API}/auth/me/`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success && data.permissions) setUserPermissions(data.permissions);
-    } catch {}
+    } catch (error) {
+      console.error("Error fetching user permissions:", error);
+    }
   };
 
   const fetchPlacementStats = async () => {
@@ -310,8 +298,11 @@ const CoDeptHeadDashboard = () => {
       const res = await fetch(`${API}/admin/placement-stats/`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) setPlacementStats(data.stats);
-    } catch {}
-    finally { setStatsLoading(false); }
+    } catch (error) {
+      console.error("Error fetching placement stats:", error);
+    } finally { 
+      setStatsLoading(false); 
+    }
   };
 
   const fetchRequestStats = async () => {
@@ -326,7 +317,9 @@ const CoDeptHeadDashboard = () => {
         });
         setRequestStats({ total: validated + pending + rejected, validated, pending, rejected });
       }
-    } catch {}
+    } catch (error) {
+      console.error("Error fetching request stats:", error);
+    }
   };
 
   const fetchNotifications = async () => {
@@ -334,7 +327,9 @@ const CoDeptHeadDashboard = () => {
       const res = await fetch(`${API}/student/notifications/`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) setNotifications(data.notifications || []);
-    } catch {}
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
   };
 
   const fetchUniversityProfile = async () => {
@@ -342,7 +337,9 @@ const CoDeptHeadDashboard = () => {
       const res = await fetch(`${API}/admin/university-profile/`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) setUniversityProfile(data.profile);
-    } catch {}
+    } catch (error) {
+      console.error("Error fetching university profile:", error);
+    }
   };
 
   const fetchAllStudents = async () => {
@@ -351,8 +348,11 @@ const CoDeptHeadDashboard = () => {
       const res = await fetch(`${API}/admin/university-students/`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) setAllStudents(data.students || []);
-    } catch {}
-    finally { setStudentsPageLoading(false); }
+    } catch (error) {
+      console.error("Error fetching all students:", error);
+    } finally { 
+      setStudentsPageLoading(false); 
+    }
   };
 
   const handleHomeSearch = async (e) => {
@@ -367,8 +367,12 @@ const CoDeptHeadDashboard = () => {
       const data = await res.json();
       if (data.success) setHomeStudents(data.students || []);
       else setHomeStudents([]);
-    } catch { setHomeStudents([]); }
-    finally { setHomeSearchLoading(false); }
+    } catch (error) {
+      console.error("Error searching students:", error);
+      setHomeStudents([]);
+    } finally { 
+      setHomeSearchLoading(false); 
+    }
   };
 
   const fetchStudentDetails = async (studentId) => {
@@ -376,14 +380,18 @@ const CoDeptHeadDashboard = () => {
       const res = await fetch(`${API}/admin/university-students/${studentId}/`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) setSelectedStudent(data.student);
-    } catch {}
+    } catch (error) {
+      console.error("Error fetching student details:", error);
+    }
   };
 
   const markNotificationRead = async (id) => {
     try {
       await fetch(`${API}/student/notifications/${id}/read/`, { method: 'PATCH', headers: { Authorization: `Bearer ${token()}` } });
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-    } catch {}
+    } catch (error) {
+      console.error("Error marking notification read:", error);
+    }
   };
 
   const markAllNotificationsRead = async () => {
@@ -391,92 +399,474 @@ const CoDeptHeadDashboard = () => {
       await fetch(`${API}/student/notifications/read-all/`, { method: 'POST', headers: authHeaders() });
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       toast.success('Toutes les notifications ont été marquées comme lues');
-    } catch {}
+    } catch (error) {
+      console.error("Error marking all notifications read:", error);
+      toast.error('Erreur lors du marquage des notifications');
+    }
   };
 
-  const navigateToValidation = (applicationId) => { navigate(`/co-dept-head/validations?app=${applicationId}`); setNotifOpen(false); };
+  const navigateToValidation = (applicationId) => { 
+    navigate(`/co-dept-head/validations?app=${applicationId}`); 
+    setNotifOpen(false); 
+  };
+  
   const handleStartPrivateChat = (targetUser) => { setSelectedChatUser(targetUser); setPrivateChatOpen(true); };
   const handleClosePrivateChat = () => { setPrivateChatOpen(false); setSelectedChatUser(null); };
   const handleLogout = () => { logout(); navigate('/login'); };
 
   const isApproved = user?.status !== false;
-  const unreadCount = notifications.filter(n => !n.is_read).length;
-
-  const checkPermission = (permKey, actionName) => {
-    if (!userPermissions) return true;
-    if (userPermissions[permKey] === false) {
-      toast.error(`Vous n'avez pas la permission de ${actionName}.`);
-      return false;
-    }
-    return true;
-  };
 
   const placedStudents = allStudents.filter(s => s.is_placed);
   const unplacedStudents = allStudents.filter(s => !s.is_placed);
 
-  if (statsLoading) {
-    return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div></div>;
-  }
+  useEffect(() => {
+    fetchPlacementStats();
+    fetchRequestStats();
+    fetchNotifications();
+    fetchUserPermissions();
+    fetchUniversityProfile();
+    fetchAllStudents();
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => { if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false); };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const sectionId = entry.target.getAttribute('data-section');
+            if (sectionId) {
+              setActiveSection(sectionId);
+              setSectionVisible(prev => ({ ...prev, [sectionId]: true }));
+            }
+          }
+        });
+      },
+      { threshold: 0.3, rootMargin: '-70px 0px -70px 0px' }
+    );
+
+    const sections = [homeRef.current, statsRef.current, studentsPageRef.current].filter(Boolean);
+    sections.forEach(section => observer.observe(section));
+
+    return () => {
+      sections.forEach(section => observer.unobserve(section));
+    };
+  }, []);
+
+  const scrollTo = (id, ref) => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setActiveSection(id);
+    setSectionVisible(prev => ({ ...prev, [id]: true }));
+  };
 
   const navItems = [
     { id: "home",     label: "Home",       ref: homeRef },
     { id: "stats",    label: "Statistics", ref: statsRef },
     { id: "students", label: "Students",   ref: studentsPageRef },
-    { id: "team",     label: "Team",       ref: teamRef },
   ];
 
   return (
     <div className="min-h-screen">
       <style>{`
-        @keyframes spin     { to { transform: rotate(360deg); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(48px); } to { opacity:1; transform:translateY(0); } }
+        .sec-anim { opacity:0; transform:translateY(48px); }
+        .sec-anim.vis { animation: fadeUp 0.72s cubic-bezier(0.4,0,0.2,1) forwards; }
+
         html {
           scroll-snap-type: y mandatory;
           scroll-padding-top: 70px;
+          scroll-behavior: smooth;
         }
+
         .snap-section {
           scroll-snap-align: start;
-          height: 100vh;
+          min-height: 100vh;
           display: flex;
           flex-direction: column;
           justify-content: center;
-          padding: 0 5%;
+          padding: 80px 5% 100px;
         }
+
         .home-snap-section {
           scroll-snap-align: start;
-          height: 100vh;
+          min-height: 100vh;
           display: flex;
           flex-direction: row;
           align-items: center;
-          padding: 0 5%;
+          padding: 80px 5% 100px;
         }
+
+        .snap-section:last-of-type {
+          scroll-snap-align: end;
+          min-height: auto;
+          padding-bottom: 60px;
+        }
+
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 20px;
+          width: 100%;
+          margin-bottom: 36px;
+        }
+
+        .donut-card {
+          width: 100%;
+          max-width: 100%;
+        }
+
+        @media (max-width: 1200px) {
+          .stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+          }
+          .snap-section, .home-snap-section {
+            padding: 60px 4% 80px;
+          }
+          .home-snap-section { flex-direction: column; }
+        }
+
+        @media (max-width: 480px) {
+          .stats-grid {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+          .sd-nav-links { display: none; }
+        }
+
+        .sd-nav-link {
+          position: relative;
+          padding-bottom: 4px;
+        }
+
+        .sd-nav-link.active {
+          color: white;
+          font-weight: 600;
+        }
+
+        .sd-nav-link.active::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          right: 0;
+          height: 2.5px;
+          background: white;
+          border-radius: 4px;
+          animation: underlineSlide 0.3s ease forwards;
+        }
+
+        @keyframes underlineSlide {
+          from { width: 0; left: 50%; }
+          to { width: 100%; left: 0; }
+        }
+
+        .sd-nav-link:hover::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          width: 100%;
+          height: 2.5px;
+          background: white;
+          border-radius: 4px;
+        }
+
+        .sd-notif-wrapper {
+          position: relative;
+        }
+
+        .sd-notif-dropdown {
+          position: absolute;
+          top: 45px;
+          right: 0;
+          width: 380px;
+          max-height: 500px;
+          background: rgba(30, 41, 59, 0.98);
+          backdrop-filter: blur(12px);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 16px;
+          box-shadow: 0 20px 35px -10px rgba(0,0,0,0.4);
+          overflow: hidden;
+          z-index: 1000;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .sd-notif-header {
+          padding: 14px 16px;
+          border-bottom: 1px solid rgba(255,255,255,0.1);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-weight: 600;
+          color: white;
+          font-size: 0.9rem;
+        }
+
+        .sd-notif-clear {
+          background: none;
+          border: none;
+          color: #a855f7;
+          font-size: 0.75rem;
+          cursor: pointer;
+          transition: opacity 0.2s;
+        }
+
+        .sd-notif-clear:hover { opacity: 0.7; }
+
+        .sd-notif-list {
+          flex: 1;
+          overflow-y: auto;
+          max-height: 400px;
+        }
+
+        .sd-notif-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          padding: 12px 16px;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+          transition: background 0.2s;
+          position: relative;
+        }
+
+        .sd-notif-item:hover { background: rgba(255,255,255,0.05); }
+        .sd-notif-item.unread { background: rgba(168,85,247,0.1); }
+
+        .sd-notif-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .sd-notif-body { flex: 1; }
+        .sd-notif-body p { font-size: 0.8rem; margin: 0 0 4px 0; line-height: 1.4; }
+        .sd-notif-time { font-size: 0.7rem; color: rgba(255,255,255,0.4); }
+
+        .sd-notif-unread-dot {
+          width: 8px;
+          height: 8px;
+          background: #a855f7;
+          border-radius: 50%;
+          position: absolute;
+          right: 16px;
+          top: 50%;
+          transform: translateY(-50%);
+        }
+
+        .sd-notif-mark-read {
+          position: absolute;
+          right: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: rgba(255,255,255,0.1);
+          border: none;
+          border-radius: 6px;
+          padding: 4px;
+          cursor: pointer;
+          color: rgba(255,255,255,0.6);
+          transition: all 0.2s;
+        }
+
+        .sd-notif-mark-read:hover {
+          background: rgba(255,255,255,0.2);
+          color: white;
+        }
+
+        .sd-notif-empty {
+          text-align: center;
+          padding: 40px 20px;
+          color: rgba(255,255,255,0.5);
+        }
+
+        .sd-notif-footer {
+          padding: 10px 16px;
+          border-top: 1px solid rgba(255,255,255,0.1);
+          text-align: center;
+        }
+
+        .sd-notif-footer button {
+          background: none;
+          border: none;
+          color: rgba(255,255,255,0.6);
+          font-size: 0.8rem;
+          cursor: pointer;
+        }
+
+        .sd-notif-unread-badge {
+          background: #a855f7;
+          color: white;
+          font-size: 0.7rem;
+          padding: 2px 6px;
+          border-radius: 20px;
+        }
+
+        .footer {
+          background: radial-gradient(ellipse 80% 120% at 60% 50%,
+            rgba(140,30,200,0.85) 0%, rgba(110,20,170,0.65) 35%,
+            rgba(70,10,130,0.40) 65%, transparent 85%),
+            linear-gradient(135deg, #2d0a6e 0%, #3a0d80 30%, #4a1090 55%, #2d0a6e 100%);
+          border-top: none;
+          padding: 50px 6% 28px;
+          position: relative;
+          overflow: hidden;
+          width: 100%;
+          scroll-snap-align: end;
+        }
+
+        .footer-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 3rem;
+          margin-bottom: 2rem;
+          position: relative;
+        }
+
+        .footer-brand p {
+          font-size: 0.85rem;
+          color: rgba(255,255,255,0.75);
+          line-height: 1.7;
+          margin-top: 14px;
+          max-width: 320px;
+        }
+
+        .footer-brand-logo {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .footer-contact h4 {
+          font-size: 1rem;
+          font-weight: 700;
+          color: #fff;
+          margin-bottom: 18px;
+        }
+
+        .footer-contact ul { list-style: none; }
+        .footer-contact ul li {
+          font-size: 0.85rem;
+          color: rgba(255,255,255,0.80);
+          margin-bottom: 12px;
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          line-height: 1.5;
+        }
+
+        .footer-bottom {
+          border-top: 1px solid rgba(255,255,255,0.15);
+          padding-top: 22px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 12px;
+          position: relative;
+        }
+
+        .footer-bottom p { font-size: 0.78rem; color: rgba(255,255,255,0.65); }
+        .footer-socials { display: flex; gap: 18px; align-items: center; }
+        .footer-socials a {
+          width: 36px; height: 36px;
+          background: rgba(255,255,255,0.08);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: rgba(255,255,255,0.85);
+          text-decoration: none;
+          font-size: 1rem;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .footer-socials a:hover { background: rgba(255,255,255,0.15); color: #fff; transform: translateY(-2px); }
+        .footer-bottom-links { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+        .footer-bottom-links a {
+          font-size: 0.78rem;
+          color: rgba(255,255,255,0.65);
+          text-decoration: none;
+          transition: color 0.2s;
+        }
+        .footer-bottom-links a:hover { color: #fff; }
+        .footer-bottom-links span { color: rgba(255,255,255,0.30); font-size: 0.78rem; }
       `}</style>
 
       <nav className="sd-navbar" style={{ borderBottom: 'none', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000, height: 70 }}>
         <div className="sd-navbar-left">
           <button className="sd-hamburger" onClick={() => setSidebarOpen(true)}><span/><span/><span/></button>
-          <a className="sd-logo" href="/">UnivStage</a>
+          <div className="sd-logo-container" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
+            <img src="/images/logo.png" alt="UnivStage Logo" className="sd-logo-img" />
+            <span className="sd-site-name">UnivStage</span>
+          </div>
         </div>
         <ul className="sd-nav-links">
           {navItems.map(({ id, label, ref }) => (
             <li key={id}>
-              <a href={`#${id}`} className={activeSection === id ? 'active' : ''}
-                onClick={e => { e.preventDefault(); scrollTo(id, ref); }}>{label}</a>
+              <a 
+                href={`#${id}`} 
+                data-section={id}
+                className={`sd-nav-link ${activeSection === id ? 'active' : ''}`}
+                onClick={(e) => { e.preventDefault(); scrollTo(id, ref); }}
+              >
+                {label}
+              </a>
             </li>
           ))}
         </ul>
         <div className="sd-navbar-right">
+          {/* 🔥 NOTIFICATION ICON - SANS BADGE ROUGE, SEULEMENT LE BADGE MAUVE POUR NOTIFICATIONS NON LUES */}
           <div className="sd-notif-wrapper" ref={notifRef}>
             <button className="sd-icon-btn relative" onClick={() => setNotifOpen(!notifOpen)}>
               <Bell size={20}/>
-              {unreadCount > 0 && <span className="sd-badge-count">{unreadCount}</span>}
+              {unreadCount > 0 && (
+                <span className="sd-badge-count">{unreadCount > 9 ? '9+' : unreadCount}</span>
+              )}
             </button>
-            {notifOpen && <NotificationsDropdown notifications={notifications} onClose={() => setNotifOpen(false)} onMarkRead={markNotificationRead} onMarkAllRead={markAllNotificationsRead} onNavigate={navigateToValidation}/>}
+            {notifOpen && (
+              <NotificationsDropdown 
+                notifications={notifications} 
+                onClose={() => setNotifOpen(false)} 
+                onMarkRead={markNotificationRead} 
+                onMarkAllRead={markAllNotificationsRead} 
+                onNavigate={navigateToValidation}
+              />
+            )}
           </div>
           <button className="sd-icon-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
         </div>
       </nav>
 
-      <section ref={homeRef} data-section="home" className="home-snap-section" id="home">
+      <div className="px-8 pt-24">
+        <PermissionWarning permissions={userPermissions} />
+      </div>
+
+      <section ref={homeRef} data-section="home" className="home-snap-section sec-anim" id="home" style={{ animation: sectionVisible.home ? 'fadeUp 0.72s cubic-bezier(0.4,0,0.2,1) forwards' : 'none' }}>
         <div className="sd-hero-container" style={{ width: "100%" }}>
           <div className="sd-hero-content">
             <h1 style={{ fontSize: 'clamp(3rem, 6vw, 5rem)', fontWeight: 800, lineHeight: 1.08, color: '#fff', letterSpacing: '-1px' }}>
@@ -548,15 +938,15 @@ const CoDeptHeadDashboard = () => {
         </div>
       </section>
 
-      <section ref={statsRef} data-section="stats" className="snap-section" id="stats">
+      <section ref={statsRef} data-section="stats" className="snap-section sec-anim" id="stats" style={{ animation: sectionVisible.stats ? 'fadeUp 0.72s cubic-bezier(0.4,0,0.2,1) forwards' : 'none' }}>
         <div style={{ textAlign: 'center', marginBottom: 52 }}>
           <h2 className="sd-section-title"><span className="t-pink">Stat</span><span className="t-purple">istics</span></h2>
           <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '1.05rem', fontWeight: 500 }}>Overview of student placements and request status</p>
         </div>
-        <StatisticsSection stats={placementStats} loading={false} requestStats={requestStats}/>
+        <StatisticsSection stats={placementStats} loading={statsLoading} requestStats={requestStats}/>
       </section>
 
-      <section ref={studentsPageRef} data-section="students" className="snap-section" id="students">
+      <section ref={studentsPageRef} data-section="students" className="snap-section sec-anim" id="students" style={{ animation: sectionVisible.students ? 'fadeUp 0.72s cubic-bezier(0.4,0,0.2,1) forwards' : 'none' }}>
         <div className="text-center mb-12">
           <h2 className="sd-section-title"><span className="t-pink">Stud</span><span className="t-purple">ents</span></h2>
           <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '1.05rem', fontWeight: 500 }}>Overview of placed and unplaced students</p>
@@ -606,39 +996,34 @@ const CoDeptHeadDashboard = () => {
         </div>
       </section>
 
-      <section ref={teamRef} data-section="team" className="snap-section" id="team">
-        <div className="text-center mb-12">
-          <h2 className="sd-section-title"><span className="t-pink">University </span><span className="t-purple">Team</span></h2>
-          <p className="sd-section-subtitle">Connect and communicate with university staff members</p>
-        </div>
-        <div className="max-w-7xl mx-auto w-full">
-          {!isApproved ? (
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-12 text-center border border-white/20">
-              <Clock className="w-16 h-16 text-yellow-400 mx-auto mb-4"/>
-              <h3 className="text-xl font-semibold text-white mb-2">Compte en attente d'approbation</h3>
-              <p className="text-white/60">Votre compte est en attente d'approbation par le Department Head.<br/>Vous recevrez un email une fois votre compte activé.</p>
-            </div>
-          ) : (
-            <>
-              <PermissionWarning permissions={userPermissions} />
-              <UniversityUsersStatus onStartPrivateChat={handleStartPrivateChat}/>
-              {userPermissions?.can_add_stamp === false && (
-                <div className="mt-4 flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-                  <Lock size={16} className="text-red-400"/>
-                  <p className="text-red-300 text-sm">Vous n'avez pas la permission d'apposer le cachet officiel. Contactez votre Department Head.</p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </section>
-
       <footer className="footer">
         <div className="footer-grid">
-          <div className="footer-brand"><div className="footer-brand-logo">🎓 UnivStage</div><p>Connecting students with professional opportunities and empowering the next generation of innovators.</p></div>
-          <div className="footer-contact"><h4>Contact Us</h4><ul><li><MapPinIcon/>{universityProfile?.address || '123 University Ave, Campus Center'}</li><li><PhoneIcon/>{universityProfile?.phone   || '+1 (555) 123-4567'}</li><li><MailIcon/>{universityProfile?.email   || 'internships@university.edu'}</li></ul></div>
+          <div className="footer-brand">
+            <div className="footer-brand-logo">🎓 UnivStage</div>
+            <p>Connecting students with professional opportunities and empowering the next generation of innovators.</p>
+          </div>
+          <div className="footer-contact">
+            <h4>Contact Us</h4>
+            <ul>
+              <li><MapPinIcon />123 University Ave, Campus Center, Algiers, Algeria</li>
+              <li><PhoneIcon />+213 (0) 23 45 67 89</li>
+              <li><MailIcon />contact@univstage.dz</li>
+            </ul>
+          </div>
         </div>
-        <div className="footer-bottom"><p>© 2026 UnivStage. All rights reserved.</p><div className="footer-socials"><a href="#!">f</a><a href="#!">𝕏</a><a href="#!">in</a><a href="#!">◎</a></div><div className="footer-bottom-links"><a href="#!">Privacy Policy</a><span>|</span><a href="#!">Terms of Service</a></div></div>
+        <div className="footer-bottom">
+          <p>© 2025 UnivStage. All rights reserved.</p>
+          <div className="footer-socials">
+            <a href="#">f</a>
+            <a href="#">𝕏</a>
+            <a href="#">in</a>
+          </div>
+          <div className="footer-bottom-links">
+            <a href="#">Privacy Policy</a>
+            <span>|</span>
+            <a href="#">Terms of Service</a>
+          </div>
+        </div>
       </footer>
 
       {sidebarOpen && <AdminSidebar user={user} onLogout={handleLogout} onClose={() => setSidebarOpen(false)}/>}

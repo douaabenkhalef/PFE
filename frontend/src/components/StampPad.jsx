@@ -1,11 +1,12 @@
 // frontend/src/components/StampPad.jsx
 import React, { useState, useRef } from 'react';
-import { Stamp, X, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Stamp, X, Upload, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const StampPad = ({ onSave, onClose, title = "Importer le cachet de l'université", existingStamp }) => {
   const [stampImage, setStampImage] = useState(existingStamp || null);
   const [stampPreview, setStampPreview] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleFileUpload = (e) => {
@@ -18,17 +19,26 @@ const StampPad = ({ onSave, onClose, title = "Importer le cachet de l'universit�
       return;
     }
 
-    // Vérifier la taille (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('L\'image ne doit pas dépasser 2 Mo');
+    // 🔥 AUGMENTER LA TAILLE MAXIMALE : 2 Mo → 10 Mo (ou plus)
+    const MAX_SIZE = 10 * 1024 * 1024; // 10 Mo
+    if (file.size > MAX_SIZE) {
+      toast.error(`L'image ne doit pas dépasser 10 Mo`);
       return;
     }
 
+    setUploading(true);
+    
     const reader = new FileReader();
     reader.onload = (event) => {
       const imgData = event.target.result;
       setStampImage(imgData);
       setStampPreview(imgData);
+      setUploading(false);
+      toast.success('Image chargée avec succès');
+    };
+    reader.onerror = () => {
+      toast.error('Erreur lors du chargement de l\'image');
+      setUploading(false);
     };
     reader.readAsDataURL(file);
   };
@@ -46,6 +56,7 @@ const StampPad = ({ onSave, onClose, title = "Importer le cachet de l'universit�
       toast.error('Veuillez importer une image du cachet');
       return;
     }
+    console.log("📸 Saving stamp, image length:", stampImage.length);
     onSave(stampImage);
   };
 
@@ -65,12 +76,21 @@ const StampPad = ({ onSave, onClose, title = "Importer le cachet de l'universit�
         <div className="p-5">
           {/* Zone de preview du cachet */}
           <div className="bg-slate-800/60 rounded-lg p-4 mb-4 flex flex-col items-center justify-center min-h-[200px] border border-dashed border-slate-600">
-            {stampPreview ? (
+            {uploading ? (
+              <div className="text-center">
+                <Loader2 className="w-10 h-10 text-blue-400 animate-spin mx-auto mb-2" />
+                <p className="text-slate-400 text-sm">Chargement...</p>
+              </div>
+            ) : stampPreview ? (
               <div className="relative">
                 <img 
                   src={stampPreview} 
                   alt="Cachet" 
                   className="max-w-full max-h-[150px] object-contain"
+                  onError={() => {
+                    toast.error('Erreur lors du chargement de l\'image');
+                    handleRemoveStamp();
+                  }}
                 />
                 <button
                   onClick={handleRemoveStamp}
@@ -83,7 +103,7 @@ const StampPad = ({ onSave, onClose, title = "Importer le cachet de l'universit�
               <div className="text-center">
                 <Stamp className="w-12 h-12 text-slate-500 mx-auto mb-2" />
                 <p className="text-slate-400 text-sm">Aucun cachet importé</p>
-                <p className="text-slate-500 text-xs mt-1">PNG, JPG, JPEG (max 2 Mo)</p>
+                <p className="text-slate-500 text-xs mt-1">PNG, JPG, JPEG (max 10 Mo)</p>
               </div>
             )}
           </div>
@@ -114,7 +134,7 @@ const StampPad = ({ onSave, onClose, title = "Importer le cachet de l'universit�
             <ul className="text-blue-300/70 text-xs mt-1 space-y-1">
               <li>• Utilisez une image PNG avec fond transparent</li>
               <li>• Taille recommandée : 300x300 pixels</li>
-              <li>• Format supporté : PNG, JPG, JPEG</li>
+              <li>• Format supporté : PNG, JPG, JPEG (max 10 Mo)</li>
             </ul>
           </div>
           
@@ -127,7 +147,7 @@ const StampPad = ({ onSave, onClose, title = "Importer le cachet de l'universit�
             </button>
             <button
               onClick={handleSave}
-              disabled={!stampImage}
+              disabled={!stampImage || uploading}
               className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Valider le cachet
