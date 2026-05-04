@@ -18,15 +18,6 @@ const authHeaders = () => ({
   'Authorization': `Bearer ${token()}`
 });
 
-// دالة مساعدة لبناء الرابط الصحيح
-const buildFullUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith('http')) return url;
-  if (url.startsWith('/api/')) return `http://localhost:8000${url}`;
-  if (url.startsWith('/student/')) return `http://localhost:8000/api${url}`;
-  return `http://localhost:8000/api/${url}`;
-};
-
 function StatusBadge({ status }) {
   const statusConfig = {
     'pending': {
@@ -75,97 +66,111 @@ function StatusBadge({ status }) {
   );
 }
 
-// Modal de visualisation du CV - Version simplifiée
-function CVViewer({ url, onClose }) {
+// ✅ CVViewer component - downloads PDF and opens in new tab
+function CVViewer({ applicationId, onClose }) {
   const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  if (!url) {
-    return null;
+  useEffect(() => {
+    const fetchAndOpenCV = async () => {
+      try {
+        const accessToken = localStorage.getItem('access_token');
+        
+        if (!accessToken) {
+          toast.error('Session expirée. Veuillez vous reconnecter.');
+          setError(true);
+          setLoading(false);
+          return;
+        }
+        
+        const response = await fetch(`${API}/student/application/${applicationId}/cv/`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        
+        if (response.status === 401) {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          toast.error('Session expirée. Veuillez vous reconnecter.');
+          window.location.href = '/login';
+          return;
+        }
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        // Open in new tab
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(`
+            <html>
+              <head>
+                <title>Mon CV</title>
+                <style>
+                  body { margin: 0; padding: 0; }
+                  embed, object, iframe { width: 100%; height: 100vh; border: none; }
+                </style>
+              </head>
+              <body>
+                <embed src="${blobUrl}" type="application/pdf" width="100%" height="100%" />
+              </body>
+            </html>
+          `);
+          newWindow.document.title = 'Mon CV';
+        }
+        
+        // Clean up
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        setLoading(false);
+        onClose();
+      } catch (err) {
+        console.error('Error loading CV:', err);
+        setError(true);
+        setLoading(false);
+      }
+    };
+    
+    fetchAndOpenCV();
+  }, [applicationId, onClose]);
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-[10000]" onClick={onClose}>
+        <div className="bg-[#0e0c27] rounded-2xl p-8 flex flex-col items-center" onClick={e => e.stopPropagation()}>
+          <Loader2 size={40} className="animate-spin text-purple-400 mb-4" />
+          <p className="text-white/70">Chargement du CV...</p>
+        </div>
+      </div>
+    );
   }
 
-  return (
-    <div
-      className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-[10000]"
-      onClick={onClose}
-    >
-      <div
-        style={{
-          background: '#0e0c27',
-          border: '1px solid rgba(141,35,212,0.60)',
-          borderRadius: 16,
-          width: '90%',
-          maxWidth: 1000,
-          height: '88vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          boxShadow: '0 24px 60px rgba(0,0,0,0.8)',
-        }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '14px 20px',
-          borderBottom: '1px solid rgba(255,255,255,0.15)',
-          background: '#0e0c27',
-        }}>
-          <span style={{ color: '#fff', fontWeight: 600, fontSize: '0.9rem' }}>
-            📄 CV / Resume
-          </span>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <a
-              href={url}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: 'linear-gradient(135deg,#B556D7,#8E2FFB,#5D77D4)',
-                color: '#fff', padding: '7px 16px', borderRadius: 8,
-                fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none',
-              }}
-            >
-              <ExternalLink size={13} /> Ouvrir dans un nouvel onglet
-            </a>
-            <button
-              onClick={onClose}
-              style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}
-            >
-              <X size={20} />
-            </button>
-          </div>
+  if (error) {
+    return (
+      <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-[10000]" onClick={onClose}>
+        <div className="bg-[#0e0c27] rounded-2xl p-8 max-w-md text-center" onClick={e => e.stopPropagation()}>
+          <FileText size={48} className="mx-auto mb-4 text-red-400 opacity-50" />
+          <h3 className="text-white font-semibold text-lg mb-2">Impossible de charger le CV</h3>
+          <p className="text-white/60 text-sm mb-4">Le fichier n'a pas pu être chargé ou votre session a expiré.</p>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition"
+          >
+            Fermer
+          </button>
         </div>
-        
-        {error ? (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ textAlign: 'center', color: '#f87171' }}>
-              <FileText size={48} className="mx-auto mb-3 opacity-50" />
-              <p>Impossible de charger le PDF</p>
-              <a 
-                href={url}
-                target="_blank"
-                rel="noreferrer"
-                style={{ marginTop: 16, display: 'inline-block', padding: '8px 16px', background: '#8d23d4', borderRadius: 8, color: '#fff', textDecoration: 'none' }}
-              >
-                Ouvrir dans un nouvel onglet
-              </a>
-            </div>
-          </div>
-        ) : (
-          <iframe
-            src={url}
-            title="CV PDF"
-            style={{ flex: 1, border: 'none', width: '100%', background: '#fff' }}
-            onError={() => setError(true)}
-          />
-        )}
       </div>
-    </div>
-  );
+    );
+  }
+
+  return null;
 }
 
-// Modal de détails de la candidature
+// AppDetailModal with correct CV viewer
 function AppDetailModal({ app, onClose, onGenerateConvention }) {
   const [showCV, setShowCV] = useState(false);
   const [downloadingConvention, setDownloadingConvention] = useState(false);
@@ -173,9 +178,8 @@ function AppDetailModal({ app, onClose, onGenerateConvention }) {
   
   if (!app) return null;
 
-  // بناء الروابط بشكل صحيح
-  const cvUrl = buildFullUrl(app.cv_file_url);
-  const conventionUrl = buildFullUrl(app.convention_url);
+  const conventionUrl = app.convention_url ? 
+    `http://localhost:8000/api/co-dept/download-convention/${app.id}/` : null;
 
   const handleDownloadConvention = async () => {
     if (!conventionUrl) return;
@@ -209,9 +213,7 @@ function AppDetailModal({ app, onClose, onGenerateConvention }) {
       const token = localStorage.getItem('access_token');
       const response = await fetch(`${API}/generate-convention/${app.id}/`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       
       if (response.ok) {
@@ -256,17 +258,16 @@ function AppDetailModal({ app, onClose, onGenerateConvention }) {
   const statusMessage = getStatusMessage();
 
   const handleViewCV = () => {
-    if (cvUrl) {
-      setShowCV(true);
-    } else {
-      toast.error('CV non disponible');
-    }
+    setShowCV(true);
   };
 
   return (
     <>
-      {showCV && cvUrl && (
-        <CVViewer url={cvUrl} onClose={() => setShowCV(false)} />
+      {showCV && (
+        <CVViewer 
+          applicationId={app.id} 
+          onClose={() => setShowCV(false)} 
+        />
       )}
 
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[10000] p-4" onClick={onClose}>
@@ -332,17 +333,13 @@ function AppDetailModal({ app, onClose, onGenerateConvention }) {
               </div>
             )}
 
-            {/* Bouton Voir CV */}
-            {cvUrl && (
-              <button 
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition"
-                onClick={handleViewCV}
-              >
-                <Eye size={15} /> Voir mon CV
-              </button>
-            )}
+            <button 
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition"
+              onClick={handleViewCV}
+            >
+              <Eye size={15} /> Voir mon CV
+            </button>
 
-            {/* Bouton Générer Convention */}
             {app.status === 'accepted_by_company' && (
               <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                 <p className="text-blue-300 text-sm font-medium mb-3 flex items-center gap-2">
@@ -360,7 +357,6 @@ function AppDetailModal({ app, onClose, onGenerateConvention }) {
               </div>
             )}
 
-            {/* Bouton Télécharger Convention */}
             {app.status === 'validated_by_co_dept' && conventionUrl && (
               <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
                 <p className="text-green-300 text-sm font-medium mb-3 flex items-center gap-2">
@@ -384,7 +380,7 @@ function AppDetailModal({ app, onClose, onGenerateConvention }) {
   );
 }
 
-// Composant principal
+// Main component
 export default function StudentApplications() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -393,11 +389,9 @@ export default function StudentApplications() {
   const [selected, setSelected] = useState(null);
   const [filter, setFilter] = useState('all');
   
-  // États pour la photo de profil
   const [profilePicture, setProfilePicture] = useState(null);
   const [profile, setProfile] = useState(null);
 
-  // Récupérer la photo de profil
   const fetchProfilePicture = async () => {
     try {
       const res = await fetch(`${API}/student/profile/me/`, { headers: authHeaders() });
@@ -494,9 +488,7 @@ export default function StudentApplications() {
       {selected && <AppDetailModal app={selected} onClose={() => setSelected(null)} onGenerateConvention={fetchApplications} />}
       
       <div className="min-h-screen flex">
-        {/* Fixed Sidebar */}
         <div className="w-64 bg-gradient-to-b from-[#1a0840] to-[#0e0c27] h-full fixed left-0 top-0 overflow-y-auto border-r border-purple-500/30">
-          {/* Sidebar Header with User Info */}
           <div className="p-4 border-b border-white/10">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold overflow-hidden">
@@ -517,7 +509,6 @@ export default function StudentApplications() {
             </div>
           </div>
 
-          {/* Search Bar */}
           <div className="p-4">
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
@@ -529,7 +520,6 @@ export default function StudentApplications() {
             </div>
           </div>
 
-          {/* Navigation */}
           <nav className="flex-1 overflow-y-auto p-3">
             <div>
               <p className="text-xs text-purple-300/60 uppercase tracking-wider px-3 mb-2">Control & Management</p>
@@ -556,7 +546,6 @@ export default function StudentApplications() {
             </div>
           </nav>
 
-          {/* Logout Button */}
           <div className="p-4 border-t border-white/10">
             <button
               onClick={handleLogout}
@@ -568,10 +557,8 @@ export default function StudentApplications() {
           </div>
         </div>
 
-        {/* Main content area */}
         <div className="ml-64 flex-1 min-h-screen">
           <div className="max-w-5xl mx-auto px-6 py-8">
-            {/* Back button */}
             <button
               onClick={() => navigate('/student/dashboard')}
               className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
@@ -580,13 +567,11 @@ export default function StudentApplications() {
               Retour au tableau de bord
             </button>
 
-            {/* Header */}
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-white mb-2">Mes candidatures</h1>
               <p className="text-white/60">Suivez l'état de vos candidatures aux offres de stage</p>
             </div>
 
-            {/* Filter Buttons */}
             <div className="flex gap-2 mb-6 flex-wrap">
               <button
                 onClick={() => setFilter('all')}
@@ -630,7 +615,6 @@ export default function StudentApplications() {
               </button>
             </div>
 
-            {/* Applications Table */}
             {loading ? (
               <div className="flex justify-center py-20">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
@@ -692,12 +676,6 @@ export default function StudentApplications() {
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </>
   );
 }

@@ -247,17 +247,34 @@ function CompaniesModal({ companies, onClose }) {
         <div className="modal-grid">
           {companies.map(company => (
             <div className="modal-company-card" key={company.id}>
-              <div className="modal-company-img">
-                {company.logo ? (
-                  <img 
-                    src={getImageSrc(company.logo)} 
-                    alt={company.company_name} 
-                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              <div className="modal-company-img" style={{
+                position: 'relative', overflow: 'hidden', padding: 0,
+                background: company.cover_picture
+                  ? 'transparent'
+                  : 'rgba(168,85,247,0.15)',
+              }}>
+                {company.cover_picture ? (
+                  <img
+                    src={getImageSrc(company.cover_picture)}
+                    alt=""
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.7)' }}
                     onError={(e) => { e.target.style.display = 'none'; }}
                   />
-                ) : (
-                  <Building2 size={40} className="text-white/30" />
-                )}
+                ) : null}
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.55) 35%, transparent)', pointerEvents: 'none' }} />
+                <div style={{
+                  position: 'absolute', bottom: 8, left: 8,
+                  width: 40, height: 40, borderRadius: 8,
+                  overflow: 'hidden', border: '2px solid rgba(255,255,255,0.3)',
+                  background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(6px)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2,
+                }}>
+                  {company.logo ? (
+                    <img src={getImageSrc(company.logo)} alt={company.company_name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                  ) : (
+                    <Building2 size={20} style={{ color: 'rgba(255,255,255,0.5)' }} />
+                  )}
+                </div>
               </div>
               <div className="modal-company-info">
                 <h3>{company.company_name}</h3>
@@ -510,21 +527,74 @@ export default function Home() {
           ) : (
             displayedCompanies.map((company, index) => (
               <div className="company-card" key={company.id} data-rank={index + 1}>
-                <div className="company-img-box">
-                  {company.logo ? (
-                    <img 
-                      src={getImageSrc(company.logo)} 
-                      alt={company.company_name} 
-                      style={{ width: "80px", height: "80px", objectFit: "contain" }}
-                      onError={(e) => { 
-                        console.log("Image failed to load for:", company.company_name);
-                        e.target.style.display = 'none'; 
+                <div className="company-img-box" style={{
+                  position: 'relative',
+                  overflow: 'hidden',
+                  padding: 0,
+                  background: company.cover_picture
+                    ? 'transparent'
+                    : 'linear-gradient(135deg, rgba(168,85,247,0.2), rgba(99,102,241,0.2))',
+                }}>
+                  {/* Cover picture as full background */}
+                  {company.cover_picture ? (
+                    <img
+                      src={getImageSrc(company.cover_picture)}
+                      alt=""
+                      style={{
+                        position: 'absolute', inset: 0,
+                        width: '100%', height: '100%',
+                        objectFit: 'cover',
+                        filter: 'brightness(0.7)',
                       }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
                     />
-                  ) : (
-                    <Building2 size={40} className="text-white/50" />
-                  )}
-                  <span>{company.industry || "Company"}</span>
+                  ) : null}
+
+                  {/* Gradient overlay for readability */}
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.6) 35%, transparent 100%)',
+                    pointerEvents: 'none',
+                  }} />
+
+                  {/* Logo badge — bottom-left */}
+                  <div style={{
+                    position: 'absolute', bottom: 10, left: 10,
+                    width: 48, height: 48,
+                    borderRadius: 10,
+                    overflow: 'hidden',
+                    border: '2px solid rgba(255,255,255,0.35)',
+                    background: 'rgba(255,255,255,0.12)',
+                    backdropFilter: 'blur(6px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 2,
+                  }}>
+                    {company.logo ? (
+                      <img
+                        src={getImageSrc(company.logo)}
+                        alt={company.company_name}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <Building2 size={24} style={{ color: 'rgba(255,255,255,0.6)' }} />
+                    )}
+                  </div>
+
+                  {/* Industry label — bottom-right */}
+                  <span style={{
+                    position: 'absolute', bottom: 10, right: 10,
+                    background: 'rgba(0,0,0,0.45)',
+                    backdropFilter: 'blur(6px)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: 20,
+                    padding: '2px 10px',
+                    fontSize: '0.7rem',
+                    color: 'rgba(255,255,255,0.85)',
+                    zIndex: 2,
+                  }}>
+                    {company.industry || "Company"}
+                  </span>
                 </div>
                 <div className="company-info-zone">
                   <div className="company-name">{company.company_name}</div>

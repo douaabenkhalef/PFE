@@ -38,8 +38,9 @@ urlpatterns = [
     path('student/profile/',                             views.student_profile, name='student-profile'),
     path('student/generate-custom-cv/',                  views.generate_custom_cv, name='generate-custom-cv'),
     path('student/applications/',                        views.student_applications, name='student-applications'),
-    path('student/applications/<str:application_id>/cv/', views.download_application_cv_student, name='student-download-cv'),
-
+    # أضف هذين المسارين في urls.py
+    path('student/application/<str:application_id>/cv/', views.download_application_cv_student, name='student-application-cv'),
+    path('student/applications/<str:application_id>/cv/', views.download_application_cv_student, name='student-applications-cv'),
     # Student Profile (Friend's)
     path('student/profile/me/', views.get_my_profile, name='my-profile'),
     path('student/profile/update/', views.update_my_profile, name='update-profile'),
@@ -86,6 +87,7 @@ path('student/offers/applicants-counts/', views.get_all_offers_applicants_counts
 
     # For fetching the company manager (friend's, used in private chat)
     path('company/company-manager/', views.get_company_manager_info, name='get-company-manager'),
+    
 
     # ==================== ADMIN ====================
     path('admin/dashboard/',                                           views.admin_dashboard, name='admin-dashboard'),

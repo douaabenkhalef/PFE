@@ -973,13 +973,10 @@ def search_offers(request):
 
     offers = offers.order_by('-created_at')
     
-    # بناء البيانات مع إضافة عدد المتقدمين لكل عرض
     result = []
     for offer in offers:
-        # حساب عدد المتقدمين لهذا العرض
         applicants_count = Application.objects(offer=offer).count()
         
-        # تحويل العرض إلى قاموس
         offer_data = {
             'id': str(offer.id),
             'title': offer.title,
@@ -993,13 +990,12 @@ def search_offers(request):
             'deadline': offer.deadline.strftime('%Y-%m-%d') if offer.deadline else None,
             'is_active': offer.is_active,
             'created_at': offer.created_at.strftime('%Y-%m-%d') if offer.created_at else None,
-            'applicants_count': applicants_count,  # إضافة عدد المتقدمين
-            'applicants_count': applicants_count,  # إضافة عدد المتقدمين
-            'rating': 4,  # قيمة افتراضية
+            'applicants_count': applicants_count,
+            'rating': 4,
             'level': offer.internship_type,
             'type': offer.internship_type,
             'contact_name': offer.company_name,
-            'image': None,
+            'image': f"/api/company/offers/{offer.id}/image/" if offer.image else None,
         }
         result.append(offer_data)
     
@@ -1103,269 +1099,371 @@ def generate_custom_cv(request):
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
     from reportlab.lib.units import cm
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer,
+        Table, TableStyle, HRFlowable,
+    )
     from io import BytesIO
     from django.core.files.base import ContentFile
     import os
 
     try:
-        data = request.data
+        data    = request.data
         student = Student.objects(user=request.user).first()
         if not student:
             return Response({'error': 'Student profile not found'}, status=404)
 
-        # Récupération des données
-        full_name = data.get('full_name', student.full_name)
-        email = data.get('email', request.user.email)
-        university = data.get('university', student.university)
-        major = data.get('major', student.major)
-        education_level = data.get('education_level', student.education_level)
-        graduation_year = data.get('graduation_year', student.graduation_year)
-        skills = data.get('skills', student.skills)
+        # ── DATA RETRIEVAL (unchanged) ────────────────────────────────────
+        full_name        = data.get('full_name',        student.full_name)
+        email            = data.get('email',            request.user.email)
+        university       = data.get('university',       student.university)
+        major            = data.get('major',            student.major)
+        education_level  = data.get('education_level',  student.education_level)
+        graduation_year  = data.get('graduation_year',  student.graduation_year)
+        skills           = data.get('skills',           student.skills)
         if isinstance(skills, str):
             skills = [s.strip() for s in skills.split(',') if s.strip()]
-        objective = data.get('objective', '')
+        objective  = data.get('objective',  '')
         experience = data.get('experience', [])
-        languages = data.get('languages', [])
-        wilaya = student.wilaya or 'Algérie'
-        phone = getattr(student, 'phone', '')
-        github = getattr(student, 'github', '')
-        portfolio = getattr(student, 'portfolio', '')
+        languages  = data.get('languages',  [])
+        wilaya     = student.wilaya or 'Algérie'
+        phone      = getattr(student, 'phone',     '')
+        github     = getattr(student, 'github',    '')
+        portfolio  = getattr(student, 'portfolio', '')
 
-        # Création du PDF
+        # ── DOCUMENT SETUP ───────────────────────────────────────────────
         buffer = BytesIO()
         doc = SimpleDocTemplate(
-            buffer, 
+            buffer,
             pagesize=A4,
-            topMargin=2*cm,
-            bottomMargin=2*cm,
-            leftMargin=2*cm,
-            rightMargin=2*cm,
+            topMargin=2 * cm,
+            bottomMargin=2 * cm,
+            leftMargin=2 * cm,
+            rightMargin=2 * cm,
         )
 
-        styles = getSampleStyleSheet()
-        
-        # Définition des couleurs
-        COLOR_DARK = colors.HexColor('#2c4a5e')
-        COLOR_ACCENT = colors.HexColor('#4a7c8a')
-        COLOR_TEXT_DARK = colors.HexColor('#4a4a4a')
-        COLOR_TEXT_LIGHT = colors.HexColor('#666666')
-        
-        # Styles personnalisés
-        title_style = ParagraphStyle(
-            'CustomTitle',
-            parent=styles['Title'],
+        # usable text width  (210 mm − 2×20 mm margins)
+        PAGE_W = 17 * cm
+
+        # ── COLOUR PALETTE ───────────────────────────────────────────────
+        C_BLACK      = colors.HexColor('#111111')
+        C_DARK_GREY  = colors.HexColor('#333333')
+        C_MID_GREY   = colors.HexColor('#555555')
+        C_LIGHT_GREY = colors.HexColor('#888888')
+        C_RULE       = colors.HexColor('#CCCCCC')
+        C_TAG_BG     = colors.HexColor('#F0F0F0')
+        C_WHITE      = colors.white
+
+        # ── PARAGRAPH STYLES ─────────────────────────────────────────────
+        S_NAME = ParagraphStyle(
+            'S_NAME',
             fontName='Helvetica-Bold',
-            fontSize=24,
+            fontSize=28,
+            leading=32,
+            textColor=C_BLACK,
+            spaceAfter=2,
             alignment=TA_LEFT,
-            textColor=COLOR_ACCENT,
-            spaceAfter=4,
         )
-        
-        subtitle_style = ParagraphStyle(
-            'SubtitleStyle',
-            parent=title_style,
-            fontSize=18,
-            textColor=COLOR_TEXT_DARK,
-            spaceAfter=10,
-        )
-        
-        heading_style = ParagraphStyle(
-            'CustomHeading',
-            parent=styles['Heading2'],
-            fontName='Helvetica-Bold',
-            fontSize=14,
-            textColor=COLOR_TEXT_DARK,
-            spaceBefore=12,
+        S_ROLE = ParagraphStyle(
+            'S_ROLE',
+            fontName='Helvetica',
+            fontSize=13,
+            leading=16,
+            textColor=C_MID_GREY,
             spaceAfter=6,
-            borderPadding=0,
+            alignment=TA_LEFT,
         )
-        
-        body_style = ParagraphStyle(
-            'Body',
-            parent=styles['Normal'],
+        S_CONTACT = ParagraphStyle(
+            'S_CONTACT',
+            fontName='Helvetica',
+            fontSize=8.5,
+            leading=12,
+            textColor=C_MID_GREY,
+            alignment=TA_LEFT,
+        )
+        S_SECTION_TITLE = ParagraphStyle(
+            'S_SECTION_TITLE',
+            fontName='Helvetica-Bold',
+            fontSize=10,
+            leading=14,
+            textColor=C_BLACK,
+            spaceBefore=14,
+            spaceAfter=4,
+            alignment=TA_LEFT,
+        )
+        S_BODY = ParagraphStyle(
+            'S_BODY',
             fontName='Helvetica',
             fontSize=9,
-            leading=12,
+            leading=13,
+            textColor=C_DARK_GREY,
+            spaceAfter=3,
             alignment=TA_LEFT,
-            textColor=COLOR_TEXT_LIGHT,
-            spaceAfter=4,
         )
-        
-        bold_style = ParagraphStyle(
-            'BoldStyle',
-            parent=body_style,
+        S_BODY_BOLD = ParagraphStyle(
+            'S_BODY_BOLD',
+            parent=S_BODY,
             fontName='Helvetica-Bold',
-            textColor=COLOR_TEXT_DARK,
+            textColor=C_BLACK,
+        )
+        S_BODY_ITALIC = ParagraphStyle(
+            'S_BODY_ITALIC',
+            parent=S_BODY,
+            fontName='Helvetica-Oblique',
+            textColor=C_MID_GREY,
+        )
+        S_LABEL = ParagraphStyle(
+            'S_LABEL',
+            fontName='Helvetica',
+            fontSize=8,
+            leading=11,
+            textColor=C_LIGHT_GREY,
+            alignment=TA_RIGHT,
+        )
+        S_TAG = ParagraphStyle(
+            'S_TAG',
+            fontName='Helvetica',
+            fontSize=8.5,
+            leading=11,
+            textColor=C_DARK_GREY,
+            alignment=TA_CENTER,
+        )
+        S_FOOTER = ParagraphStyle(
+            'S_FOOTER',
+            fontName='Helvetica',
+            fontSize=7.5,
+            textColor=C_LIGHT_GREY,
+            alignment=TA_CENTER,
         )
 
-        # Construction du document
+        # ── HELPERS ──────────────────────────────────────────────────────
+        def hr(thickness=0.6, color=C_RULE, space_before=4, space_after=4):
+            return HRFlowable(
+                width=PAGE_W,
+                thickness=thickness,
+                color=color,
+                spaceAfter=space_after,
+                spaceBefore=space_before,
+            )
+
+        def section_header(title):
+            return [
+                Spacer(1, 0.4 * cm),
+                Paragraph(title.upper(), S_SECTION_TITLE),
+                hr(thickness=1.2, color=C_BLACK, space_before=1, space_after=6),
+            ]
+
+        # ── STORY ────────────────────────────────────────────────────────
         story = []
-        
-        # En-tête avec le nom
-        name_parts = full_name.split()
-        if len(name_parts) >= 2:
-            last_name = name_parts[-1]
-            first_name = ' '.join(name_parts[:-1])
-            story.append(Paragraph(last_name.upper(), title_style))
-            story.append(Paragraph(first_name, subtitle_style))
+
+        # ── 1. HEADER ────────────────────────────────────────────────────
+        story.append(Paragraph(full_name, S_NAME))
+
+        role_label = (
+            f"{education_level} — {major}"
+            if education_level and major
+            else (major or education_level or "")
+        )
+        if role_label:
+            story.append(Paragraph(role_label, S_ROLE))
+
+        contact_parts = [p for p in [email, phone, wilaya, github, portfolio] if p]
+        if contact_parts:
+            story.append(Paragraph("  ·  ".join(contact_parts), S_CONTACT))
+
+        story.append(hr(thickness=1.8, color=C_BLACK, space_before=8, space_after=2))
+
+        # ── 2. PROFILE / SUMMARY ─────────────────────────────────────────
+        story += section_header("Profile")
+
+        if objective and objective.strip():
+            summary_text = objective.strip()
         else:
-            story.append(Paragraph(full_name.upper(), title_style))
-        
-        story.append(Spacer(1, 0.8*cm))
-        
-        # SECTION: PROFILE
-        story.append(Paragraph("PROFILE", heading_style))
-        story.append(Spacer(1, 0.2*cm))
-        if objective:
-            story.append(Paragraph(objective, body_style))
-        else:
-            profile_text = f"""A {datetime.now().year - int(graduation_year) + 22 if graduation_year and str(graduation_year).isdigit() else 25} years old graduate student of {major}, aiming for a role in a well-respected organization, with a challenging opportunity where I can utilize and improve my skills, enable me to gain more experience and knowledge, and allow me to grow personally and professionally."""
-            story.append(Paragraph(profile_text, body_style))
-        story.append(Spacer(1, 0.5*cm))
-        
-        # SECTION: CONTACT (compact)
-        story.append(Paragraph("CONTACT", heading_style))
-        story.append(Spacer(1, 0.2*cm))
-        contact_info = []
-        if phone:
-            contact_info.append(f"📱 {phone}")
-        if email:
-            contact_info.append(f"✉️ {email}")
-        if wilaya:
-            contact_info.append(f"📍 {wilaya}")
-        if github:
-            contact_info.append(f"🐙 {github}")
-        if portfolio:
-            contact_info.append(f"🌐 {portfolio}")
-        
-        contact_text = " | ".join(contact_info) if contact_info else "No contact information"
-        story.append(Paragraph(contact_text, body_style))
-        story.append(Spacer(1, 0.5*cm))
-        
-        # SECTION: WORK EXPERIENCE
-        if experience and len(experience) > 0 and any(exp.get('title') for exp in experience):
-            story.append(Paragraph("WORK EXPERIENCE", heading_style))
-            story.append(Spacer(1, 0.2*cm))
-            
-            for exp in experience:
-                exp_title = exp.get('title', '')
-                exp_company = exp.get('company', '')
-                exp_dates = exp.get('dates', '')
-                exp_desc = exp.get('description', '')
-                
-                if exp_title:
-                    # Table pour chaque expérience
-                    exp_data = [
-                        [Paragraph(f"<b>{exp_title}</b>", bold_style), Paragraph(exp_dates, body_style)],
-                        [Paragraph(f"<i>{exp_company}</i>", body_style), ''],
-                        [Paragraph(exp_desc, body_style), ''],
-                    ]
-                    
-                    exp_table = Table(exp_data, colWidths=[10*cm, 4*cm])
-                    exp_table.setStyle(TableStyle([
-                        ('VALIGN', (0,0), (-1,-1), 'TOP'),
-                        ('TOPPADDING', (0,0), (-1,-1), 3),
-                        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
-                        ('LEFTPADDING', (0,0), (-1,-1), 0),
-                        ('RIGHTPADDING', (0,0), (-1,-1), 0),
-                    ]))
-                    story.append(exp_table)
-                    story.append(Spacer(1, 0.2*cm))
-        else:
-            # Expérience par défaut
-            story.append(Paragraph("WORK EXPERIENCE", heading_style))
-            story.append(Spacer(1, 0.2*cm))
-            story.append(Paragraph("<b>Internship / Training</b>", bold_style))
-            story.append(Paragraph("Various Companies | 2022 - Present", body_style))
-            story.append(Paragraph("Gained practical experience in the field through internships and training programs.", body_style))
-            story.append(Spacer(1, 0.3*cm))
-        
-        # SECTION: EDUCATION
-        story.append(Paragraph("EDUCATION", heading_style))
-        story.append(Spacer(1, 0.2*cm))
-        edu_text = f"""
-        <b>{university}</b><br/>
-        {major}<br/>
-        {education_level}<br/>
-        Graduation Year: {graduation_year}
-        """
-        story.append(Paragraph(edu_text, body_style))
-        story.append(Spacer(1, 0.5*cm))
-        
-        # SECTION: AREAS OF EXPERTISE & SKILLS
-        if skills:
-            story.append(Paragraph("AREAS OF EXPERTISE", heading_style))
-            story.append(Spacer(1, 0.2*cm))
-            
-            # Afficher les compétences en 2 colonnes
-            skills_per_row = 2
-            skill_rows = []
-            for i in range(0, len(skills), skills_per_row):
-                row_skills = skills[i:i+skills_per_row]
-                skill_cells = []
-                for skill in row_skills:
-                    skill_cells.append(Paragraph(f"• {skill}", body_style))
-                # Remplir les cellules vides si nécessaire
-                while len(skill_cells) < skills_per_row:
-                    skill_cells.append(Paragraph("", body_style))
-                skill_rows.append(skill_cells)
-            
-            if skill_rows:
-                skills_table = Table(skill_rows, colWidths=[6*cm, 6*cm])
-                skills_table.setStyle(TableStyle([
-                    ('VALIGN', (0,0), (-1,-1), 'TOP'),
-                    ('TOPPADDING', (0,0), (-1,-1), 4),
-                    ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-                    ('LEFTPADDING', (0,0), (-1,-1), 0),
+            summary_text = (
+                f"Motivated {major} student at {university}, "
+                f"graduating in {graduation_year}. "
+                "Eager to apply academic knowledge in a professional environment, "
+                "contribute to a results-driven team, and grow through hands-on experience."
+            )
+        story.append(Paragraph(summary_text, S_BODY))
+
+        # ── 3. EDUCATION ─────────────────────────────────────────────────
+        story += section_header("Education")
+
+        edu_left = [
+            Paragraph(f"<b>{university}</b>", S_BODY_BOLD),
+            Paragraph(major, S_BODY),
+            Paragraph(education_level, S_BODY_ITALIC),
+        ]
+        edu_right = [
+            Paragraph(str(graduation_year) if graduation_year else "", S_LABEL),
+        ]
+
+        edu_table = Table(
+            [[edu_left, edu_right]],
+            colWidths=[PAGE_W * 0.76, PAGE_W * 0.24],
+        )
+        edu_table.setStyle(TableStyle([
+            ('VALIGN',        (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING',   (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 0),
+            ('TOPPADDING',    (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
+        story.append(edu_table)
+
+        # ── 4. EXPERIENCE ────────────────────────────────────────────────
+        story += section_header("Experience")
+
+        real_experience = [
+            exp for exp in (experience or [])
+            if isinstance(exp, dict) and exp.get('title', '').strip()
+        ]
+
+        if real_experience:
+            for idx, exp in enumerate(real_experience):
+                exp_title   = exp.get('title',       '').strip()
+                exp_company = exp.get('company',     '').strip()
+                exp_dates   = exp.get('dates',       '').strip()
+                exp_desc    = exp.get('description', '').strip()
+
+                left_col = [Paragraph(f"<b>{exp_title}</b>", S_BODY_BOLD)]
+                if exp_company:
+                    left_col.append(Paragraph(exp_company, S_BODY_ITALIC))
+                if exp_desc:
+                    left_col.append(Spacer(1, 2))
+                    for line in exp_desc.split('\n'):
+                        if line.strip():
+                            left_col.append(
+                                Paragraph(f"\u2022  {line.strip()}", S_BODY)
+                            )
+
+                right_col = (
+                    [Paragraph(exp_dates, S_LABEL)]
+                    if exp_dates
+                    else [Paragraph("", S_LABEL)]
+                )
+
+                exp_table = Table(
+                    [[left_col, right_col]],
+                    colWidths=[PAGE_W * 0.76, PAGE_W * 0.24],
+                )
+                exp_table.setStyle(TableStyle([
+                    ('VALIGN',        (0, 0), (-1, -1), 'TOP'),
+                    ('LEFTPADDING',   (0, 0), (-1, -1), 0),
+                    ('RIGHTPADDING',  (0, 0), (-1, -1), 0),
+                    ('TOPPADDING',    (0, 0), (-1, -1), 0),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
                 ]))
-                story.append(skills_table)
-                story.append(Spacer(1, 0.5*cm))
-        
-        # SECTION: LANGUAGES
-        if languages and len(languages) > 0:
-            story.append(Paragraph("LANGUAGES", heading_style))
-            story.append(Spacer(1, 0.2*cm))
-            
-            lang_data = [['Language', 'Level']]
-            for lang in languages:
-                lang_name = lang.get('name', '')
-                lang_level = lang.get('level', '')
-                if lang_name:
-                    lang_data.append([lang_name, lang_level])
-            
-            if len(lang_data) > 1:
-                lang_table = Table(lang_data, colWidths=[6*cm, 6*cm])
+                story.append(exp_table)
+
+                # thin separator between entries (not after the last one)
+                if idx < len(real_experience) - 1:
+                    story.append(
+                        hr(thickness=0.4, color=C_RULE, space_before=2, space_after=6)
+                    )
+        else:
+            story.append(
+                Paragraph(
+                    "No professional experience yet — "
+                    "open to internship and training opportunities.",
+                    S_BODY_ITALIC,
+                )
+            )
+
+        # ── 5. SKILLS ────────────────────────────────────────────────────
+        clean_skills = [s.strip() for s in (skills or []) if str(s).strip()]
+
+        if clean_skills:
+            story += section_header("Skills")
+
+            COLS  = 3
+            COL_W = PAGE_W / COLS
+
+            skill_rows = []
+            for i in range(0, len(clean_skills), COLS):
+                row = clean_skills[i: i + COLS]
+                while len(row) < COLS:
+                    row.append("")
+                skill_rows.append([Paragraph(s, S_TAG) for s in row])
+
+            tag_style = [
+                ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
+                ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
+                ('TOPPADDING',    (0, 0), (-1, -1), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+                ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+                ('GRID',          (0, 0), (-1, -1), 0, C_WHITE),
+            ]
+            # Grey background only for non-empty cells
+            for r_idx, row in enumerate(skill_rows):
+                for c_idx, cell in enumerate(row):
+                    if cell.text:
+                        tag_style.append(
+                            ('BACKGROUND', (c_idx, r_idx), (c_idx, r_idx), C_TAG_BG)
+                        )
+
+            skills_table = Table(skill_rows, colWidths=[COL_W] * COLS)
+            skills_table.setStyle(TableStyle(tag_style))
+            story.append(skills_table)
+
+        # ── 6. LANGUAGES ─────────────────────────────────────────────────
+        real_languages = [
+            lang for lang in (languages or [])
+            if isinstance(lang, dict) and lang.get('name', '').strip()
+        ]
+
+        if real_languages:
+            story += section_header("Languages")
+
+            lang_rows = [
+                [
+                    Paragraph(lang.get('name', '').strip(),  S_BODY_BOLD),
+                    Paragraph(lang.get('level', '').strip(), S_BODY),
+                ]
+                for lang in real_languages
+                if lang.get('name', '').strip()
+            ]
+
+            if lang_rows:
+                lang_table = Table(
+                    lang_rows,
+                    colWidths=[PAGE_W * 0.5, PAGE_W * 0.5],
+                )
                 lang_table.setStyle(TableStyle([
-                    ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
-                    ('FONTSIZE', (0,0), (-1,-1), 9),
-                    ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e8e8e8')),
-                    ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-                    ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#dddddd')),
-                    ('TOPPADDING', (0,0), (-1,-1), 4),
-                    ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+                    ('VALIGN',        (0, 0), (-1, -1), 'TOP'),
+                    ('LEFTPADDING',   (0, 0), (-1, -1), 0),
+                    ('RIGHTPADDING',  (0, 0), (-1, -1), 0),
+                    ('TOPPADDING',    (0, 0), (-1, -1), 3),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                    # thin line between rows (skip last row)
+                    ('LINEBELOW', (0, 0), (-1, -2), 0.4, C_RULE),
                 ]))
                 story.append(lang_table)
-                story.append(Spacer(1, 0.5*cm))
-        
-        # Construction du PDF
+
+        # ── 7. FOOTER ────────────────────────────────────────────────────
+        story.append(Spacer(1, 0.6 * cm))
+        story.append(hr(thickness=0.6, color=C_RULE, space_before=0, space_after=4))
+        story.append(
+            Paragraph(f"{full_name}  —  Curriculum Vitae", S_FOOTER)
+        )
+
+        # ── BUILD ────────────────────────────────────────────────────────
         doc.build(story)
-        
-        # Récupérer le contenu du PDF
+
+        # ── RESPONSE (unchanged) ─────────────────────────────────────────
         pdf_content = buffer.getvalue()
         buffer.close()
-        
-        # Créer la réponse
+
         response = HttpResponse(pdf_content, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{full_name}_CV.pdf"'
         response['Content-Length'] = str(len(pdf_content))
-        
+
         return response
-        
+
     except Exception as e:
         print(f"❌ Error in generate_custom_cv: {str(e)}")
         import traceback
@@ -5593,6 +5691,8 @@ def serve_my_company_logo(request, file_id):
     except Exception as e:
         print(f"Erreur serve_my_company_logo: {e}")
         return HttpResponse(status=404)
+
+
 
 
 @api_view(['GET'])

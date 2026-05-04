@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Bell, CheckCheck, X, FileText, CheckCircle, XCircle, Clock, MessageCircle, Users, Briefcase, MessageSquare } from 'lucide-react';
+import { Bell, CheckCheck, X, FileText, CheckCircle, XCircle, Clock, MessageCircle, Users, Briefcase, MessageSquare, MapPin } from 'lucide-react';
 import StudentSidebar from '../components/Studentsidebar';
 import ChatWidget from '../components/ChatWidget';
 import PrivateChat from '../components/PrivateChat';
@@ -10,12 +10,36 @@ import "./StudentDashboard.css";
 
 
 const API = "http://localhost:8000/api";
+const BACKEND = "http://localhost:8000";
 
 const token = () => localStorage.getItem("access_token");
 const authHeaders = () => ({
   "Content-Type": "application/json",
   Authorization: `Bearer ${token()}`,
 });
+
+// Helper function for image URLs - FIXED to handle all image types
+const getImageUrl = (url) => {
+  if (!url) return null;
+  // If image is base64 (starts with data:image)
+  if (url.startsWith('data:image')) {
+    return url;
+  }
+  // If it's a full URL
+  if (url.startsWith('http')) {
+    return url;
+  }
+  // If URL starts with /api/
+  if (url.startsWith('/api/')) {
+    return `${BACKEND}${url}`;
+  }
+  // If URL starts with /media/
+  if (url.startsWith('/media/')) {
+    return `${BACKEND}${url}`;
+  }
+  // Default case
+  return `${BACKEND}/api/${url}`;
+};
 
 // Types de notifications avec icônes
 const NOTIFICATION_ICONS = {
@@ -564,7 +588,6 @@ export default function StudentDashboard() {
       try {
         const res = await fetch(`${API}/companies/list/`, { headers: authHeaders() });
         const data = await res.json();
-        // The API returns companies sorted by active_offers (most offers first)
         setCompanies(Array.isArray(data) ? data : []);
       } catch { setCompanies([]); }
       finally { setLoadingComp(false); }
@@ -585,8 +608,6 @@ export default function StudentDashboard() {
       const data = await res.json();
       if (data.success) {
         setInternships(data.offers || []);
-      } else {
-        console.error('Failed to fetch internships:', data);
       }
     } catch (err) {
       console.error('Error:', err);
@@ -610,7 +631,6 @@ export default function StudentDashboard() {
           members_count: internship.members_count || 2
         }));
         setAcceptedInternships(internshipsWithOfferId);
-        console.log("📋 Accepted internships:", internshipsWithOfferId);
       }
     } catch (err) {
       console.error('Error fetching accepted internships:', err);
@@ -1064,7 +1084,19 @@ export default function StudentDashboard() {
                       {internships.slice(0, 6).map(offer => (
                         <div className="sd-internship-card is-visible" key={offer.id}>
                           <div className="sd-intern-img">
-                            {offer.image ? <img src={offer.image} alt={offer.title} /> : <div className="sd-image-placeholder">student</div>}
+                            {offer.image ? (
+                              <img 
+                                src={getImageUrl(offer.image)} 
+                                alt={offer.title}
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div className="sd-image-placeholder" style={{ display: offer.image ? 'none' : 'flex' }}>
+                              internship
+                            </div>
                             <div className="sd-intern-top-badges">
                               <span className="sd-badge-level">{offer.level || "Internship"}</span>
                               <span className="sd-badge-type">{offer.type || "Stage"}</span>
@@ -1132,7 +1164,7 @@ export default function StudentDashboard() {
           </div>
         </section>
 
-        {/* ========== COMPANIES SECTION - TOP 3 COMPANIES WITH MOST OFFERS ========== */}
+        {/* ========== COMPANIES SECTION - FIXED ========== */}
         <section className="sd-section" id="companies" ref={companiesRef} data-section="companies">
           <div className="sd-section-header">
             <div>
@@ -1144,7 +1176,6 @@ export default function StudentDashboard() {
                 The top companies offering the most internships
               </p>
             </div>
-            {/* See All button - always visible when there are companies */}
             {companies.length > 0 && (
               <button 
                 className="sd-see-all-btn"
@@ -1170,18 +1201,74 @@ export default function StudentDashboard() {
             <div className="sd-companies-grid">
               {displayedCompanies.map((c, index) => (
                 <div className="sd-company-card" key={c.id}>
-                  <div className="sd-company-img">
-                    {c.logo ? (
-                      <img 
-                        src={typeof c.logo === 'string' && c.logo.startsWith('data:') ? c.logo : `http://localhost:8000${c.logo}`} 
-                        alt={c.name || c.company_name} 
+                  <div className="sd-company-img" style={{
+                    position: 'relative',
+                    overflow: 'hidden',
+                    minHeight: '140px',
+                    background: c.cover_picture
+                      ? 'transparent'
+                      : 'linear-gradient(135deg, rgba(168,85,247,0.2), rgba(99,102,241,0.2))',
+                  }}>
+                    {/* Cover picture as full background */}
+                    {c.cover_picture && (
+                      <img
+                        src={getImageUrl(c.cover_picture)}
+                        alt="cover"
+                        style={{
+                          position: 'absolute', inset: 0,
+                          width: '100%', height: '100%',
+                          objectFit: 'cover',
+                          filter: 'brightness(0.7)',
+                        }}
+                        onError={(e) => { e.target.style.display = 'none'; }}
                       />
-                    ) : (
-                      <div className="sd-image-placeholder">company</div>
                     )}
-                    {index === 0 && <span className="sd-company-badge">🥇 #1</span>}
-                    {index === 1 && <span className="sd-company-badge">🥈 #2</span>}
-                    {index === 2 && <span className="sd-company-badge">🥉 #3</span>}
+
+                    {/* Dark gradient overlay for readability */}
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: 'linear-gradient(to top, rgba(0,0,0,0.6) 35%, transparent 100%)',
+                      pointerEvents: 'none',
+                    }} />
+
+                    {/* Logo badge — bottom-left corner */}
+                    <div style={{
+                      position: 'absolute', bottom: 10, left: 10,
+                      width: 56, height: 56,
+                      borderRadius: 10,
+                      overflow: 'hidden',
+                      border: '2px solid rgba(255,255,255,0.35)',
+                      background: 'rgba(255,255,255,0.12)',
+                      backdropFilter: 'blur(6px)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      zIndex: 3,
+                    }}>
+                      {c.logo ? (
+                        <img
+                          src={getImageUrl(c.logo)}
+                          alt={c.name || c.company_name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      ) : (
+                        <Briefcase size={20} style={{ color: 'rgba(255,255,255,0.6)' }} />
+                      )}
+                    </div>
+
+                    {/* Industry label — bottom-right */}
+                    <span style={{
+                      position: 'absolute', bottom: 10, right: 10,
+                      background: 'rgba(0,0,0,0.45)',
+                      backdropFilter: 'blur(6px)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: 20,
+                      padding: '2px 10px',
+                      fontSize: '0.65rem',
+                      color: 'rgba(255,255,255,0.85)',
+                      zIndex: 3,
+                    }}>
+                      {c.industry || "Company"}
+                    </span>
                   </div>
                   <div className="sd-company-info">
                     <div className="sd-company-name">{c.name || c.company_name}</div>
@@ -1203,7 +1290,6 @@ export default function StudentDashboard() {
             </div>
           )}
 
-          {/* Bottom See All button - only when there are more than 3 companies and not showing all */}
           {!loadingComp && companies.length > 3 && !showAllCompanies && (
             <div style={{ display: "flex", justifyContent: "center", marginTop: "2rem" }}>
               <button 
@@ -1235,7 +1321,6 @@ export default function StudentDashboard() {
                 Find the perfect opportunity to start your career
               </p>
             </div>
-            {/* See All button - only when there are internships and not in search mode */}
             {internships.length > 0 && !hasActiveFilters && (
               <button 
                 className="sd-see-all-btn"
@@ -1260,9 +1345,21 @@ export default function StudentDashboard() {
           ) : !hasActiveFilters ? (
             <div className="sd-internships-grid">
               {displayedInternships.map(offer => (
-                <div className="sd-internship-card" key={offer.id}>
+                <div className="sd-internship-card is-visible" key={offer.id}>
                   <div className="sd-intern-img">
-                    {offer.image ? <img src={offer.image} alt={offer.title} /> : <div className="sd-image-placeholder">internship</div>}
+                    {offer.image ? (
+                      <img 
+                        src={getImageUrl(offer.image)} 
+                        alt={offer.title}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div className="sd-image-placeholder" style={{ display: offer.image ? 'none' : 'flex' }}>
+                      internship
+                    </div>
                     <div className="sd-intern-top-badges">
                       <span className="sd-badge-level">{offer.level || "Internship"}</span>
                       <span className="sd-badge-type">{offer.type || "Stage"}</span>
@@ -1298,7 +1395,6 @@ export default function StudentDashboard() {
             </div>
           ) : null}
 
-          {/* Bottom See All button - only when there are more than 3 internships, not in search mode, and not showing all */}
           {!hasActiveFilters && internships.length > 3 && !showAllInternships && (
             <div style={{ display: "flex", justifyContent: "center", marginTop: "2rem" }}>
               <button 
