@@ -50,7 +50,7 @@ const ChatWidget = ({ university, companyMode = false, companyId = null, interns
   const fetchCompanyName = useCallback(async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch('http://localhost:8000/api/auth/me/', {
+      const res = await fetch('https://pfe-l31r.onrender.com/api/auth/me/', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -87,7 +87,7 @@ const ChatWidget = ({ university, companyMode = false, companyId = null, interns
     if (user?.role === 'admin') {
       const uniName = university || (user?.university || "Universite");
       groupName = uniName.replace(/\s/g, '_');
-      wsUrl = `ws://localhost:8000/ws/chat/${groupName}/?token=${token}`;
+      wsUrl = `ws://pfe-l31r.onrender.com/ws/chat/${groupName}/?token=${token}`;
       setGroupInfo({ type: 'university', name: uniName, icon: '🎓', title: `Chat ${uniName}` });
     } 
     else if (user?.role === 'company') {
@@ -96,11 +96,11 @@ const ChatWidget = ({ university, companyMode = false, companyId = null, interns
         roomName = await fetchCompanyName();
       }
       const finalRoomName = roomName || 'company';
-      wsUrl = `ws://localhost:8000/ws/company-chat/${finalRoomName}/?token=${token}`;
+      wsUrl = `ws://pfe-l31r.onrender.com/ws/company-chat/${finalRoomName}/?token=${token}`;
       setGroupInfo({ type: 'company', name: finalRoomName, icon: '🏢', title: `Chat` });
     }
     else if (user?.role === 'student' && internshipId) {
-      wsUrl = `ws://localhost:8000/ws/internship-chat/${internshipId}/?token=${token}`;
+      wsUrl = `ws://pfe-l31r.onrender.com/ws/internship-chat/${internshipId}/?token=${token}`;
       setGroupInfo({ type: 'internship', name: `Stage`, icon: '💼', title: `Chat Stage` });
     }
     else {

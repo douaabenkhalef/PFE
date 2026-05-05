@@ -75,6 +75,7 @@ path('student/offers/applicants-counts/', views.get_all_offers_applicants_counts
     path('company/applications/<str:application_id>/cv/',          views.download_application_cv, name='download-cv'),
 	path('company/offers/<str:offer_id>/image/', views.serve_offer_image, name='offer-image'),
 
+    path('company/public-profile/<str:company_id>/', views.get_public_company_profile, name='public_company_profile'),
     # Your public Company Profile (editing cover, description, etc.)
     path('company/profile/', views.get_company_profile, name='get-company-profile'),
     path('company/profile/update/', views.update_company_profile, name='update-company-profile'),   # PUT delegates to POST

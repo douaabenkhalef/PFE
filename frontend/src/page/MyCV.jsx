@@ -10,7 +10,7 @@ import {
 import toast from 'react-hot-toast';
 import './MyCV.css';
 
-const API = 'http://localhost:8000/api';
+const API = 'https://pfe-l31r.onrender.com/api';
 const token = () => localStorage.getItem('access_token');
 
 const authHeaders = () => ({
@@ -31,11 +31,11 @@ function CVViewer({ url, onClose }) {
         let fullUrl = url;
         if (url && !url.startsWith('http')) {
           if (url.startsWith('/api/')) {
-            fullUrl = `http://localhost:8000${url}`;
+            fullUrl = `https://pfe-l31r.onrender.com/api${url}`;
           } else if (url.startsWith('/student/')) {
-            fullUrl = `http://localhost:8000/api${url}`;
+            fullUrl = `https://pfe-l31r.onrender.com/api${url}`;
           } else {
-            fullUrl = `http://localhost:8000/api/${url}`;
+            fullUrl = `https://pfe-l31r.onrender.com/api/${url}`;
           }
         }
         
@@ -190,7 +190,7 @@ export default function MyCV() {
         if (data.profile.profile_picture) {
           let imgUrl = data.profile.profile_picture;
           if (imgUrl && !imgUrl.startsWith('http')) {
-            imgUrl = `http://localhost:8000${imgUrl}`;
+            imgUrl = `https://pfe-l31r.onrender.com${imgUrl}`;
           }
           setProfilePicture(imgUrl);
         }
@@ -203,9 +203,9 @@ export default function MyCV() {
   const buildFullUrl = (url) => {
     if (!url) return null;
     if (url.startsWith('http')) return url;
-    if (url.startsWith('/api/')) return `http://localhost:8000${url}`;
-    if (url.startsWith('/student/')) return `http://localhost:8000/api${url}`;
-    return `http://localhost:8000/api/${url}`;
+    if (url.startsWith('/api/')) return `https://pfe-l31r.onrender.com\api${url}`;
+    if (url.startsWith('/student/')) return `https://pfe-l31r.onrender.com/api${url}`;
+    return `https://pfe-l31r.onrender.com/api/${url}`;
   };
 
   const fetchCurrentCV = async () => {
@@ -305,11 +305,11 @@ export default function MyCV() {
       
       if (url && !url.startsWith('http')) {
         if (url.startsWith('/api/')) {
-          fullUrl = `http://localhost:8000${url}`;
+          fullUrl = `https://pfe-l31r.onrender.com/api${url}`;
         } else if (url.startsWith('/student/')) {
-          fullUrl = `http://localhost:8000/api${url}`;
+          fullUrl = `https://pfe-l31r.onrender.com/api${url}`;
         } else {
-          fullUrl = `http://localhost:8000/api/${url}`;
+          fullUrl = `https://pfe-l31r.onrender.com/api/${url}`;
         }
       }
       

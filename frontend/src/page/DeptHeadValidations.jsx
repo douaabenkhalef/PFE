@@ -17,7 +17,7 @@ import SignaturePad from '../components/SignaturePad';
 import StampPad from '../components/StampPad';
 import './StudentDashboard.css';
 
-const API = 'http://localhost:8000/api';
+const API = 'https://pfe-l31r.onrender.com/api';
 
 const authHeaders = () => ({
   'Content-Type': 'application/json',
@@ -212,7 +212,7 @@ const DetailsModal = ({ application, onClose, onValidate, onReject, onAddSignatu
     setLoadingCv(true);
     try {
       const token = localStorage.getItem("access_token");
-      const res = await fetch(`http://localhost:8000${application.cv_file_url}`, {
+      const res = await fetch(`https://pfe-l31r.onrender.com${application.cv_file_url}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const blob = await res.blob();
@@ -230,7 +230,7 @@ const DetailsModal = ({ application, onClose, onValidate, onReject, onAddSignatu
     setLoadingConvention(true);
     try {
       const token = localStorage.getItem("access_token");
-      const res = await fetch(`http://localhost:8000${application.convention_url}`, {
+      const res = await fetch(`https://pfe-l31r.onrender.com${application.convention_url}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const blob = await res.blob();

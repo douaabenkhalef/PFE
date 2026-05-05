@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 import './StudentDashboard.css';
 import UserAvatar from '../components/UserAvatar';
 
-const API = 'http://localhost:8000/api';
+const API = 'https://pfe-l31r.onrender.com/api';
 const authHeaders = () => ({
   'Content-Type': 'application/json',
   'Authorization': `Bearer ${localStorage.getItem('access_token')}`

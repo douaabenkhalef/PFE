@@ -6,7 +6,7 @@ import {
   ChevronRight, GraduationCap
 } from 'lucide-react';
 
-const API = 'http://localhost:8000/api';
+const API = 'https://pfe-l31r.onrender.com/api';
 const token = () => localStorage.getItem('access_token');
 
 const authHeaders = () => ({
@@ -39,7 +39,7 @@ export default function StudentSidebar({ user, onLogout, onClose }) {
       if (profileData.success && profileData.profile.profile_picture) {
         let imgUrl = profileData.profile.profile_picture;
         if (imgUrl && !imgUrl.startsWith('http')) {
-          imgUrl = `http://localhost:8000${imgUrl}`;
+          imgUrl = `https://pfe-l31r.onrender.com${imgUrl}`;
         }
         setProfilePicture(imgUrl);
       }

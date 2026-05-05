@@ -10,7 +10,7 @@ import {
 import toast from 'react-hot-toast';
 import "./StudentDashboard.css";
 
-const API = 'http://localhost:8000/api';
+const API = 'https://pfe-l31r.onrender.com/api';
 const token = () => localStorage.getItem('access_token');
 const authH = () => ({ Authorization: `Bearer ${token()}` });
 const authHeaders = () => ({
@@ -179,7 +179,7 @@ function AppDetailModal({ app, onClose, onGenerateConvention }) {
   if (!app) return null;
 
   const conventionUrl = app.convention_url ? 
-    `http://localhost:8000/api/co-dept/download-convention/${app.id}/` : null;
+    `https://pfe-l31r.onrender.com/api/co-dept/download-convention/${app.id}/` : null;
 
   const handleDownloadConvention = async () => {
     if (!conventionUrl) return;
@@ -401,7 +401,7 @@ export default function StudentApplications() {
         if (data.profile.profile_picture) {
           let imgUrl = data.profile.profile_picture;
           if (imgUrl && !imgUrl.startsWith('http')) {
-            imgUrl = `http://localhost:8000${imgUrl}`;
+            imgUrl = `https://pfe-l31r.onrender.com${imgUrl}`;
           }
           setProfilePicture(imgUrl);
         }

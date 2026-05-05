@@ -13,7 +13,7 @@ import {
 import toast from 'react-hot-toast';
 import './StudentProfile.css';
 
-const API = 'http://localhost:8000/api';
+const API = 'https://pfe-l31r.onrender.com/api';
 const token = () => localStorage.getItem('access_token');
 
 const authHeaders = () => ({
@@ -455,7 +455,7 @@ export default function StudentProfile() {
       
       if (data.success) {
         if (data.profile.profile_picture && !data.profile.profile_picture.startsWith('http')) {
-          data.profile.profile_picture = `http://localhost:8000${data.profile.profile_picture}`;
+          data.profile.profile_picture = `https://pfe-l31r.onrender.com${data.profile.profile_picture}`;
         }
         setProfile(data.profile);
         setVisibility(data.visibility || {});

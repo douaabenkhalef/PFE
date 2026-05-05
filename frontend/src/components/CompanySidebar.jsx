@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Briefcase, Users, Activity, FileText, UserCog, LogOut, Search, User, Building2 } from 'lucide-react';
 
-const API = 'http://localhost:8000/api';
+const API = 'https://pfe-l31r.onrender.com/api';
 const token = () => localStorage.getItem('access_token');
 
 const CompanySidebar = ({ user, onLogout, onClose }) => {
@@ -32,7 +32,7 @@ const CompanySidebar = ({ user, onLogout, onClose }) => {
           if (userData.user?.profile_picture_url) {
             let avatarUrl = userData.user.profile_picture_url;
             if (avatarUrl && !avatarUrl.startsWith('http')) {
-              avatarUrl = `http://localhost:8000${avatarUrl}`;
+              avatarUrl = `https://pfe-l31r.onrender.com${avatarUrl}`;
             }
             setProfileImage(avatarUrl);
           } else {

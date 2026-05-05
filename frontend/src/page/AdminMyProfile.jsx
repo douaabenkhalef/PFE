@@ -16,7 +16,7 @@ import ChatWidget from '../components/ChatWidget';
 import { AdminSidebarInline } from '../components/AdminSidebar';
 import './StudentDashboard.css';
 
-const API = 'http://localhost:8000/api';
+const API = 'https://pfe-l31r.onrender.com/api';
 const token = () => localStorage.getItem('access_token');
 
 const authHeaders = () => ({
@@ -258,7 +258,7 @@ export default function AdminMyProfile() {
         setProfile(u);
         if (u.profile_picture_url) {
           let imgUrl = u.profile_picture_url;
-          if (!imgUrl.startsWith('http')) imgUrl = `http://localhost:8000${imgUrl}`;
+          if (!imgUrl.startsWith('http')) imgUrl = `https://pfe-l31r.onrender.com${imgUrl}`;
           setProfileImage(imgUrl);
         } else {
           setProfileImage(null);

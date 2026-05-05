@@ -10,8 +10,8 @@ import toast from 'react-hot-toast';
 import './StudentDashboard.css';
 import UserAvatar from '../components/UserAvatar';
 
-const BASE_URL = 'http://localhost:8000/api';
-const BACKEND  = 'http://localhost:8000';
+const BASE_URL = 'https://pfe-l31r.onrender.com/api';
+const BACKEND  = 'https://pfe-l31r.onrender.com';
 const imgUrl   = (url) => { if (!url) return null; if (url.startsWith('http')) return url; return `${BACKEND}${url}`; };
 const TYPES    = ['PFE', 'ouvrier', 'technicien', 'été'];
 const WILAYAS  = [

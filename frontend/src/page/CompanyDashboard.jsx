@@ -12,8 +12,8 @@ import ChatWidget from '../components/ChatWidget';
 import PrivateChat from '../components/PrivateChat';
 // AJOUTER cette ligne
 import LanguageSelector from '../components/LanguageSelector';
-const API = 'http://localhost:8000/api';
-const BACKEND = 'http://localhost:8000';
+const API = 'https://pfe-l31r.onrender.com/api';
+const BACKEND = 'https://pfe-l31r.onrender.com';
 
 const imgUrl = (url) => {
   if (!url) return null;

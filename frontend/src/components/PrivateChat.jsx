@@ -103,7 +103,7 @@ const PrivateChat = ({ university, currentUser, targetUser, onClose }) => {
       return;
     }
     
-    const wsUrl = `ws://localhost:8000/ws/private-chat/?token=${token}`;
+    const wsUrl = `ws://pfe-l31r.onrender.com/ws/private-chat/?token=${token}`;
     
     const socket = new WebSocket(wsUrl);
     
@@ -329,10 +329,10 @@ const PrivateChat = ({ university, currentUser, targetUser, onClose }) => {
                 {msg.message_type === 'image' && msg.file_url && (
                   <div className="mt-1">
                     <img 
-                      src={`http://localhost:8000${msg.file_url}`}
+                      src={`https://pfe-l31r.onrender.com${msg.file_url}`}
                       alt={msg.file_name}
                       className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition"
-                      onClick={() => window.open(`http://localhost:8000${msg.file_url}`, '_blank')}
+                      onClick={() => window.open(`https://pfe-l31r.onrender.com${msg.file_url}`, '_blank')}
                     />
                     <p className="text-xs mt-1 opacity-70">{msg.file_name}</p>
                   </div>
@@ -342,7 +342,7 @@ const PrivateChat = ({ university, currentUser, targetUser, onClose }) => {
                 {msg.message_type === 'file' && msg.file_url && (
                   <div className="mt-1">
                     <a 
-                      href={`http://localhost:8000${msg.file_url}`}
+                      href={`https://pfe-l31r.onrender.com${msg.file_url}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 text-sm bg-slate-600/50 rounded-lg p-2 hover:bg-slate-600 transition"

@@ -80,7 +80,7 @@ const getImageSrc = (logo) => {
     return logo;
   }
   // If it's a local path
-  return `http://localhost:8000${logo}`;
+  return `https://pfe-l31r.onrender.com${logo}`;
 };
 
 // ==================== SERVICES DATA ====================
@@ -237,7 +237,7 @@ function ServicesModal({ onClose }) {
 
 // ==================== COMPANIES MODAL COMPONENT ====================
 
-function CompaniesModal({ companies, onClose }) {
+function CompaniesModal({ companies, onClose, onCompanyClick }) {
   if (!companies.length) return null;
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -246,7 +246,12 @@ function CompaniesModal({ companies, onClose }) {
         <h2 className="modal-title">All Companies</h2>
         <div className="modal-grid">
           {companies.map(company => (
-            <div className="modal-company-card" key={company.id}>
+            <div 
+              className="modal-company-card" 
+              key={company.id}
+              onClick={() => onCompanyClick(company.id, company.company_name)}
+              style={{ cursor: 'pointer' }}
+            >
               <div className="modal-company-img" style={{
                 position: 'relative', overflow: 'hidden', padding: 0,
                 background: company.cover_picture
@@ -319,7 +324,7 @@ export default function Home() {
 
   // Fetch companies from API
   useEffect(() => {
-    fetch("http://localhost:8000/api/companies/list/")
+    fetch("https://pfe-l31r.onrender.com/api/companies/list/")
       .then(res => res.json())
       .then(data => {
         // The API already returns companies sorted by active_offers (most offers first)
@@ -344,6 +349,12 @@ export default function Home() {
       company.industry?.toLowerCase().includes(query.toLowerCase())
     );
     setSearchResults(filtered.slice(0, 5));
+  };
+
+  // Handle company click - navigate to company profile
+  const handleCompanyClick = (companyId, companyName) => {
+    console.log(`Navigating to company profile: ${companyName} (ID: ${companyId})`);
+    navigate(`/company-profile/${companyId}`);
   };
 
   const activateSearch = () => {
@@ -409,7 +420,13 @@ export default function Home() {
 
   return (
     <>
-      {showCompaniesModal && <CompaniesModal companies={companies} onClose={() => setShowCompaniesModal(false)} />}
+      {showCompaniesModal && (
+        <CompaniesModal 
+          companies={companies} 
+          onClose={() => setShowCompaniesModal(false)} 
+          onCompanyClick={handleCompanyClick}
+        />
+      )}
       {showServicesModal && <ServicesModal onClose={() => setShowServicesModal(false)} />}
 
       {/* Navbar */}
@@ -466,6 +483,7 @@ export default function Home() {
                       setSearchQuery('');
                       setSearchResults([]);
                       setSearchMode(false);
+                      handleCompanyClick(company.id, company.company_name);
                     }}
                   >
                     <div className="result-icon">🏢</div>
@@ -526,7 +544,13 @@ export default function Home() {
             <div className="empty-placeholder">No companies have completed their profile yet.</div>
           ) : (
             displayedCompanies.map((company, index) => (
-              <div className="company-card" key={company.id} data-rank={index + 1}>
+              <div 
+                className="company-card" 
+                key={company.id} 
+                data-rank={index + 1}
+                onClick={() => handleCompanyClick(company.id, company.company_name)}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className="company-img-box" style={{
                   position: 'relative',
                   overflow: 'hidden',
@@ -615,8 +639,9 @@ export default function Home() {
                     <Stars n={4} />
                     <button 
                       className="see-details-btn"
-                      onClick={() => {
-                        console.log("View company:", company.company_name);
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCompanyClick(company.id, company.company_name);
                       }}
                     >
                       See Details <ArrowRight />

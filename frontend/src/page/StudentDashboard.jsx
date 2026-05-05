@@ -9,8 +9,8 @@ import PrivateChat from '../components/PrivateChat';
 import "./StudentDashboard.css";
 
 
-const API = "http://localhost:8000/api";
-const BACKEND = "http://localhost:8000";
+const API = "https://pfe-l31r.onrender.com/api";
+const BACKEND = "https://pfe-l31r.onrender.com"; 
 
 const token = () => localStorage.getItem("access_token");
 const authHeaders = () => ({

@@ -11,8 +11,8 @@ import CompanySidebar from '../components/CompanySidebar';
 import ChatWidget from '../components/ChatWidget';
 import PrivateChat from '../components/PrivateChat';
 
-const API = 'http://localhost:8000/api';
-const BACKEND = 'http://localhost:8000';
+const API = 'https://pfe-l31r.onrender.com/api';
+const BACKEND = 'https://pfe-l31r.onrender.com';
 
 const imgUrl = (url) => {
   if (!url) return null;

@@ -165,7 +165,7 @@ function App() {
                 <AdminMyProfile />
               </ProtectedRoute>
             } />
-            
+            <Route path="/company-profile/:companyId" element={<CompanyPublicProfile />} />
             {/* Common Routes */}
             <Route path="/university/team" element={
               <ProtectedRoute allowedRoles={['admin']} allowedSubRoles={['admin', 'co_dept_head']}>

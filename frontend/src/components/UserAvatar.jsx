@@ -1,7 +1,7 @@
 // frontend/src/components/UserAvatar.jsx
 import React, { useState, useEffect } from 'react';
 
-const API = 'http://localhost:8000/api';
+const API = 'https://pfe-l31r.onrender.com/api';
 
 const UserAvatar = ({ sizeClass = "w-10 h-10" }) => {
   const [avatarUrl, setAvatarUrl] = useState(null);
@@ -20,7 +20,7 @@ const UserAvatar = ({ sizeClass = "w-10 h-10" }) => {
           setInitial(u.username?.charAt(0).toUpperCase() || 'U');
           if (u.profile_picture_url) {
             let url = u.profile_picture_url;
-            if (!url.startsWith('http')) url = `http://localhost:8000${url}`;
+            if (!url.startsWith('http')) url = `https://pfe-l31r.onrender.com${url}`;
             setAvatarUrl(url);
           } else {
             setAvatarUrl(null);

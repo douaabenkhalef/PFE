@@ -11,7 +11,7 @@ import AdminSidebar from "../components/AdminSidebar";
 import toast from "react-hot-toast";
 import "./StudentDashboard.css";
 
-const API = "http://localhost:8000/api";
+const API = "https://pfe-l31r.onrender.com/api";
 const token = () => localStorage.getItem("access_token");
 const authHeaders = () => ({
   "Content-Type": "application/json",

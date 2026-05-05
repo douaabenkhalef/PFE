@@ -7670,3 +7670,54 @@ def get_all_offers_applicants_counts(request):
         
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
+@api_view(['GET'])
+def get_public_company_profile(request, company_id):
+    """Get public company profile by ID (no authentication required for viewing)"""
+    try:
+        from .models import Company, CompanyProfile
+        
+        company = Company.objects(id=company_id).first()
+        if not company:
+            return Response({'success': False, 'error': 'Company not found'}, status=404)
+        
+        # Get CompanyProfile if exists
+        profile = CompanyProfile.objects(company_id=company_id).first()
+        
+        if profile:
+            profile_data = {
+                'name': profile.name,
+                'description': profile.description,
+                'location': profile.location,
+                'website': profile.website,
+                'industry': profile.industry,
+                'phone': profile.phone,
+                'contact_email': profile.contact_email,
+                'linkedin': profile.linkedin,
+                'twitter': profile.twitter,
+                'logo': profile.logo,
+                'cover_picture': profile.cover_picture,
+            }
+        else:
+            # Fallback to company basic data
+            profile_data = {
+                'name': company.company_name,
+                'description': company.description or '',
+                'location': company.location or '',
+                'website': company.website or '',
+                'industry': company.industry or '',
+                'phone': getattr(company, 'phone', ''),
+                'contact_email': company.user.email if company.user else '',
+                'linkedin': '',
+                'twitter': '',
+                'logo': company.logo or '',
+                'cover_picture': '',
+            }
+        
+        return Response({
+            'success': True,
+            'profile': profile_data,
+            'can_edit': False
+        })
+        
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)

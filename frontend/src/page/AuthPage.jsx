@@ -116,7 +116,7 @@ const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) 
       const storedData = localStorage.getItem('pending_signup_data');
       if (storedData) {
         const { role, data } = JSON.parse(storedData);
-        const response = await fetch('http://localhost:8000/api/auth/initiate-signup/', {
+        const response = await fetch('https://pfe-l31r.onrender.com/api/auth/initiate-signup/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ role, ...data })
@@ -373,7 +373,7 @@ const AuthPage = () => {
         graduation_year: parseInt(data.graduation_year),
       };
       const initiateData = { role: 'student', ...cleanData };
-      const response = await fetch('http://localhost:8000/api/auth/initiate-signup/', {
+      const response = await fetch('https://pfe-l31r.onrender.com/api/auth/initiate-signup/', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(initiateData)
       });
@@ -400,7 +400,7 @@ const AuthPage = () => {
         company_name: data.company_name || '', description: data.description || '',
         location: data.location || '', website: data.website || '', industry: data.industry || '',
       };
-      const response = await fetch('http://localhost:8000/api/auth/initiate-signup/', {
+      const response = await fetch('https://pfe-l31r.onrender.com/api/auth/initiate-signup/', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: 'company', ...cleanData })
       });
@@ -426,7 +426,7 @@ const AuthPage = () => {
         university_for_verification: data.university_for_verification || '',
         full_name: data.full_name || '', wilaya: data.wilaya || '', university: data.university || '',
       };
-      const response = await fetch('http://localhost:8000/api/auth/initiate-signup/', {
+      const response = await fetch('https://pfe-l31r.onrender.com/api/auth/initiate-signup/', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: 'admin', ...cleanData })
       });
@@ -512,7 +512,7 @@ const AuthPage = () => {
   const handleResend2FA = async () => {
     setOtp2FAError('');
     try {
-      const response = await fetch('http://localhost:8000/api/auth/send-2fa-code/', {
+      const response = await fetch('https://pfe-l31r.onrender.com/api/auth/send-2fa-code/', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: pending2FAEmail })
       });

@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 import './StudentDashboard.css';
 import UserAvatar from '../components/UserAvatar';
 
-const API = 'http://localhost:8000/api';
+const API = 'https://pfe-l31r.onrender.com/api';
 const auth = () => ({
   Authorization: `Bearer ${localStorage.getItem('access_token')}`,
 });
@@ -258,7 +258,7 @@ function ApplicationModal({ app, onClose, onAccept, onReject, onGenerateConventi
                 <FileText size={15} /> CV
               </h3>
               {!cvBlobUrl && !loadingCv && (
-                <button onClick={() => loadPdf(`http://localhost:8000${app.cv_file_url}`)} className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-4 py-2 rounded-lg transition">
+                <button onClick={() => loadPdf(`https://pfe-l31r.onrender.com${app.cv_file_url}`)} className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-4 py-2 rounded-lg transition">
                   Charger le CV
                 </button>
               )}
