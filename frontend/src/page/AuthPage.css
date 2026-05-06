@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:ital,wght@0,400..900;1,400..900&family=Tilt+Warp&display=swap');
 
 * {
@@ -14,33 +13,33 @@ html, body {
   color: white;
 }
 
-
 .auth-page-wrapper {
+  /* min-height يُحسب من JS ليساوي الارتفاع الفعلي بعد الـ scale */
+  /* لكن نضمن 100vh كـ fallback على الشاشات الكبيرة */
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 0;
+  overflow: hidden;
+  background: radial-gradient(circle at center, #23143d 0%, #050308 100%);
 }
-
 
 .main-container {
   position: relative;
-  width: 100%;
-  max-width: 900px;
+  width: 900px;
+  min-width: 900px;
   height: 520px;
   background-color: #000000;
   border-radius: 35px;
   overflow: hidden;
   display: flex;
-
-  box-shadow:
-    0 25px 60px rgba(0,0,0,0.6),
-    0 0 80px rgba(147, 51, 234, 0.35),
-    0 0 140px rgba(147, 51, 234, 0.15);
-
+  box-shadow: 0 25px 60px rgba(0,0,0,0.6), 0 0 80px rgba(147, 51, 234, 0.35), 0 0 140px rgba(147, 51, 234, 0.15);
   backdrop-filter: blur(6px);
+  transform-origin: center center;
+  flex-shrink: 0;
 }
 
 .main-container::before {
@@ -48,14 +47,9 @@ html, body {
   position: absolute;
   inset: 0;
   border-radius: 35px;
-  background: linear-gradient(
-    120deg,
-    rgba(147,51,234,0.08),
-    rgba(147,51,234,0.02)
-  );
+  background: linear-gradient(120deg, rgba(147,51,234,0.08), rgba(147,51,234,0.02));
   pointer-events: none;
 }
-
 
 .sliding-panel {
   position: absolute;
@@ -65,12 +59,10 @@ html, body {
   height: 100%;
   background: linear-gradient(135deg, #9333ea 0%, #6b21a8 100%);
   z-index: 30;
-
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-
   transition: clip-path 0.6s ease-in-out;
 }
 
@@ -87,7 +79,6 @@ html, body {
   padding: 40px;
 }
 
-
 .welcome-text {
   font-family: 'Tilt Warp', cursive; 
   font-size: 3.2rem;
@@ -96,7 +87,6 @@ html, body {
   margin-bottom: 18px;
   line-height: 1.1;
 }
-
 
 .sub-text {
   font-family: 'Schibsted Grotesk', sans-serif; 
@@ -108,7 +98,6 @@ html, body {
   max-width: 320px;
   margin: 0 auto;
 }
-
 
 .form-section {
   width: 50%;
@@ -142,13 +131,11 @@ html, body {
   margin-bottom: 30px;
 }
 
-
 .input-stack {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
-
 
 .input-group {
   position: relative;
@@ -158,25 +145,27 @@ html, body {
   align-items: center;
 }
 
-.input-group input {
+.input-group input,
+.input-group select,
+.input-group textarea {
   background: transparent;
   width: 100%;
   outline: none;
   color: white;
   font-size: 0.95rem;
   border: none;
-  font-family: 'Schibsted Grotesk', sans-serif; 
+  font-family: 'Schibsted Grotesk', sans-serif;
 }
 
 .input-group .icon {
   color: white;
   margin-left: 10px;
+  flex-shrink: 0;
 }
 
 .input-group:focus-within {
   border-bottom: 1px solid #a855f7;
 }
-
 
 .auth-btn {
   width: 100%;
@@ -197,7 +186,6 @@ html, body {
   background-color: #7e22ce;
   transform: translateY(-1px);
 }
-
 
 .toggle-text {
   text-align: center;
@@ -234,7 +222,6 @@ html, body {
   color: white;
   text-decoration: underline;
 }
-
 
 .role-container {
   position: relative;
@@ -278,7 +265,6 @@ html, body {
   background-color: #2d1b4d;
 }
 
-
 .grid {
   display: grid;
   gap: 16px;
@@ -287,7 +273,6 @@ html, body {
 .grid-cols-2 {
   grid-template-columns: repeat(2, 1fr);
 }
-
 
 .form-scrollable {
   max-height: 400px;
@@ -307,4 +292,119 @@ html, body {
 .form-scrollable::-webkit-scrollbar-thumb {
   background: #a855f7;
   border-radius: 10px;
+}
+
+/* ================================================================
+   RESPONSIVE COMPLETE
+   ================================================================ */
+
+/* ---- تابلت: 768px - 939px ---- */
+@media (max-width: 939px) {
+  .auth-page-wrapper { padding: 20px; }
+  .main-container { width: 100%; min-width: unset; max-width: 900px; height: auto; min-height: 480px; }
+  .form-section { padding: 40px 30px; }
+  .form-title { font-size: 1.7rem; margin-bottom: 22px; }
+  .welcome-text { font-size: 2.6rem; }
+  .sub-text { font-size: 0.9rem; }
+  .auth-btn { font-size: 1rem; padding: 12px; }
+  .input-group input, .input-group select, .input-group textarea { font-size: 0.88rem; }
+  .toggle-text { font-size: 0.8rem; }
+  .role-item { font-size: 0.75rem; padding: 10px 12px; }
+}
+
+/* ---- موبايل: أصغر من 768px ---- */
+@media (max-width: 767px) {
+  .auth-page-wrapper { padding: 0; align-items: stretch; }
+  .main-container { width: 100%; min-width: unset; height: 100vh; height: 100dvh; border-radius: 0; flex-direction: column; }
+  .sliding-panel { display: none; }
+  .form-section { width: 100% !important; margin-left: 0 !important; padding: 30px 24px 24px; justify-content: flex-start; overflow-y: auto; }
+  .form-title { font-size: 1.5rem; margin-bottom: 20px; }
+  .input-stack { gap: 14px; }
+  .input-group { padding: 8px 0; }
+  .input-group input, .input-group select, .input-group textarea { font-size: 0.85rem; }
+  .auth-btn { font-size: 0.95rem; padding: 11px; margin-top: 6px; }
+  .toggle-text { font-size: 0.78rem; margin-top: 10px; }
+  .role-selector { font-size: 0.85rem; padding: 8px 0; }
+  .role-item { font-size: 0.75rem; padding: 10px 12px; }
+  .form-scrollable { max-height: unset; overflow-y: visible; }
+  .grid-cols-2 { grid-template-columns: 1fr; }
+}
+
+/* ---- موبايل صغير: أصغر من 480px ---- */
+@media (max-width: 479px) {
+  .form-section { padding: 24px 18px 18px; }
+  .form-title { font-size: 1.35rem; margin-bottom: 16px; }
+  .input-stack { gap: 12px; }
+  .input-group input, .input-group select, .input-group textarea { font-size: 0.82rem; }
+  .auth-btn { font-size: 0.9rem; padding: 10px; }
+  .toggle-text { font-size: 0.75rem; }
+}
+
+/* ---- Galaxy Fold وما شابه: أصغر من 360px ---- */
+@media (max-width: 359px) {
+  .form-section { padding: 18px 14px 14px; }
+  .form-title { font-size: 1.2rem; margin-bottom: 12px; }
+  .input-group input, .input-group select, .input-group textarea { font-size: 0.78rem; }
+  .auth-btn { font-size: 0.85rem; padding: 9px; }
+  .toggle-text { font-size: 0.72rem; }
+}
+
+/* ---- Landscape ---- */
+@media (max-width: 767px) and (orientation: landscape) {
+  .main-container { height: auto; min-height: 100vh; }
+  .form-section { padding: 18px 28px; justify-content: center; }
+  .form-title { font-size: 1.3rem; margin-bottom: 12px; }
+  .input-stack { gap: 10px; }
+}
+
+/* ---- Mobile Header ---- */
+.mobile-auth-header {
+  width: 100%;
+  background: linear-gradient(135deg, #9333ea 0%, #6b21a8 100%);
+  padding: 28px 28px 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.mobile-auth-header h1 {
+  font-family: 'Tilt Warp', cursive;
+  font-size: 1.7rem;
+  font-weight: 800;
+  margin: 0 0 5px;
+  letter-spacing: -0.5px;
+}
+.mobile-auth-header p {
+  font-size: 0.82rem;
+  opacity: 0.85;
+  margin: 0 0 14px;
+}
+.mobile-toggle-buttons {
+  display: flex;
+  background: rgba(0,0,0,0.25);
+  border-radius: 10px;
+  padding: 4px;
+  gap: 4px;
+}
+.mobile-toggle-btn {
+  flex: 1;
+  padding: 9px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  background: transparent;
+  color: rgba(255,255,255,0.7);
+  font-family: 'Schibsted Grotesk', sans-serif;
+}
+.mobile-toggle-btn.active {
+  background: white;
+  color: #6b21a8;
+}
+
+@media (max-width: 479px) {
+  .mobile-auth-header { padding: 20px 18px 14px; }
+  .mobile-auth-header h1 { font-size: 1.4rem; }
+  .mobile-auth-header p { font-size: 0.78rem; }
+  .mobile-toggle-btn { font-size: 0.82rem; padding: 8px; }
 }
