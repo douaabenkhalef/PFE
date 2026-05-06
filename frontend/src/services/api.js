@@ -1,9 +1,10 @@
 // frontend/src/services/api.js
 
 import axios from 'axios';
+import api from "../services/api"; 
 
 // Configuration de base de l'API
-const API_BASE_URL = 'https://pfe-l31r.onrender.com';
+const API_BASE_URL = 'https://pfe-l31r.onrender.com/api';
 
 // Création de l'instance axios
 const api = axios.create({
