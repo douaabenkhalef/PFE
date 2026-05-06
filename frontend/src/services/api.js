@@ -3,7 +3,7 @@
 import axios from 'axios';
 
 // Configuration de base de l'API
-const API_BASE_URL = 'https://pfe-l31r.onrender.com/api';
+const API_BASE_URL = 'https://pfe-l31r.onrender.com';
 
 // Création de l'instance axios
 const api = axios.create({
