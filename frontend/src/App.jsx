@@ -71,7 +71,7 @@ const ProtectedRoute = ({ children, allowedRoles, allowedSubRoles }) => {
 function App() {
   // Ping backend on app load to wake it up
 useEffect(() => {
-  fetch('https://pfe-l31r.onrender.com')
+  fetch('https://pfe-l31r.onrender.com/api/')
     .catch(() => {}); // ignore errors, just wake it up
 }, []);
   return (
