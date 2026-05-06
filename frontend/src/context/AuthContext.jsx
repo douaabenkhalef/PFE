@@ -4,6 +4,7 @@ import React, { createContext, useState, useContext, useEffect } from "react";
 import { authAPI } from "../services/auth";
 import toast from "react-hot-toast";
 import { ERROR_MESSAGES } from "../utils/messages";
+import api from "../services/api";
 
 const AuthContext = createContext();
 
