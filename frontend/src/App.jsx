@@ -69,6 +69,11 @@ const ProtectedRoute = ({ children, allowedRoles, allowedSubRoles }) => {
 };
 
 function App() {
+  // Ping backend on app load to wake it up
+useEffect(() => {
+  fetch('https://pfe-l31r.onrender.com/api/auth/check-user/')
+    .catch(() => {}); // ignore errors, just wake it up
+}, []);
   return (
     <Router>
       <LanguageInitializer>
