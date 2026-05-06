@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setLoading(true);
     try {
-      const response = await api.post('/auth/login', { email, password });
+      const response = await authAPI.login(email, password);
       console.log("📥 Login response:", response);
       
       if (response.success) {
