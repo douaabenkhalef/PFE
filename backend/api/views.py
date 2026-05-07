@@ -506,20 +506,10 @@ def initiate_signup(request):
                 }
                 errors = {}
                 for field in missing:
-                    errors[field] = [f'❌ {field_names.get(field, field)} is required for Department Head.']
+                    errors[field] = [f' {field_names.get(field, field)} is required for Department Head.']
                 return Response({'success': False, 'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
             
-            # Vérifier si l'université existe
-            from .models import UniversityProfile
-            existing_university = UniversityProfile.objects(university=data['university']).first()
-            if not existing_university:
-                return Response({
-                    'success': False, 
-                    'errors': {
-                        'university': [f'❌ University "{data["university"]}" does not exist in the system. Please contact the administrator.']
-                    }
-                }, status=status.HTTP_400_BAD_REQUEST)
-
+            
         # ============ VALIDATION CO DEPARTMENT HEAD ============
         if role == 'admin' and data.get('sub_role') == 'co_dept_head':
             dept_head_email = data.get('dept_head_email')
@@ -529,7 +519,7 @@ def initiate_signup(request):
                 return Response({
                     'success': False, 
                     'errors': {
-                        'dept_head_email': ['❌ Department Head Email is required for Co Department Head.']
+                        'dept_head_email': [' Department Head Email is required for Co Department Head.']
                     }
                 }, status=status.HTTP_400_BAD_REQUEST)
             
@@ -537,7 +527,7 @@ def initiate_signup(request):
                 return Response({
                     'success': False, 
                     'errors': {
-                        'university_for_verification': ['❌ University name is required for Co Department Head.']
+                        'university_for_verification': [' University name is required for Co Department Head.']
                     }
                 }, status=status.HTTP_400_BAD_REQUEST)
             
@@ -553,7 +543,7 @@ def initiate_signup(request):
                 return Response({
                     'success': False, 
                     'errors': {
-                        'dept_head_email': [f'❌ No approved Department Head found with email "{dept_head_email}". Please verify the email.']
+                        'dept_head_email': [f' No approved Department Head found with email "{dept_head_email}". Please verify the email.']
                     }
                 }, status=status.HTTP_400_BAD_REQUEST)
             
