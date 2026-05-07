@@ -103,6 +103,7 @@ path('student/offers/applicants-counts/', views.get_all_offers_applicants_counts
     path('admin/request-proof/<str:pending_id>/',                      views.request_proof_from_admin, name='request-proof'),
     path('admin/mark-proof-received/<str:pending_id>/',                views.mark_proof_received, name='mark-proof-received'),
     path('admin/university-profile/',                                 views.university_profile,  name='university-profile'),
+    
 
     # Co-Dept Head
     path('co-dept/pending-validations/',                               views.co_dept_pending_validations, name='co-dept-pending'),

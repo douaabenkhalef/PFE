@@ -87,7 +87,7 @@ const ChatWidget = ({ university, companyMode = false, companyId = null, interns
     if (user?.role === 'admin') {
       const uniName = university || (user?.university || "Universite");
       groupName = uniName.replace(/\s/g, '_');
-      wsUrl = `ws://pfe-l31r.onrender.com/ws/chat/${groupName}/?token=${token}`;
+      wsUrl = `wss://pfe-l31r.onrender.com/ws/chat/${groupName}/?token=${token}`;
       setGroupInfo({ type: 'university', name: uniName, icon: '🎓', title: `Chat ${uniName}` });
     } 
     else if (user?.role === 'company') {

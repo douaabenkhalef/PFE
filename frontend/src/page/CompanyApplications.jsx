@@ -88,7 +88,8 @@ function ApplicationModal({ app, onClose, onAccept, onReject, onGenerateConventi
     setLoadingCv(true);
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(url, {
+      const fullUrl = `https://pfe-l31r.onrender.com/api/co-dept/application/${app.id}/cv/`;
+      const res = await fetch(fullUrl, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Failed to fetch PDF');

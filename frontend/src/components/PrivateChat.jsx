@@ -103,7 +103,7 @@ const PrivateChat = ({ university, currentUser, targetUser, onClose }) => {
       return;
     }
     
-    const wsUrl = `ws://pfe-l31r.onrender.com/ws/private-chat/?token=${token}`;
+    const wsUrl = `wss://pfe-l31r.onrender.com/ws/private-chat/?token=${token}`;
     
     const socket = new WebSocket(wsUrl);
     

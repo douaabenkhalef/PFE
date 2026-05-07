@@ -7721,3 +7721,6 @@ def get_public_company_profile(request, company_id):
         
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
+
+
+        

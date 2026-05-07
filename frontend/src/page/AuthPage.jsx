@@ -70,13 +70,6 @@ const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) 
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [localError, setLocalError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 480);
-  
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 480);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
   
   const displayError = error || localError;
   
@@ -157,7 +150,7 @@ const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) 
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="flex justify-center gap-2 sm:gap-3">
+        <div className="flex justify-center gap-3">
           {code.map((digit, index) => (
             <input
               key={index}
@@ -166,21 +159,8 @@ const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) 
               maxLength="1"
               value={digit}
               onChange={(e) => handleChange(index, e.target.value)}
-              className="otp-input"
-              style={{
-                width: isMobile ? '40px' : '48px',
-                height: isMobile ? '40px' : '48px',
-                textAlign: 'center',
-                fontSize: isMobile ? '1.2rem' : '1.5rem',
-                fontWeight: 'bold',
-                backgroundColor: 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                borderRadius: '8px',
-                color: 'white',
-                outline: 'none',
-              }}
+              className="w-12 h-12 text-center text-2xl font-bold bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-purple-500"
               autoFocus={index === 0}
-              onFocus={(e) => e.target.select()}
             />
           ))}
         </div>
@@ -236,24 +216,11 @@ const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) 
 
 const InputGroup = ({ icon, label, type, value, onChange, required, placeholder }) => {
   const [showPassword, setShowPassword] = useState(false);
-  const [screenWidth, setScreenWidth] = useState(window.innerWidth);
-  
-  useEffect(() => {
-    const handleResize = () => setScreenWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-  
   const isPassword = type === 'password';
-  const iconSize = screenWidth <= 359 ? 14
-    : screenWidth <= 479 ? 15
-    : screenWidth <= 767 ? 16
-    : screenWidth <= 939 ? 17
-    : 20;
   
   return (
     <div className="input-group">
-      {icon && <span className="icon">{React.cloneElement(icon, { size: iconSize })}</span>}
+      {icon && <span className="icon">{icon}</span>}
       <input 
         type={isPassword && showPassword ? "text" : type} 
         placeholder={placeholder || label} 
@@ -269,7 +236,7 @@ const InputGroup = ({ icon, label, type, value, onChange, required, placeholder 
           className="text-white/60 hover:text-white transition ml-2"
           style={{ marginLeft: 'auto' }}
         >
-          {showPassword ? <EyeOff size={iconSize} /> : <Eye size={iconSize} />}
+          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
         </button>
       )}
     </div>
@@ -284,9 +251,6 @@ const AuthPage = () => {
   const [showOTP, setShowOTP] = useState(false);
   const [pendingEmail, setPendingEmail] = useState("");
   const [otpError, setOtpError] = useState("");
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-
-
 
   const [show2FAModal, setShow2FAModal] = useState(false);
   const [pending2FAEmail, setPending2FAEmail] = useState('');
@@ -323,15 +287,6 @@ const AuthPage = () => {
 
   const [skillInput, setSkillInput] = useState("");
 
-  // Détection responsive
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   const validatePassword = (password) => {
     if (password.length < 8) return 'Password must be at least 8 characters.';
     if (/^\d+$/.test(password)) return 'Password cannot be only digits.';
@@ -342,9 +297,9 @@ const AuthPage = () => {
   };
 
   const roles = [
-    { value: "Student", label: "Student", icon: <GraduationCap size={isMobile ? 16 : 18} /> },
-    { value: "Company", label: "Company", icon: <Briefcase size={isMobile ? 16 : 18} /> },
-    { value: "Administration", label: "Administration", icon: <Shield size={isMobile ? 16 : 18} /> },
+    { value: "Student", label: "Student", icon: <GraduationCap size={18} /> },
+    { value: "Company", label: "Company", icon: <Briefcase size={18} /> },
+    { value: "Administration", label: "Administration", icon: <Shield size={18} /> },
   ];
 
   const wilayas = [
@@ -385,6 +340,7 @@ const AuthPage = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [navigate]);
 
+  // Fonction pour extraire et formater les erreurs du backend
   const extractErrorMessage = (result) => {
     if (result.errors) {
       if (typeof result.errors === 'object') {
@@ -529,7 +485,7 @@ const AuthPage = () => {
       }
     } catch (error) {
       console.error("Login error:", error);
-      setLoginErrors([ERROR_MESSAGES?.SERVER_ERROR || "Erreur de connexion"]);
+      setLoginErrors([ERROR_MESSAGES.SERVER_ERROR || "Erreur de connexion"]);
     } finally {
       setLoading(false);
     }
@@ -670,56 +626,31 @@ const AuthPage = () => {
 
   return (
     <div className="auth-page-wrapper">
-      <div className={`main-container${isMobile ? ' main-container--mobile' : ''}`}>
-        {/* Sliding Panel - visible seulement sur desktop */}
-        {!isMobile && (
-          <motion.div
-            animate={{ x: isLogin ? "100%" : "0%" }}
-            transition={{ type: "spring", stiffness: 50, damping: 15 }}
-            className={`sliding-panel ${isLogin ? "clip-login" : "clip-signup"}`}
-          >
-            <div className="panel-content">
-              <h1 className="welcome-text">{isLogin ? "WELCOME BACK!" : "WELCOME!"}</h1>
-              <p className="sub-text">
-                {isLogin ? "Login to access your internship dashboard." : (
-                  <>
-                    Create your account to start your internship journey.<br />
-                    <span className="panel-login-link" onClick={() => setIsLogin(true)}>Already have an account? Log in</span>
-                  </>
-                )}
-              </p>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Header mobile avec toggle buttons - visible seulement sur mobile */}
-        {isMobile && (
-          <div className="mobile-auth-header">
-            <h1>{isLogin ? "WELCOME BACK!" : "WELCOME!"}</h1>
-            <p>{isLogin ? "Login to continue" : "Create your account"}</p>
-            <div className="mobile-toggle-buttons">
-              <button 
-                className={`mobile-toggle-btn ${isLogin ? 'active' : ''}`}
-                onClick={() => setIsLogin(true)}
-              >
-                Login
-              </button>
-              <button 
-                className={`mobile-toggle-btn ${!isLogin ? 'active' : ''}`}
-                onClick={() => setIsLogin(false)}
-              >
-                Sign Up
-              </button>
-            </div>
+      <div className="main-container">
+        <motion.div
+          animate={{ x: isLogin ? "100%" : "0%" }}
+          transition={{ type: "spring", stiffness: 50, damping: 15 }}
+          className={`sliding-panel ${isLogin ? "clip-login" : "clip-signup"}`}
+        >
+          <div className="panel-content">
+            <h1 className="welcome-text">{isLogin ? "WELCOME BACK!" : "WELCOME!"}</h1>
+            <p className="sub-text">
+              {isLogin ? "Login to access your internship dashboard." : (
+                <>
+                  Create your account to start your internship journey.<br />
+                  <span className="panel-login-link" onClick={() => setIsLogin(true)}>Already have an account? Log in</span>
+                </>
+              )}
+            </p>
           </div>
-        )}
+        </motion.div>
 
         {/* Login Form */}
         <div className={`form-section ${isLogin ? "form-visible" : "form-hidden"}`}>
           <h2 className="form-title">Login</h2>
           <form onSubmit={handleLogin} className="input-stack">
-            <InputGroup icon={<Mail size={isMobile ? 18 : 20} />} label="Email" type="email" value={loginData.email} onChange={(e) => setLoginData({ ...loginData, email: e.target.value })} required />
-            <InputGroup icon={<Lock size={isMobile ? 18 : 20} />} label="Password" type="password" value={loginData.password} onChange={(e) => setLoginData({ ...loginData, password: e.target.value })} required />
+            <InputGroup icon={<Mail size={20} />} label="Email" type="email" value={loginData.email} onChange={(e) => setLoginData({ ...loginData, email: e.target.value })} required />
+            <InputGroup icon={<Lock size={20} />} label="Password" type="password" value={loginData.password} onChange={(e) => setLoginData({ ...loginData, password: e.target.value })} required />
             <FormError messages={loginErrors} />
             <button type="submit" className="auth-btn" disabled={loading}>{loading ? "Loading..." : "Login"}</button>
             <div className="text-right mt-2">
@@ -738,7 +669,7 @@ const AuthPage = () => {
                 {selectedRole && roles.find((r) => r.value === selectedRole)?.icon}
                 <span style={{ color: selectedRole ? "white" : "#9ca3af" }}>{selectedRole ? roles.find((r) => r.value === selectedRole)?.label : "Select your role"}</span>
               </div>
-              <ChevronDown size={isMobile ? 16 : 18} style={{ transform: showRoles ? "rotate(180deg)" : "none" }} />
+              <ChevronDown size={18} style={{ transform: showRoles ? "rotate(180deg)" : "none" }} />
             </div>
             <AnimatePresence>
               {showRoles && (
@@ -746,7 +677,7 @@ const AuthPage = () => {
                   {roles.map((r) => (
                     <div key={r.value} onClick={() => { setSelectedRole(r.value); setShowRoles(false); }} className="role-item">
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>{r.icon}<span>{r.label}</span></div>
-                      {selectedRole === r.value && <CheckSquare size={isMobile ? 12 : 14} color="#a855f7" />}
+                      {selectedRole === r.value && <CheckSquare size={14} color="#a855f7" />}
                     </div>
                   ))}
                 </motion.div>
@@ -765,46 +696,44 @@ const AuthPage = () => {
                   {selectedRole === "Student" && (
                     <motion.div key="student" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="form-scrollable">
                       <form onSubmit={handleStudentRegister} className="input-stack">
-                        <h3 style={{ color: "white", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px", fontSize: isMobile ? "1rem" : "1.1rem" }}>
-                          <GraduationCap size={isMobile ? 18 : 20} /> Student Registration
-                        </h3>
-                        <InputGroup icon={<User size={isMobile ? 16 : 18} />} label="Username" type="text" value={studentData.username} onChange={(e) => setStudentData({ ...studentData, username: e.target.value })} required />
-                        <InputGroup icon={<Mail size={isMobile ? 16 : 18} />} label="University Email (must contain univ and .dz)" type="email" value={studentData.email} onChange={(e) => setStudentData({ ...studentData, email: e.target.value })} required />
-                        <InputGroup icon={<Lock size={isMobile ? 16 : 18} />} label="Password" type="password" value={studentData.password} onChange={(e) => setStudentData({ ...studentData, password: e.target.value })} required />
-                        <InputGroup icon={<Lock size={isMobile ? 16 : 18} />} label="Confirm Password" type="password" value={studentData.confirm_password} onChange={(e) => setStudentData({ ...studentData, confirm_password: e.target.value })} required />
-                        <InputGroup icon={<User size={isMobile ? 16 : 18} />} label="Full Name" type="text" value={studentData.full_name} onChange={(e) => setStudentData({ ...studentData, full_name: e.target.value })} required />
+                        <h3 style={{ color: "white", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px" }}><GraduationCap size={20} /> Student Registration</h3>
+                        <InputGroup icon={<User size={18} />} label="Username" type="text" value={studentData.username} onChange={(e) => setStudentData({ ...studentData, username: e.target.value })} required />
+                        <InputGroup icon={<Mail size={18} />} label="University Email (must contain univ and .dz)" type="email" value={studentData.email} onChange={(e) => setStudentData({ ...studentData, email: e.target.value })} required />
+                        <InputGroup icon={<Lock size={18} />} label="Password" type="password" value={studentData.password} onChange={(e) => setStudentData({ ...studentData, password: e.target.value })} required />
+                        <InputGroup icon={<Lock size={18} />} label="Confirm Password" type="password" value={studentData.confirm_password} onChange={(e) => setStudentData({ ...studentData, confirm_password: e.target.value })} required />
+                        <InputGroup icon={<User size={18} />} label="Full Name" type="text" value={studentData.full_name} onChange={(e) => setStudentData({ ...studentData, full_name: e.target.value })} required />
                         <div className="input-group">
                           <select value={studentData.wilaya} onChange={(e) => setStudentData({ ...studentData, wilaya: e.target.value })} required style={selectStyle}>
                             <option value="" style={optStyle}>Select Wilaya</option>
                             {wilayas.map((w) => <option key={w} value={w} style={optStyle}>{w}</option>)}
                           </select>
-                          <MapPin size={isMobile ? 16 : 18} className="icon" />
+                          <MapPin size={18} className="icon" />
                         </div>
                         <div className="input-group" style={{ flexDirection: "column", alignItems: "stretch" }}>
                           <div style={{ display: "flex", gap: "10px" }}>
-                            <input type="text" placeholder="Add a skill" value={skillInput} onChange={(e) => setSkillInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())} style={{ background: "transparent", color: "white", border: "none", outline: "none", flex: 1, fontSize: isMobile ? "0.85rem" : "0.95rem" }} />
-                            <button type="button" onClick={addSkill} style={{ color: "#a855f7", fontSize: isMobile ? "0.8rem" : "0.9rem" }}>Add</button>
+                            <input type="text" placeholder="Add a skill" value={skillInput} onChange={(e) => setSkillInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())} style={{ background: "transparent", color: "white", border: "none", outline: "none", flex: 1 }} />
+                            <button type="button" onClick={addSkill} style={{ color: "#a855f7" }}>Add</button>
                           </div>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginTop: "5px" }}>
                             {studentData.skills.map((skill) => (
-                              <span key={skill} style={{ background: "#2d1b4d", padding: "2px 8px", borderRadius: "12px", fontSize: isMobile ? "10px" : "12px", display: "flex", alignItems: "center", gap: "4px" }}>
+                              <span key={skill} style={{ background: "#2d1b4d", padding: "2px 8px", borderRadius: "12px", fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}>
                                 {skill}<button type="button" onClick={() => removeSkill(skill)} style={{ color: "#ef4444" }}>×</button>
                               </span>
                             ))}
                           </div>
                         </div>
-                        <InputGroup icon={<Github size={isMobile ? 16 : 18} />} label="GitHub (optional)" type="url" value={studentData.github} onChange={(e) => setStudentData({ ...studentData, github: e.target.value })} />
-                        <InputGroup icon={<Globe size={isMobile ? 16 : 18} />} label="Portfolio (optional)" type="url" value={studentData.portfolio} onChange={(e) => setStudentData({ ...studentData, portfolio: e.target.value })} />
+                        <InputGroup icon={<Github size={18} />} label="GitHub (optional)" type="url" value={studentData.github} onChange={(e) => setStudentData({ ...studentData, github: e.target.value })} />
+                        <InputGroup icon={<Globe size={18} />} label="Portfolio (optional)" type="url" value={studentData.portfolio} onChange={(e) => setStudentData({ ...studentData, portfolio: e.target.value })} />
                         <div className="input-group">
                           <select value={studentData.education_level} onChange={(e) => setStudentData({ ...studentData, education_level: e.target.value })} required style={selectStyle}>
                             <option value="" style={optStyle}>Education Level</option>
                             {educationLevels.map((l) => <option key={l} value={l} style={optStyle}>{l}</option>)}
                           </select>
-                          <GraduationCap size={isMobile ? 16 : 18} className="icon" />
+                          <GraduationCap size={18} className="icon" />
                         </div>
-                        <InputGroup icon={<BookOpen size={isMobile ? 16 : 18} />} label="University" type="text" value={studentData.university} onChange={(e) => setStudentData({ ...studentData, university: e.target.value })} required />
-                        <InputGroup icon={<Award size={isMobile ? 16 : 18} />} label="Major" type="text" value={studentData.major} onChange={(e) => setStudentData({ ...studentData, major: e.target.value })} required />
-                        <InputGroup icon={<Calendar size={isMobile ? 16 : 18} />} label="Graduation Year" type="number" value={studentData.graduation_year} onChange={(e) => setStudentData({ ...studentData, graduation_year: e.target.value })} required />
+                        <InputGroup icon={<BookOpen size={18} />} label="University" type="text" value={studentData.university} onChange={(e) => setStudentData({ ...studentData, university: e.target.value })} required />
+                        <InputGroup icon={<Award size={18} />} label="Major" type="text" value={studentData.major} onChange={(e) => setStudentData({ ...studentData, major: e.target.value })} required />
+                        <InputGroup icon={<Calendar size={18} />} label="Graduation Year" type="number" value={studentData.graduation_year} onChange={(e) => setStudentData({ ...studentData, graduation_year: e.target.value })} required />
                         <FormError messages={studentErrors} />
                         <button type="submit" className="auth-btn" disabled={loading}>{loading ? "Creating..." : "Sign up as Student"}</button>
                       </form>
@@ -813,50 +742,33 @@ const AuthPage = () => {
                   {selectedRole === "Company" && (
                     <motion.div key="company" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="form-scrollable">
                       <form onSubmit={handleCompanyRegister} className="input-stack">
-                        <h3 style={{ color: "white", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px", fontSize: isMobile ? "1rem" : "1.1rem" }}>
-                          <Briefcase size={isMobile ? 18 : 20} /> Company Registration
-                        </h3>
-                        <InputGroup icon={<User size={isMobile ? 16 : 18} />} label="Username" type="text" value={companyData.username} onChange={(e) => setCompanyData({ ...companyData, username: e.target.value })} required />
-                        <InputGroup icon={<Mail size={isMobile ? 16 : 18} />} label="Email" type="email" value={companyData.email} onChange={(e) => setCompanyData({ ...companyData, email: e.target.value })} required />
-                        <InputGroup icon={<Lock size={isMobile ? 16 : 18} />} label="Password" type="password" value={companyData.password} onChange={(e) => setCompanyData({ ...companyData, password: e.target.value })} required />
-                        <InputGroup icon={<Lock size={isMobile ? 16 : 18} />} label="Confirm Password" type="password" value={companyData.confirm_password} onChange={(e) => setCompanyData({ ...companyData, confirm_password: e.target.value })} required />
+                        <h3 style={{ color: "white", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px" }}><Briefcase size={20} /> Company Registration</h3>
+                        <InputGroup icon={<User size={18} />} label="Username" type="text" value={companyData.username} onChange={(e) => setCompanyData({ ...companyData, username: e.target.value })} required />
+                        <InputGroup icon={<Mail size={18} />} label="Email" type="email" value={companyData.email} onChange={(e) => setCompanyData({ ...companyData, email: e.target.value })} required />
+                        <InputGroup icon={<Lock size={18} />} label="Password" type="password" value={companyData.password} onChange={(e) => setCompanyData({ ...companyData, password: e.target.value })} required />
+                        <InputGroup icon={<Lock size={18} />} label="Confirm Password" type="password" value={companyData.confirm_password} onChange={(e) => setCompanyData({ ...companyData, confirm_password: e.target.value })} required />
                         <div className="input-group">
                           <select value={companyData.sub_role} onChange={(e) => setCompanyData({ ...companyData, sub_role: e.target.value, company_manager_email: "", company_name_for_hiring: "", company_name: "", description: "", location: "", industry: "", website: "" })} required style={selectStyle}>
                             <option value="" style={optStyle}>Select your role</option>
                             <option value="company_manager" style={optStyle}>Company Manager</option>
                             <option value="hiring_manager" style={optStyle}>Hiring Manager</option>
                           </select>
-                          <Briefcase size={isMobile ? 16 : 18} className="icon" />
+                          <Briefcase size={18} className="icon" />
                         </div>
                         {companyData.sub_role === "company_manager" && (
                           <>
-                            <InputGroup icon={<Building2 size={isMobile ? 16 : 18} />} label="Company Name" type="text" value={companyData.company_name} onChange={(e) => setCompanyData({ ...companyData, company_name: e.target.value })} required />
-                            <div className="input-group">
-                              <textarea placeholder="Description" value={companyData.description} onChange={(e) => setCompanyData({ ...companyData, description: e.target.value })} required rows={isMobile ? 2 : 2} style={{ background: "transparent", color: "white", width: "100%", border: "none", outline: "none", resize: "vertical", fontSize: isMobile ? "0.85rem" : "0.95rem" }} />
-                              <FileText size={isMobile ? 16 : 18} className="icon" style={{ alignSelf: "flex-start", marginTop: "5px" }} />
-                            </div>
-                            <div className="input-group">
-                              <select value={companyData.location} onChange={(e) => setCompanyData({ ...companyData, location: e.target.value })} required style={selectStyle}>
-                                <option value="" style={optStyle}>Location (Wilaya)</option>
-                                {wilayas.map((w) => <option key={w} value={w} style={optStyle}>{w}</option>)}
-                              </select>
-                              <MapPin size={isMobile ? 16 : 18} className="icon" />
-                            </div>
-                            <div className="input-group">
-                              <select value={companyData.industry} onChange={(e) => setCompanyData({ ...companyData, industry: e.target.value })} required style={selectStyle}>
-                                <option value="" style={optStyle}>Industry</option>
-                                {industries.map((ind) => <option key={ind} value={ind} style={optStyle}>{ind}</option>)}
-                              </select>
-                              <Briefcase size={isMobile ? 16 : 18} className="icon" />
-                            </div>
-                            <InputGroup icon={<Globe size={isMobile ? 16 : 18} />} label="Website (optional)" type="url" value={companyData.website} onChange={(e) => setCompanyData({ ...companyData, website: e.target.value })} />
+                            <InputGroup icon={<Building2 size={18} />} label="Company Name" type="text" value={companyData.company_name} onChange={(e) => setCompanyData({ ...companyData, company_name: e.target.value })} required />
+                            <div className="input-group"><textarea placeholder="Description" value={companyData.description} onChange={(e) => setCompanyData({ ...companyData, description: e.target.value })} required rows="2" style={{ background: "transparent", color: "white", width: "100%", border: "none", outline: "none", resize: "vertical" }} /><FileText size={18} className="icon" style={{ top: "10px" }} /></div>
+                            <div className="input-group"><select value={companyData.location} onChange={(e) => setCompanyData({ ...companyData, location: e.target.value })} required style={selectStyle}><option value="" style={optStyle}>Location (Wilaya)</option>{wilayas.map((w) => <option key={w} value={w} style={optStyle}>{w}</option>)}</select><MapPin size={18} className="icon" /></div>
+                            <div className="input-group"><select value={companyData.industry} onChange={(e) => setCompanyData({ ...companyData, industry: e.target.value })} required style={selectStyle}><option value="" style={optStyle}>Industry</option>{industries.map((ind) => <option key={ind} value={ind} style={optStyle}>{ind}</option>)}</select><Briefcase size={18} className="icon" /></div>
+                            <InputGroup icon={<Globe size={18} />} label="Website (optional)" type="url" value={companyData.website} onChange={(e) => setCompanyData({ ...companyData, website: e.target.value })} />
                           </>
                         )}
                         {companyData.sub_role === "hiring_manager" && (
                           <>
-                            <InputGroup icon={<Mail size={isMobile ? 16 : 18} />} label="Company Manager Email" type="email" value={companyData.company_manager_email} onChange={(e) => setCompanyData({ ...companyData, company_manager_email: e.target.value })} required />
-                            <InputGroup icon={<Building2 size={isMobile ? 16 : 18} />} label="Company Name (to verify)" type="text" value={companyData.company_name_for_hiring} onChange={(e) => setCompanyData({ ...companyData, company_name_for_hiring: e.target.value })} placeholder="Enter the company name as registered" required />
-                            <div style={{ fontSize: isMobile ? "10px" : "12px", color: "#9ca3af", marginTop: "-10px", marginBottom: "10px" }}>ⓘ Enter the exact company name of the Company Manager</div>
+                            <InputGroup icon={<Mail size={18} />} label="Company Manager Email" type="email" value={companyData.company_manager_email} onChange={(e) => setCompanyData({ ...companyData, company_manager_email: e.target.value })} required />
+                            <InputGroup icon={<Building2 size={18} />} label="Company Name (to verify)" type="text" value={companyData.company_name_for_hiring} onChange={(e) => setCompanyData({ ...companyData, company_name_for_hiring: e.target.value })} placeholder="Enter the company name as registered" required />
+                            <div style={{ fontSize: "12px", color: "#9ca3af", marginTop: "-10px", marginBottom: "10px" }}>ⓘ Enter the exact company name of the Company Manager</div>
                           </>
                         )}
                         <FormError messages={companyErrors} />
@@ -867,39 +779,31 @@ const AuthPage = () => {
                   {selectedRole === "Administration" && (
                     <motion.div key="admin" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="form-scrollable">
                       <form onSubmit={handleAdminRegister} className="input-stack">
-                        <h3 style={{ color: "white", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px", fontSize: isMobile ? "1rem" : "1.1rem" }}>
-                          <Shield size={isMobile ? 18 : 20} /> Administration Registration
-                        </h3>
-                        <InputGroup icon={<User size={isMobile ? 16 : 18} />} label="Username" type="text" value={adminData.username} onChange={(e) => setAdminData({ ...adminData, username: e.target.value })} required />
-                        <InputGroup icon={<Mail size={isMobile ? 16 : 18} />} label="Email" type="email" value={adminData.email} onChange={(e) => setAdminData({ ...adminData, email: e.target.value })} required />
-                        <InputGroup icon={<Lock size={isMobile ? 16 : 18} />} label="Password" type="password" value={adminData.password} onChange={(e) => setAdminData({ ...adminData, password: e.target.value })} required />
-                        <InputGroup icon={<Lock size={isMobile ? 16 : 18} />} label="Confirm Password" type="password" value={adminData.confirm_password} onChange={(e) => setAdminData({ ...adminData, confirm_password: e.target.value })} required />
+                        <h3 style={{ color: "white", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px" }}><Shield size={20} /> Administration Registration</h3>
+                        <InputGroup icon={<User size={18} />} label="Username" type="text" value={adminData.username} onChange={(e) => setAdminData({ ...adminData, username: e.target.value })} required />
+                        <InputGroup icon={<Mail size={18} />} label="Email" type="email" value={adminData.email} onChange={(e) => setAdminData({ ...adminData, email: e.target.value })} required />
+                        <InputGroup icon={<Lock size={18} />} label="Password" type="password" value={adminData.password} onChange={(e) => setAdminData({ ...adminData, password: e.target.value })} required />
+                        <InputGroup icon={<Lock size={18} />} label="Confirm Password" type="password" value={adminData.confirm_password} onChange={(e) => setAdminData({ ...adminData, confirm_password: e.target.value })} required />
                         <div className="input-group">
                           <select value={adminData.sub_role} onChange={(e) => setAdminData({ ...adminData, sub_role: e.target.value, dept_head_email: "", university_for_verification: "", full_name: "", wilaya: "", university: "" })} required style={selectStyle}>
                             <option value="" style={optStyle}>Select your role</option>
                             <option value="admin" style={optStyle}>Department Head</option>
                             <option value="co_dept_head" style={optStyle}>Co Department Head</option>
                           </select>
-                          <Shield size={isMobile ? 16 : 18} className="icon" />
+                          <Shield size={18} className="icon" />
                         </div>
                         {adminData.sub_role === "admin" && (
                           <>
-                            <InputGroup icon={<User size={isMobile ? 16 : 18} />} label="Full Name" type="text" value={adminData.full_name} onChange={(e) => setAdminData({ ...adminData, full_name: e.target.value })} required />
-                            <div className="input-group">
-                              <select value={adminData.wilaya} onChange={(e) => setAdminData({ ...adminData, wilaya: e.target.value })} required style={selectStyle}>
-                                <option value="" style={optStyle}>Select Wilaya</option>
-                                {wilayas.map((w) => <option key={w} value={w} style={optStyle}>{w}</option>)}
-                              </select>
-                              <MapPin size={isMobile ? 16 : 18} className="icon" />
-                            </div>
-                            <InputGroup icon={<BookOpen size={isMobile ? 16 : 18} />} label="University" type="text" value={adminData.university} onChange={(e) => setAdminData({ ...adminData, university: e.target.value })} required />
+                            <InputGroup icon={<User size={18} />} label="Full Name" type="text" value={adminData.full_name} onChange={(e) => setAdminData({ ...adminData, full_name: e.target.value })} required />
+                            <div className="input-group"><select value={adminData.wilaya} onChange={(e) => setAdminData({ ...adminData, wilaya: e.target.value })} required style={selectStyle}><option value="" style={optStyle}>Select Wilaya</option>{wilayas.map((w) => <option key={w} value={w} style={optStyle}>{w}</option>)}</select><MapPin size={18} className="icon" /></div>
+                            <InputGroup icon={<BookOpen size={18} />} label="University" type="text" value={adminData.university} onChange={(e) => setAdminData({ ...adminData, university: e.target.value })} required />
                           </>
                         )}
                         {adminData.sub_role === "co_dept_head" && (
                           <>
-                            <InputGroup icon={<Mail size={isMobile ? 16 : 18} />} label="Department Head Email" type="email" value={adminData.dept_head_email} onChange={(e) => setAdminData({ ...adminData, dept_head_email: e.target.value })} placeholder="Email of the Department Head" required />
-                            <InputGroup icon={<BookOpen size={isMobile ? 16 : 18} />} label="University (to verify)" type="text" value={adminData.university_for_verification} onChange={(e) => setAdminData({ ...adminData, university_for_verification: e.target.value })} placeholder="Enter the university name as registered" required />
-                            <div style={{ fontSize: isMobile ? "10px" : "12px", color: "#9ca3af", marginTop: "-10px", marginBottom: "10px" }}>ⓘ Enter the exact university name of the Department Head</div>
+                            <InputGroup icon={<Mail size={18} />} label="Department Head Email" type="email" value={adminData.dept_head_email} onChange={(e) => setAdminData({ ...adminData, dept_head_email: e.target.value })} placeholder="Email of the Department Head" required />
+                            <InputGroup icon={<BookOpen size={18} />} label="University (to verify)" type="text" value={adminData.university_for_verification} onChange={(e) => setAdminData({ ...adminData, university_for_verification: e.target.value })} placeholder="Enter the university name as registered" required />
+                            <div style={{ fontSize: "12px", color: "#9ca3af", marginTop: "-10px", marginBottom: "10px" }}>ⓘ Enter the exact university name of the Department Head</div>
                           </>
                         )}
                         <FormError messages={adminErrors} />
@@ -917,69 +821,25 @@ const AuthPage = () => {
         </div>
       </div>
 
-      {/* 2FA Modal responsive */}
+      {/* 2FA Modal */}
       {show2FAModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[10000]">
-          <div className="bg-[#1e293b] border border-slate-700 rounded-2xl w-full max-w-md p-4 sm:p-6">
+          <div className="bg-[#1e293b] border border-slate-700 rounded-2xl w-full max-w-md p-6">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Mail className="w-8 h-8 text-purple-400" />
-              </div>
-              <h2 className="text-xl font-bold text-white">Two-Factor Verification</h2>
-              <p className="text-white/60 text-sm mt-2">
-                A verification code has been sent to<br/>
-                <strong className="text-purple-400">{pending2FAEmail}</strong>
-              </p>
-              <p className="text-white/40 text-xs mt-1">Valid for 15 minutes</p>
+              <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4"><Mail className="w-8 h-8 text-purple-400" /></div>
+              <h2 className="text-xl font-bold text-white">Vérification à deux facteurs</h2>
+              <p className="text-white/60 text-sm mt-2">Un code de vérification a été envoyé à<br/><strong className="text-purple-400">{pending2FAEmail}</strong></p>
+              <p className="text-white/40 text-xs mt-1">Valable 15 minutes</p>
             </div>
-            <div className="flex justify-center gap-2 sm:gap-3 mb-6">
+            <div className="flex justify-center gap-3 mb-6">
               {otp2FACode.map((digit, index) => (
-                <input
-                  key={index}
-                  id={`2fa-${index}`}
-                  type="text"
-                  maxLength="1"
-                  value={digit}
-                  onChange={(e) => {
-                    const newCode = [...otp2FACode];
-                    newCode[index] = e.target.value;
-                    setOtp2FACode(newCode);
-                    if (e.target.value && index < 5) {
-                      document.getElementById(`2fa-${index + 1}`)?.focus();
-                    }
-                  }}
-                  className="w-10 h-10 sm:w-12 sm:h-12 text-center text-xl sm:text-2xl font-bold bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                  autoFocus={index === 0}
-                  onFocus={(e) => e.target.select()}
-                />
+                <input key={index} id={`2fa-${index}`} type="text" maxLength="1" value={digit} onChange={(e) => { const newCode = [...otp2FACode]; newCode[index] = e.target.value; setOtp2FACode(newCode); if (e.target.value && index < 5) document.getElementById(`2fa-${index + 1}`)?.focus(); }} className="w-12 h-12 text-center text-2xl font-bold bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-purple-500" autoFocus={index === 0} />
               ))}
             </div>
-            {otp2FAError && (
-              <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300 text-sm text-center">
-                {otp2FAError}
-              </div>
-            )}
-            <button
-              onClick={handleVerify2FA}
-              disabled={verifying2FA}
-              className="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold text-white transition disabled:opacity-50"
-            >
-              {verifying2FA ? 'Verifying...' : 'Verify & Login'}
-            </button>
-            <div className="text-center mt-3">
-              <button onClick={handleResend2FA} className="text-purple-400 text-sm hover:underline">
-                Resend code
-              </button>
-            </div>
-            <button
-              onClick={() => {
-                setShow2FAModal(false);
-                setOtp2FACode(['', '', '', '', '', '']);
-              }}
-              className="w-full mt-3 py-2 text-white/60 hover:text-white transition text-sm"
-            >
-              ← Cancel
-            </button>
+            {otp2FAError && <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300 text-sm text-center">{otp2FAError}</div>}
+            <button onClick={handleVerify2FA} disabled={verifying2FA} className="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold text-white transition disabled:opacity-50">{verifying2FA ? 'Vérification...' : 'Vérifier et se connecter'}</button>
+            <div className="text-center mt-3"><button onClick={handleResend2FA} className="text-purple-400 text-sm hover:underline">Renvoyer le code</button></div>
+            <button onClick={() => { setShow2FAModal(false); setOtp2FACode(['', '', '', '', '', '']); }} className="w-full mt-3 py-2 text-white/60 hover:text-white transition text-sm">← Annuler</button>
           </div>
         </div>
       )}

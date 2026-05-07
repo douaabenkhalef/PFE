@@ -27,7 +27,11 @@ ASGI_APPLICATION = 'backend.asgi.application'
 
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [config('REDIS_URL', default='redis://localhost:6379')],
+
+         },
     },
 }
 
@@ -96,7 +100,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    "https://pfe-1-oazo.onrender.com"
+    "https://pfe-1-oazo.onrender.com",
+    "https://pfe-l31r.onrender.com",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
