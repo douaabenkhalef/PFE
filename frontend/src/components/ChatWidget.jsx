@@ -96,11 +96,11 @@ const ChatWidget = ({ university, companyMode = false, companyId = null, interns
         roomName = await fetchCompanyName();
       }
       const finalRoomName = roomName || 'company';
-      wsUrl = `ws://pfe-l31r.onrender.com/ws/company-chat/${finalRoomName}/?token=${token}`;
+      wsUrl = `wss://pfe-l31r.onrender.com/ws/company-chat/${finalRoomName}/?token=${token}`;
       setGroupInfo({ type: 'company', name: finalRoomName, icon: '🏢', title: `Chat` });
     }
     else if (user?.role === 'student' && internshipId) {
-      wsUrl = `ws://pfe-l31r.onrender.com/ws/internship-chat/${internshipId}/?token=${token}`;
+      wsUrl = `wss://pfe-l31r.onrender.com/ws/internship-chat/${internshipId}/?token=${token}`;
       setGroupInfo({ type: 'internship', name: `Stage`, icon: '💼', title: `Chat Stage` });
     }
     else {
