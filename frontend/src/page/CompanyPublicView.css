@@ -208,8 +208,7 @@
 /* ===== HERO SECTION ===== */
 .company-hero-section {
   position: relative;
-  height: 380px;
-  margin-top: 64px;
+  height: 280px;
 }
 
 .hero-cover {
@@ -222,7 +221,8 @@
 .hero-cover img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: cover; 
+  
 }
 
 .hero-cover-placeholder {
@@ -278,8 +278,8 @@
 .hero-logo img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  padding: 16px;
+  object-fit: cover;
+
 }
 
 .hero-title-wrapper {
@@ -1111,4 +1111,92 @@
   .footer-links {
     justify-content: center;
   }
+}
+/* ===== SIMPLE HEADER (بدون Navbar كامل) ===== */
+.simple-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(8, 6, 20, 0.95);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(141, 35, 212, 0.2);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.simple-back-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(141,35,212,0.3);
+  color: rgba(255,255,255,0.85);
+  padding: 8px 20px;
+  border-radius: 40px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s;
+}
+
+.simple-back-btn:hover {
+  background: rgba(141,35,212,0.2);
+  border-color: #F75AFA;
+}
+
+.simple-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.simple-logo img {
+  height: 32px;
+  filter: brightness(0) invert(1);
+}
+
+.simple-logo span {
+  font-size: 1rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #fff, #c084fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+/* ===== FOOTER WITH ONLY BACK BUTTON ===== */
+.company-footer {
+  border-top: 1px solid rgba(141,35,212,0.15);
+  padding: 28px 0;
+  margin-top: 20px;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.back-btn-footer {
+  background: linear-gradient(135deg, #B556D7, #8E2FFB);
+  border: none;
+  padding: 12px 28px;
+  border-radius: 40px;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s;
+}
+
+.back-btn-footer:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+  box-shadow: 0 10px 25px -10px rgba(142, 47, 251, 0.4);
 }

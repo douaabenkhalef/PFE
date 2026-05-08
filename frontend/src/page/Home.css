@@ -2079,3 +2079,531 @@ section { padding: 100px 5% 80px; }
     transform: translateY(0);
   }
 }
+/* ===== IMPROVED RESPONSIVE STYLES FOR HOME PAGE ===== */
+
+/* تحسين الشاشات المتوسطة (Tablets) */
+@media (max-width: 1024px) {
+  /* تصغير حجم البطاقات قليلاً */
+  .companies-grid {
+    gap: 1.2rem;
+  }
+  
+  .company-card .company-name {
+    font-size: 1rem;
+  }
+  
+  .company-info-zone {
+    padding: 12px 14px 14px;
+  }
+  
+  .service-card h3 {
+    font-size: 0.95rem;
+  }
+  
+  .service-card p {
+    font-size: 0.78rem;
+  }
+  
+  .service-card-body {
+    padding: 16px 16px 20px;
+  }
+}
+
+/* تحسين الشاشات الصغيرة (Mobile) - الكتابة والصورة جنباً */
+@media (max-width: 768px) {
+  /* Hero section - الكتابة والصورة بجانب بعضهما */
+  .hero-section {
+    min-height: auto;
+    padding: 100px 4% 60px;
+  }
+  
+  .hero-container {
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+  
+  .hero-content {
+    flex: 1;
+    max-width: 45%;
+    text-align: left;
+  }
+  
+  .hero-content h1 {
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+  }
+  
+  .hero-content p {
+    font-size: 0.8rem;
+    margin: 1rem 0 1.5rem;
+    max-width: 100%;
+  }
+  
+  .hero-buttons {
+    margin: 0;
+    width: 100%;
+    flex-direction: row !important;
+  }
+  
+  .hero-buttons button {
+    width: auto;
+    padding: 6px 20px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+  
+  .hero-image-box {
+    flex: 1;
+    max-width: 45%;
+    min-height: auto;
+    padding: 0;
+  }
+  
+  .hero-image {
+    width: 100%;
+    height: auto;
+    max-height: 280px;
+    object-fit: contain;
+  }
+  
+  /* تصغير حجم البطاقات */
+  .companies-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    max-width: 100%;
+  }
+  
+  .company-card .company-name {
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+  }
+  
+  .company-img-box {
+    height: 140px;
+  }
+  
+  .company-info-zone {
+    padding: 10px 12px 12px;
+  }
+  
+  .company-meta-row {
+    margin-bottom: 6px;
+  }
+  
+  .rep-block .rep-name {
+    font-size: 0.65rem;
+  }
+  
+  .internship-info strong {
+    font-size: 0.75rem;
+  }
+  
+  .internship-info span {
+    font-size: 0.6rem;
+  }
+  
+  .stars-row {
+    margin-top: 4px;
+  }
+  
+  .star {
+    font-size: 0.7rem;
+  }
+  
+  .see-details-btn {
+    font-size: 0.65rem;
+  }
+  
+  /* خدمات */
+  .services-grid {
+    gap: 1rem;
+  }
+  
+  .service-card {
+    transform: none !important;
+  }
+  
+  .services-grid .service-card:nth-child(2) {
+    transform: scale(1) !important;
+  }
+  
+  .service-img-box {
+    max-height: 140px;
+    aspect-ratio: 4/3;
+  }
+  
+  .service-card h3 {
+    font-size: 0.85rem;
+  }
+  
+  .service-card p {
+    font-size: 0.72rem;
+  }
+  
+  .service-card-body {
+    padding: 12px 12px 16px;
+  }
+  
+  .learn-more-wrap {
+    margin-top: 1.5rem;
+  }
+  
+  .btn-learn-more {
+    padding: 8px 32px;
+    font-size: 0.75rem;
+  }
+  
+  /* عناوين الأقسام */
+  .section-title {
+    font-size: clamp(1.5rem, 4vw, 1.8rem);
+    margin-bottom: 1.8rem;
+  }
+  
+  /* الأزرار العامة */
+  .btn-see-all {
+    padding: 7px 24px;
+    font-size: 0.75rem;
+  }
+  
+  /* تقليل padding للأقسام */
+  section {
+    padding: 60px 4% 50px;
+  }
+}
+
+/* تحسين الشاشات الصغيرة جداً (Mobile Small) */
+@media (max-width: 640px) {
+  .hero-container {
+    flex-direction: column !important;
+  }
+  
+  .hero-content {
+    max-width: 100%;
+    text-align: center;
+  }
+  
+  .hero-buttons {
+    justify-content: center;
+  }
+  
+  .hero-image-box {
+    max-width: 80%;
+    margin: 0 auto;
+  }
+  
+  .companies-grid {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+  }
+  
+  .services-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .service-card {
+    max-width: 100%;
+  }
+  
+  .company-img-box {
+    height: 160px;
+  }
+  
+  /* تقليل padding للشاشات الصغيرة */
+  section {
+    padding: 50px 4% 40px;
+  }
+  
+  .hero-section {
+    padding: 80px 4% 40px;
+  }
+}
+
+/* تحسين الشاشات المتوسطة (بين 640px و 768px) */
+@media (min-width: 641px) and (max-width: 768px) {
+  .hero-content h1 {
+    font-size: 1.8rem;
+  }
+  
+  .hero-buttons button {
+    padding: 5px 16px;
+    font-size: 0.7rem;
+  }
+  
+  .company-card .company-name {
+    font-size: 0.85rem;
+  }
+  
+  .company-info-zone {
+    padding: 8px 10px 10px;
+  }
+}
+
+/* تحسين الفوتر للشاشات الصغيرة */
+@media (max-width: 768px) {
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    text-align: center;
+  }
+  
+  .footer-brand p {
+    max-width: 100%;
+    font-size: 0.8rem;
+  }
+  
+  .footer-contact ul li {
+    justify-content: center;
+    font-size: 0.8rem;
+  }
+  
+  .footer-bottom {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+  
+  .footer-socials {
+    justify-content: center;
+  }
+  
+  .footer-bottom-links {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .footer-bottom-links a {
+    font-size: 0.7rem;
+  }
+}
+
+/* تحسين شريط البحث للشاشات الصغيرة */
+@media (max-width: 768px) {
+  .navbar-search-wrapper {
+    min-width: 180px;
+    padding: 4px 12px;
+  }
+  
+  .navbar-search-input {
+    width: 120px;
+    font-size: 0.75rem;
+  }
+  
+  .navbar-search-close {
+    font-size: 0.65rem;
+    padding: 3px 6px;
+  }
+  
+  .btn-contact {
+    padding: 5px 12px;
+    font-size: 0.7rem;
+  }
+  
+  .navbar-moon-btn {
+    padding: 3px;
+  }
+  
+  /* تصغير الشعار */
+  .navbar-logo-img {
+    height: 28px;
+  }
+  
+  .navbar-site-name {
+    font-size: 1rem;
+  }
+}
+
+/* تحسين إضافي للشاشات الصغيرة جداً */
+@media (max-width: 480px) {
+  .hero-section {
+    padding: 70px 3% 35px;
+  }
+  
+  .hero-content h1 {
+    font-size: 1.5rem;
+  }
+  
+  .hero-content p {
+    font-size: 0.7rem;
+    margin: 0.8rem 0 1.2rem;
+  }
+  
+  .hero-buttons button {
+    padding: 5px 14px;
+    font-size: 0.65rem;
+  }
+  
+  .hero-image-box {
+    max-width: 90%;
+  }
+  
+  .section-title {
+    font-size: 1.3rem;
+    margin-bottom: 1.2rem;
+  }
+  
+  .company-img-box {
+    height: 140px;
+  }
+  
+  .company-info-zone {
+    padding: 8px 10px 10px;
+  }
+  
+  .company-name {
+    font-size: 0.85rem;
+  }
+  
+  .rep-name {
+    font-size: 0.6rem;
+  }
+  
+  .internship-info strong {
+    font-size: 0.7rem;
+  }
+  
+  .see-details-btn {
+    font-size: 0.6rem;
+  }
+  
+  .service-img-box {
+    max-height: 120px;
+  }
+  
+  .service-card h3 {
+    font-size: 0.8rem;
+  }
+  
+  .service-card p {
+    font-size: 0.68rem;
+  }
+  
+  .btn-learn-more {
+    padding: 6px 24px;
+    font-size: 0.7rem;
+  }
+  
+  .btn-see-all {
+    padding: 6px 20px;
+    font-size: 0.7rem;
+  }
+  
+  section {
+    padding: 40px 3% 30px;
+  }
+  
+  .footer {
+    padding: 30px 4% 20px;
+  }
+  
+  .footer-brand-logo {
+    font-size: 1rem;
+  }
+  
+  .footer-brand p {
+    font-size: 0.7rem;
+  }
+  
+  .footer-contact h4 {
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+  }
+  
+  .footer-contact ul li {
+    font-size: 0.7rem;
+  }
+  
+  .navbar-logo-img {
+    height: 24px;
+  }
+  
+  .navbar-site-name {
+    font-size: 0.85rem;
+  }
+  
+  .navbar-search-wrapper {
+    min-width: 140px;
+  }
+  
+  .navbar-search-input {
+    width: 80px;
+  }
+}
+
+/* تحسين عرض الأزرار في الشاشات الصغيرة */
+@media (max-width: 480px) {
+  .hero-buttons {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary,
+  .btn-outline {
+    flex: 1;
+    min-width: 120px;
+    padding: 10px 16px;
+    font-size: 0.8rem;
+    text-align: center;
+    white-space: nowrap;
+    border-radius: 50px !important;
+  }
+}
+
+/* للشاشات الصغيرة جداً (أقل من 380px) */
+@media (max-width: 380px) {
+  .hero-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  
+    width: 100%;
+  }
+
+  .btn-primary,
+  .btn-outline {
+    width: 100%;
+    padding: 10px 20px;
+    font-size: 0.75rem;
+    text-align: center;
+    border-radius: 50px !important;
+    white-space: nowrap;
+  }
+}
+
+/* للشاشات المتوسطة (بين 380px و 480px) */
+@media (min-width: 381px) and (max-width: 480px) {
+  .hero-buttons {
+    flex-direction: row;
+    justify-content: center;
+  
+  }
+  
+  .btn-primary,
+  .btn-outline {
+    flex: 1;
+    max-width: 160px;
+    padding: 10px 16px;
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-buttons {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .btn-primary,
+  .btn-outline {
+    padding: 8px 20px;
+    font-size: 0.75rem;
+  }
+  
+  .btn-primary::after,
+  .btn-outline::before {
+    height: 20px;
+  }
+}

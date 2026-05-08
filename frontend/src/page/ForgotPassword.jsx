@@ -211,7 +211,7 @@ const ForgotPassword = () => {
     }}>
       {/* Logo en haut à gauche */}
       <div className="fixed top-6 left-6 flex items-center gap-2 z-10">
-        <img src="/images/logo.png" alt="UnivStage Logo" className="h-10 w-auto" />
+        <img src="/images/logo.png" alt="UnivStage Logo" className="h-10 w-auto brightness-0 invert" />
         <span className="text-white text-xl font-bold" style={{ fontFamily: "'Times New Roman', Times, serif" }}>UnivStage</span>
       </div>
 

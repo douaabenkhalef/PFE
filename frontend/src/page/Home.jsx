@@ -686,20 +686,27 @@ export default function Home() {
       <footer className="footer" ref={footerRef}>
         <div className="footer-grid">
           <div className="footer-brand">
-            <div className="footer-brand-logo">🎓 UnivStage</div>
+            <div className="footer-brand-logo"> UnivStage</div>
             <p>Connecting students with professional opportunities and empowering the next generation of innovators.</p>
+             <p>By:</p>
+             <p>Nouha Labdi</p>
+             <p>Safa Oughidni</p>
+             <p>Douaa Benkhalef</p>
+
           </div>
           <div className="footer-contact">
             <h4>Contact Us</h4>
             <ul>
-              <li><MapPinIcon />123 University Ave, Campus Center, Algiers, Algeria</li>
-              <li><PhoneIcon />+213 (0) 23 45 67 89</li>
-              <li><MailIcon />contact@univstage.dz</li>
+              <li><MapPinIcon /> University constantine2, Algeria</li>
+              <li><PhoneIcon />+213 (0) 798864489</li>
+              <li><PhoneIcon />+213 (0) 799003478</li>
+              <li><PhoneIcon />+213 (0) 557217736</li>
+              <li><MailIcon />stageuniversity18@gmail.com </li>
             </ul>
           </div>
         </div>
         <div className="footer-bottom">
-          <p>© 2025 UnivStage. All rights reserved.</p>
+          <p>© 2026 UnivStage. All rights reserved.</p>
           <div className="footer-socials">
             <a href="https://www.facebook.com/univstage" target="_blank" rel="noopener noreferrer">f</a>
             <a href="https://www.instagram.com/univstage" target="_blank" rel="noopener noreferrer">𝕏</a>
