@@ -29,6 +29,7 @@ import ManageStudents from './page/ManageStudents';
 import AdminMyProfile from './page/AdminMyProfile';
 import AboutUs from './page/AboutUs';
 import UniversityTeam from './page/UniversityTeam';
+import CompanyPublicView from './page/CompanyPublicView';
 import './App.css';
 
 // Composant qui applique la langue sauvegardée
@@ -170,7 +171,7 @@ useEffect(() => {
                 <AdminMyProfile />
               </ProtectedRoute>
             } />
-            <Route path="/company-profile/:companyId" element={<CompanyPublicProfile />} />
+            
             {/* Common Routes */}
             <Route path="/university/team" element={
               <ProtectedRoute allowedRoles={['admin']} allowedSubRoles={['admin', 'co_dept_head']}>
@@ -178,6 +179,7 @@ useEffect(() => {
               </ProtectedRoute>
             } />
             <Route path="/about" element={<AboutUs />} />
+            <Route path="/company/:companyId" element={<CompanyPublicView />} />
             
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" replace />} />

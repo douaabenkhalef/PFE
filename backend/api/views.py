@@ -7660,57 +7660,174 @@ def get_all_offers_applicants_counts(request):
         
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
+
 @api_view(['GET'])
-def get_public_company_profile(request, company_id):
-    """Get public company profile by ID (no authentication required for viewing)"""
+def get_public_offer_applicants_count(request, offer_id):
+    """
+    Public endpoint to get the number of applicants for a specific internship offer
+    No authentication required
+    """
     try:
-        from .models import Company, CompanyProfile
+        from .models import InternshipOffer, Application
         
-        company = Company.objects(id=company_id).first()
-        if not company:
-            return Response({'success': False, 'error': 'Company not found'}, status=404)
+        try:
+            offer = InternshipOffer.objects(id=offer_id).first()
+        except Exception:
+            return Response({'success': False, 'error': 'Invalid offer ID'}, status=400)
         
-        # Get CompanyProfile if exists
-        profile = CompanyProfile.objects(company_id=company_id).first()
+        if not offer:
+            return Response({'success': False, 'error': 'Offer not found'}, status=404)
         
-        if profile:
-            profile_data = {
-                'name': profile.name,
-                'description': profile.description,
-                'location': profile.location,
-                'website': profile.website,
-                'industry': profile.industry,
-                'phone': profile.phone,
-                'contact_email': profile.contact_email,
-                'linkedin': profile.linkedin,
-                'twitter': profile.twitter,
-                'logo': profile.logo,
-                'cover_picture': profile.cover_picture,
-            }
-        else:
-            # Fallback to company basic data
-            profile_data = {
-                'name': company.company_name,
-                'description': company.description or '',
-                'location': company.location or '',
-                'website': company.website or '',
-                'industry': company.industry or '',
-                'phone': getattr(company, 'phone', ''),
-                'contact_email': company.user.email if company.user else '',
-                'linkedin': '',
-                'twitter': '',
-                'logo': company.logo or '',
-                'cover_picture': '',
-            }
+        applicants_count = Application.objects(offer=offer).count()
         
         return Response({
             'success': True,
-            'profile': profile_data,
-            'can_edit': False
+            'count': applicants_count,
+            'offer_id': offer_id
         })
         
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
 
+# أضف هذه الدالة في views.py (بدون مصادقة)
 
+@api_view(['GET'])
+def public_search_offers(request):
+    """
+    Public endpoint to search offers - no authentication required
+    """
+    today_start = timezone.make_aware(datetime.combine(timezone.now().date(), datetime.min.time()))
+    offers = InternshipOffer.objects(is_active=True, deadline__gte=today_start)
+
+    search_term = request.query_params.get('search', '').strip()
+    if search_term:
+        offers = offers.filter(
+            __raw__={
+                '$or': [
+                    {'title': {'$regex': search_term, '$options': 'i'}},
+                    {'description': {'$regex': search_term, '$options': 'i'}},
+                    {'company_name': {'$regex': search_term, '$options': 'i'}}
+                ]
+            }
+        )
+
+    company_name = request.query_params.get('company_name', '').strip()
+    if company_name:
+        offers = offers.filter(company_name__iexact=company_name)
+
+    wilaya = request.query_params.get('wilaya', '').strip()
+    if wilaya:
+        offers = offers.filter(wilaya=wilaya)
+
+    internship_type = request.query_params.get('internship_type', '').strip()
+    if internship_type:
+        offers = offers.filter(internship_type=internship_type)
+
+    skills_param = request.query_params.get('skills', '').strip()
+    if skills_param:
+        skill_list = [s.strip() for s in skills_param.split(',') if s.strip()]
+        offers = offers.filter(required_skills__in=skill_list)
+
+    offers = offers.order_by('-created_at')
+    
+    result = []
+    for offer in offers:
+        applicants_count = Application.objects(offer=offer).count()
         
+        offer_data = {
+            'id': str(offer.id),
+            'title': offer.title,
+            'description': offer.description,
+            'company_name': offer.company_name,
+            'wilaya': offer.wilaya,
+            'internship_type': offer.internship_type,
+            'required_skills': offer.required_skills,
+            'duration': offer.duration,
+            'start_date': offer.start_date.strftime('%Y-%m-%d') if offer.start_date else None,
+            'deadline': offer.deadline.strftime('%Y-%m-%d') if offer.deadline else None,
+            'is_active': offer.is_active,
+            'created_at': offer.created_at.strftime('%Y-%m-%d') if offer.created_at else None,
+            'applicants_count': applicants_count,
+            'image': f"/api/company/offers/{offer.id}/image/" if offer.image else None,
+        }
+        result.append(offer_data)
+    
+    return Response({'success': True, 'offers': result})
+
+@api_view(['GET'])
+def get_public_company_profile(request, company_id):
+    """Get public company profile by ID - no authentication required"""
+    try:
+        from .models import Company, CompanyProfile
+
+        company = Company.objects(id=company_id).first()
+        if not company:
+            return Response({'success': False, 'error': 'Company not found'}, status=404)
+
+        # جلب البيانات من CompanyProfile، وإنشاء سجل افتراضي إذا لم يكن موجوداً
+        profile = CompanyProfile.objects(company_id=company_id).first()
+        if not profile:
+            profile = CompanyProfile(
+                company_id=company_id,
+                name=company.company_name,
+                description=company.description or '',
+                location=company.location or '',
+                industry=company.industry or '',
+            )
+            profile.save()
+
+        profile_data = {
+            'name': profile.name,
+            'description': profile.description,
+            'location': profile.location,
+            'website': profile.website,
+            'industry': profile.industry,
+            'phone': profile.phone,
+            'contact_email': profile.contact_email,
+            'linkedin': profile.linkedin,
+            'twitter': profile.twitter,
+            'logo': profile.logo,
+            'cover_picture': profile.cover_picture,
+        }
+        return Response({'success': True, 'profile': profile_data})
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+@api_view(['GET'])
+def public_offers_by_company(request, company_id):
+    """Get offers for a specific company by its ID - no authentication required"""
+    try:
+        company = Company.objects(id=company_id).first()
+        if not company:
+            return Response({'success': False, 'error': 'Company not found'}, status=404)
+
+        today_start = timezone.make_aware(datetime.combine(timezone.now().date(), datetime.min.time()))
+        offers = InternshipOffer.objects(
+            company=company,
+            is_active=True,
+            deadline__gte=today_start
+        ).order_by('-created_at')
+
+        result = []
+        for offer in offers:
+            applicants_count = Application.objects(offer=offer).count()
+            result.append({
+                'id': str(offer.id),
+                'title': offer.title,
+                'description': offer.description,
+                'company_name': offer.company_name,
+                'wilaya': offer.wilaya,
+                'internship_type': offer.internship_type,
+                'required_skills': offer.required_skills,
+                'duration': offer.duration,
+                'start_date': offer.start_date.strftime('%Y-%m-%d') if offer.start_date else None,
+                'deadline': offer.deadline.strftime('%Y-%m-%d') if offer.deadline else None,
+                'is_active': offer.is_active,
+                'created_at': offer.created_at.strftime('%Y-%m-%d') if offer.created_at else None,
+                'applicants_count': applicants_count,
+                'image': f"/api/company/offers/{offer.id}/image/" if offer.image else None,
+            })
+
+        return Response({'success': True, 'offers': result})
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)

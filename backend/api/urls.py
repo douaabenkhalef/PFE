@@ -79,6 +79,13 @@ path('student/offers/applicants-counts/', views.get_all_offers_applicants_counts
     # Your public Company Profile (editing cover, description, etc.)
     path('company/profile/', views.get_company_profile, name='get-company-profile'),
     path('company/profile/update/', views.update_company_profile, name='update-company-profile'),   # PUT delegates to POST
+    # أضف هذا المسار
+    path('public/offers/by-company/<str:company_id>/', views.public_offers_by_company, name='public-offers-by-company'),
+    path('public/offers/<str:offer_id>/applicants-count/', views.get_public_offer_applicants_count, name='public-offer-applicants-count'),
+    path('public/offers/search/', views.public_search_offers, name='public-search-offers'),
+    path('public/offers/<str:offer_id>/image/', views.serve_offer_image, name='public-offer-image'),
+    path('public/companies/<str:company_id>/', views.get_public_company_profile, name='public-company-profile'),
+    
 
     # Friend's MyProfile for company (personal info, logo, 2FA) – renamed endpoints
     
@@ -191,5 +198,8 @@ path('student/offers/applicants-counts/', views.get_all_offers_applicants_counts
     path('co-dept/validated-validations/', views.co_dept_validated_validations, name='co-dept-validated'),
     path('private-chat/conversations/', views.get_private_conversations, name='private-conversations'),
     path('private-chat/history/<str:user_id>/', views.get_private_chat_history, name='private-chat-history'),
+
+
+
     
 ]

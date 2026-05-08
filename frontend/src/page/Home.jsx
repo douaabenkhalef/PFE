@@ -5,7 +5,7 @@ import { Search, X, ChevronRight, CheckCircle, Sparkles, GraduationCap, Briefcas
 
 import "./Home.css";
 
-// ==================== ICONS COMPONENTS (DEFINED FIRST) ====================
+// ==================== ICONS COMPONENTS ====================
 
 const MoonIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -48,7 +48,6 @@ const ArrowRight = () => (
   </svg>
 );
 
-// Shield Icon Component
 const ShieldIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -71,15 +70,8 @@ function Stars({ n = 5, max = 5 }) {
 
 const getImageSrc = (logo) => {
   if (!logo) return null;
-  // If it's a base64 image (starts with data:image)
-  if (logo.startsWith('data:image')) {
-    return logo;
-  }
-  // If it's a full URL
-  if (logo.startsWith('http')) {
-    return logo;
-  }
-  // If it's a local path
+  if (logo.startsWith('data:image')) return logo;
+  if (logo.startsWith('http')) return logo;
   return `https://pfe-l31r.onrender.com${logo}`;
 };
 
@@ -327,7 +319,6 @@ export default function Home() {
     fetch("https://pfe-l31r.onrender.com/api/companies/list/")
       .then(res => res.json())
       .then(data => {
-        // The API already returns companies sorted by active_offers (most offers first)
         setCompanies(Array.isArray(data) ? data : []);
         setLoadingCompanies(false);
       })
@@ -351,10 +342,10 @@ export default function Home() {
     setSearchResults(filtered.slice(0, 5));
   };
 
-  // Handle company click - navigate to company profile
+  // ✅ Handle company click - navigate to public company profile page
   const handleCompanyClick = (companyId, companyName) => {
-    console.log(`Navigating to company profile: ${companyName} (ID: ${companyId})`);
-    navigate(`/company-profile/${companyId}`);
+    console.log(`🔍 Navigating to company profile: ${companyName} (ID: ${companyId})`);
+    navigate(`/company/${companyId}`);
   };
 
   const activateSearch = () => {
@@ -415,7 +406,7 @@ export default function Home() {
     }
   };
 
-  // Display first 3 companies (they are already sorted by most offers from API)
+  // Display companies (sorted by active offers - already from API)
   const displayedCompanies = showAllCompanies ? companies : companies.slice(0, 3);
 
   return (
@@ -530,7 +521,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Companies Section - Shows top 3 companies with most offers */}
+      {/* Companies Section - Shows top companies with most offers */}
       <section className="companies-section" id="companies" ref={companiesRef} data-section="companies">
         <h2 className="section-title">
           <span className="word-top">Top </span>
@@ -708,7 +699,7 @@ export default function Home() {
           </div>
         </div>
         <div className="footer-bottom">
-          <p>© 2026 UnivStage. All rights reserved.</p>
+          <p>© 2025 UnivStage. All rights reserved.</p>
           <div className="footer-socials">
             <a href="https://www.facebook.com/univstage" target="_blank" rel="noopener noreferrer">f</a>
             <a href="https://www.instagram.com/univstage" target="_blank" rel="noopener noreferrer">𝕏</a>
