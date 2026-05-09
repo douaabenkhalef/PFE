@@ -53,7 +53,7 @@ const CoDeptHeadCard = ({ manager, onUpdatePermissions, onDelete }) => {
   return (
     <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
       <div className="p-5 border-b border-white/10">
-        <div className="flex justify-between items-start">
+        <div className="flex justify-between items-start flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
               <GraduationCap className="w-5 h-5 text-purple-400" />
@@ -66,10 +66,10 @@ const CoDeptHeadCard = ({ manager, onUpdatePermissions, onDelete }) => {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-300">
               <UserCheck size={10} className="inline mr-1" />
-              Actif
+              Active
             </span>
             <span className="text-slate-500 text-xs flex items-center gap-1">
               <Calendar size={10} />
@@ -80,7 +80,7 @@ const CoDeptHeadCard = ({ manager, onUpdatePermissions, onDelete }) => {
       </div>
 
       <div className="p-5">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
           <h4 className="text-sm font-semibold text-white/70 flex items-center gap-2">
             <Shield size={14} />
             Permissions
@@ -120,30 +120,30 @@ const CoDeptHeadCard = ({ manager, onUpdatePermissions, onDelete }) => {
 
         <div className="space-y-2">
           <PermissionCheckbox
-            label="Gérer les conventions"
-            description="Valider ou refuser les conventions de stage"
+            label="Manage conventions"
+            description="Validate or reject internship agreements"
             checked={permissions.can_manage_conventions}
             onChange={(e) => setPermissions(prev => ({ ...prev, can_manage_conventions: e.target.checked }))}
             disabled={!isEditing}
           />
           
           <PermissionCheckbox
-            label="Ajouter une signature"
-            description="Signer les conventions de stage"
+            label="Add signature"
+            description="Sign internship agreements"
             checked={permissions.can_add_signature}
             onChange={(e) => setPermissions(prev => ({ ...prev, can_add_signature: e.target.checked }))}
             disabled={!isEditing}
           />
           <PermissionCheckbox
-            label="Ajouter le cachet"
-            description="Apposer le cachet officiel de l'université"
+            label="Add stamp"
+            description="Apply official university stamp"
             checked={permissions.can_add_stamp}
             onChange={(e) => setPermissions(prev => ({ ...prev, can_add_stamp: e.target.checked }))}
             disabled={!isEditing}
           />
           <PermissionCheckbox
-            label="Gérer le profil université"
-            description="Modifier les informations de l'université"
+            label="Manage university profile"
+            description="Modify university information"
             checked={permissions.can_manage_university_profile}
             onChange={(e) => setPermissions(prev => ({ ...prev, can_manage_university_profile: e.target.checked }))}
             disabled={!isEditing}
@@ -154,23 +154,23 @@ const CoDeptHeadCard = ({ manager, onUpdatePermissions, onDelete }) => {
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowDeleteConfirm(false)}>
           <div className="bg-[#1e293b] border border-slate-700 rounded-2xl p-6 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-bold text-white mb-4">Confirmer la suppression</h3>
+            <h3 className="text-xl font-bold text-white mb-4">Confirm deletion</h3>
             <p className="text-slate-300 mb-6">
-              Êtes-vous sûr de vouloir supprimer <strong className="text-purple-400">{manager.username}</strong> ?<br/>
-              Cette action est irréversible.
+              Are you sure you want to delete <strong className="text-purple-400">{manager.username}</strong>?<br/>
+              This action is irreversible.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => onDelete(manager.id, manager.username)}
                 className="flex-1 bg-red-600 hover:bg-red-500 text-white py-2 rounded-lg font-semibold transition"
               >
-                Supprimer
+                Delete
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg font-semibold transition"
               >
-                Annuler
+                Cancel
               </button>
             </div>
           </div>
@@ -182,7 +182,7 @@ const CoDeptHeadCard = ({ manager, onUpdatePermissions, onDelete }) => {
 
 const PendingCoDeptCard = ({ head, onApprove, onReject, processing }) => (
   <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:border-purple-500 transition-all">
-    <div className="flex items-start justify-between mb-4">
+    <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
           <GraduationCap className="w-6 h-6 text-purple-400" />
@@ -197,7 +197,7 @@ const PendingCoDeptCard = ({ head, onApprove, onReject, processing }) => (
     <div className="space-y-2 mb-4">
       <div className="flex items-center gap-2 text-white/60 text-sm">
         <Mail className="w-4 h-4" />
-        <span>{head.email}</span>
+        <span className="break-all">{head.email}</span>
       </div>
       {head.university && (
         <p className="text-white/60 text-sm flex items-center gap-2">
@@ -212,14 +212,14 @@ const PendingCoDeptCard = ({ head, onApprove, onReject, processing }) => (
         disabled={processing} 
         className="flex-1 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
       >
-        <CheckCircle className="w-4 h-4" /> Approuver
+        <CheckCircle className="w-4 h-4" /> Approve
       </button>
       <button 
         onClick={() => onReject(head.id, head.username)} 
         disabled={processing} 
         className="flex-1 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
       >
-        <XCircle className="w-4 h-4" /> Refuser
+        <XCircle className="w-4 h-4" /> Reject
       </button>
     </div>
   </div>
@@ -244,11 +244,11 @@ export default function ManageCoDeptHeads() {
       if (data.success) {
         setCoDeptHeads(data.co_dept_heads);
       } else {
-        toast.error(data.error || 'Erreur de chargement');
+        toast.error(data.error || 'Error loading data');
       }
     } catch (err) {
-      console.error("Erreur:", err);
-      toast.error('Erreur de connexion');
+      console.error("Error:", err);
+      toast.error('Connection error');
     } finally {
       setLoading(false);
     }
@@ -262,7 +262,7 @@ export default function ManageCoDeptHeads() {
         setPendingCoDeptHeads(data.co_dept_heads);
       }
     } catch (error) {
-      toast.error("Erreur de connexion");
+      toast.error("Connection error");
     }
   };
 
@@ -280,13 +280,13 @@ export default function ManageCoDeptHeads() {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success('Permissions mises à jour avec succès');
+        toast.success('Permissions updated successfully');
         fetchCoDeptHeads();
       } else {
-        toast.error(data.error || 'Erreur lors de la mise à jour');
+        toast.error(data.error || 'Error updating permissions');
       }
     } catch (err) {
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     }
   };
 
@@ -298,13 +298,13 @@ export default function ManageCoDeptHeads() {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success(`Co Department Head ${username} supprimé avec succès`);
+        toast.success(`Co Department Head ${username} deleted successfully`);
         fetchCoDeptHeads();
       } else {
-        toast.error(data.error || 'Erreur lors de la suppression');
+        toast.error(data.error || 'Error deleting user');
       }
     } catch (err) {
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     }
   };
 
@@ -317,13 +317,13 @@ export default function ManageCoDeptHeads() {
       });
       const data = await response.json();
       if (data.success) {
-        toast.success(`Co Department Head ${headName} a été approuvé`);
+        toast.success(`Co Department Head ${headName} has been approved`);
         fetchPendingCoDeptHeads();
       } else {
-        toast.error(data.message || "Erreur lors de l'approbation");
+        toast.error(data.message || "Error during approval");
       }
     } catch (error) {
-      toast.error("Erreur de connexion");
+      toast.error("Connection error");
     } finally {
       setProcessing(false);
     }
@@ -338,21 +338,21 @@ export default function ManageCoDeptHeads() {
       });
       const data = await response.json();
       if (data.success) {
-        toast.success(`Co Department Head ${headName} a été refusé et supprimé`);
+        toast.success(`Co Department Head ${headName} has been rejected and deleted`);
         fetchPendingCoDeptHeads();
         const currentUserEmail = localStorage.getItem('user_email');
         if (data.deleted && currentUserEmail === headName) {
-          toast.info("Votre compte a été supprimé. Vous allez être déconnecté.");
+          toast.info("Your account has been deleted. You will be logged out.");
           setTimeout(() => {
             logout();
             navigate("/login");
           }, 2000);
         }
       } else {
-        toast.error(data.message || "Erreur lors du refus");
+        toast.error(data.message || "Error during rejection");
       }
     } catch (error) {
-      toast.error("Erreur de connexion");
+      toast.error("Connection error");
     } finally {
       setProcessing(false);
     }
@@ -385,18 +385,18 @@ export default function ManageCoDeptHeads() {
             className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
           >
             <ArrowLeft size={18} />
-            Retour au tableau de bord
+            Back to Dashboard
           </button>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-2">Gestion des Co Department Heads</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">Manage Co Department Heads</h2>
             <p className="text-white/60">
-              Gérez les permissions des co department heads approuvés ou approuvez les nouvelles demandes.
+              Manage permissions of approved co department heads or approve new requests.
             </p>
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 mb-6 border-b border-white/20 pb-2">
+          <div className="flex gap-2 mb-6 border-b border-white/20 pb-2 flex-wrap">
             <button
               onClick={() => setActiveTab('active')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
@@ -405,7 +405,7 @@ export default function ManageCoDeptHeads() {
                   : 'bg-white/10 text-white/70 hover:bg-white/20'
               }`}
             >
-              Co Dept Heads Actifs
+              Active Co Dept Heads
             </button>
             <button
               onClick={() => setActiveTab('pending')}
@@ -415,7 +415,7 @@ export default function ManageCoDeptHeads() {
                   : 'bg-white/10 text-white/70 hover:bg-white/20'
               }`}
             >
-              Demandes en attente
+              Pending Requests
               {pendingCoDeptHeads.length > 0 && (
                 <span className="ml-2 bg-yellow-500 text-white text-xs px-2 py-0.5 rounded-full">{pendingCoDeptHeads.length}</span>
               )}
@@ -430,8 +430,8 @@ export default function ManageCoDeptHeads() {
             coDeptHeads.length === 0 ? (
               <div className="bg-white/10 backdrop-blur-lg rounded-xl p-12 text-center border border-white/20">
                 <Users className="w-16 h-16 text-white/30 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">Aucun co department head actif</h3>
-                <p className="text-white/60">Aucun co department head n'a encore été approuvé pour votre université.</p>
+                <h3 className="text-xl font-semibold text-white mb-2">No active co department heads</h3>
+                <p className="text-white/60">No co department heads have been approved for your university yet.</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -449,8 +449,8 @@ export default function ManageCoDeptHeads() {
             pendingCoDeptHeads.length === 0 ? (
               <div className="bg-white/10 backdrop-blur-lg rounded-xl p-12 text-center border border-white/20">
                 <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">Aucune demande en attente</h3>
-                <p className="text-white/60">Tous les co department heads ont été traités.</p>
+                <h3 className="text-xl font-semibold text-white mb-2">No pending requests</h3>
+                <p className="text-white/60">All co department heads have been processed.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -470,15 +470,147 @@ export default function ManageCoDeptHeads() {
       </div>
 
       {/* Chat */}
-      <ChatWidget university={user?.university || "Université"} />
+      <ChatWidget university={user?.university || "University"} />
       {privateChatOpen && selectedChatUser && (
         <PrivateChat
-          university={user?.university || "Université"}
+          university={user?.university || "University"}
           currentUser={user}
           targetUser={selectedChatUser}
           onClose={handleClosePrivateChat}
         />
       )}
+
+      <style>{`
+        /* ===== RESPONSIVE STYLES ===== */
+        @media (max-width: 768px) {
+          .ml-64 {
+            margin-left: 220px !important;
+          }
+          .max-w-4xl {
+            padding-left: 1rem;
+            padding-right: 1rem;
+          }
+          .flex.justify-between.items-start {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 0.75rem;
+          }
+          .grid-cols-1.md\\:grid-cols-2 {
+            grid-template-columns: 1fr !important;
+          }
+          .p-5 {
+            padding: 1rem;
+          }
+        }
+        
+        @media (max-width: 580px) {
+          .ml-64 {
+            margin-left: 200px !important;
+          }
+          .py-8 {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+          }
+          .text-2xl.font-bold {
+            font-size: 1.2rem;
+          }
+          .px-4.py-2 {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.7rem;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .ml-64 {
+            margin-left: 180px !important;
+          }
+          .break-all {
+            word-break: break-all;
+          }
+        }
+        
+        /* ===== LIGHT MODE STYLES ===== */
+        body.light-mode .bg-white\\/10 {
+          background: rgba(255, 255, 255, 0.9) !important;
+          border-color: rgba(141, 35, 212, 0.25) !important;
+        }
+        body.light-mode .bg-white\\/10.backdrop-blur-lg {
+          background: rgba(255, 255, 255, 0.95) !important;
+        }
+        body.light-mode .text-white,
+        body.light-mode .text-white\\/70,
+        body.light-mode .text-white\\/80,
+        body.light-mode .text-white\\/90 {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .text-white\\/50,
+        body.light-mode .text-white\\/60,
+        body.light-mode .text-slate-400,
+        body.light-mode .text-slate-500 {
+          color: #666 !important;
+        }
+        body.light-mode .border-white\\/20 {
+          border-color: rgba(141, 35, 212, 0.2) !important;
+        }
+        body.light-mode .bg-slate-800\\/60 {
+          background: rgba(0, 0, 0, 0.05) !important;
+        }
+        body.light-mode .bg-slate-800\\/60 .text-white {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .bg-slate-800\\/60 .text-slate-400 {
+          color: #777 !important;
+        }
+        body.light-mode .bg-purple-500\\/20 {
+          background: rgba(141, 35, 212, 0.1) !important;
+        }
+        body.light-mode .text-purple-400 {
+          color: #8D23D4 !important;
+        }
+        body.light-mode .bg-green-500\\/20 {
+          background: rgba(5, 150, 105, 0.1) !important;
+        }
+        body.light-mode .text-green-300 {
+          color: #059669 !important;
+        }
+        body.light-mode .bg-blue-500\\/20 {
+          background: rgba(37, 99, 235, 0.1) !important;
+        }
+        body.light-mode .text-blue-300 {
+          color: #2563eb !important;
+        }
+        body.light-mode .bg-red-500\\/20 {
+          background: rgba(220, 38, 38, 0.1) !important;
+        }
+        body.light-mode .text-red-300 {
+          color: #dc2626 !important;
+        }
+        body.light-mode .bg-yellow-500 {
+          background: #d97706 !important;
+        }
+        body.light-mode .bg-\\[\\#1e293b\\] {
+          background: white !important;
+          border-color: rgba(141, 35, 212, 0.2) !important;
+        }
+        body.light-mode .bg-\\[\\#1e293b\\] .text-white {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .bg-\\[\\#1e293b\\] .text-slate-300 {
+          color: #555 !important;
+        }
+        body.light-mode .bg-slate-700 {
+          background: rgba(0, 0, 0, 0.05) !important;
+        }
+        body.light-mode .bg-slate-700:hover {
+          background: rgba(0, 0, 0, 0.1) !important;
+        }
+        body.light-mode .bg-red-600 {
+          background: #dc2626 !important;
+        }
+        body.light-mode .bg-purple-600 {
+          background: #8D23D4 !important;
+        }
+      `}</style>
     </div>
   );
 }

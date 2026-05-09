@@ -13,7 +13,7 @@ import UserAvatar from '../components/UserAvatar';
 const BASE_URL = 'https://pfe-l31r.onrender.com/api';
 const BACKEND  = 'https://pfe-l31r.onrender.com';
 const imgUrl   = (url) => { if (!url) return null; if (url.startsWith('http')) return url; return `${BACKEND}${url}`; };
-const TYPES    = ['PFE', 'ouvrier', 'technicien', 'été'];
+const TYPES    = ['PFE', 'worker', 'technician', 'summer'];
 const WILAYAS  = [
   'Adrar','Chlef','Laghouat','Oum El Bouaghi','Batna','Béjaïa','Biskra','Béchar','Blida','Bouira',
   'Tamanrasset','Tébessa','Tlemcen','Tiaret','Tizi Ouzou','Alger','Djelfa','Jijel','Sétif','Saïda',
@@ -25,7 +25,7 @@ const WILAYAS  = [
 const EMPTY = {
   title: '', description: '', wilaya: '', internship_type: '',
   duration: '', start_date: '', required_skills: '', is_active: true, deadline: '',
-  image: null,   // added
+  image: null,
 };
 const inp = 'bg-[#1e293b] border border-slate-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-sm text-white outline-none transition w-full';
 
@@ -96,7 +96,6 @@ function OfferForm({ initial, onSubmit, submitLabel, submitting }) {
         <label className="block text-xs text-slate-400 mb-1 font-medium">Required Skills <span className="text-slate-500 font-normal">(comma-separated)</span></label>
         <input className={inp} placeholder="e.g. Flutter, Firebase, REST API" value={f.required_skills} onChange={set('required_skills')} />
       </div>
-      {/* New image input */}
       <div className="md:col-span-2">
         <label className="block text-xs text-slate-400 mb-1 font-medium">Offer Image</label>
         <input
@@ -179,12 +178,10 @@ export default function InternshipOfferManager() {
   const handleCreate = async (f) => {
     setSubmitting(true); setMsg(null);
     const formData = new FormData();
-    // Append all fields
     Object.keys(f).forEach(key => {
       if (key === 'image' && f.image instanceof File) {
         formData.append('image', f.image);
       } else if (key === 'required_skills') {
-        // Convert skills array to comma-separated if needed (f.required_skills is string)
         formData.append(key, f.required_skills);
       } else {
         formData.append(key, f[key]);
@@ -220,7 +217,7 @@ export default function InternshipOfferManager() {
       required_skills: Array.isArray(offer.required_skills) ? offer.required_skills.join(', ') : (offer.required_skills || ''),
       start_date: offer.start_date || '',
       deadline: offer.deadline || '',
-      image: offer.image_url || offer.image || null,  // keep current image indicator (URL string)
+      image: offer.image_url || offer.image || null,
     });
     setActiveTab('edit');
     setMsg(null);
@@ -274,9 +271,8 @@ export default function InternshipOfferManager() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Sidebar unchanged */}
+      {/* Sidebar */}
       <div className="w-64 bg-gradient-to-b from-[#1a0840] to-[#0e0c27] h-full fixed left-0 top-0 overflow-y-auto border-r border-purple-500/30">
-        {/* ... sidebar content exactly as before ... */}
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
@@ -291,6 +287,7 @@ export default function InternshipOfferManager() {
 
         <div className="p-4">
           <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
             <input
               type="text"
               placeholder="Search"
@@ -310,10 +307,10 @@ export default function InternshipOfferManager() {
                 <Building2 size={16} /> Company Profile
               </Link>
               <Link to="/company/manage-offers" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm bg-purple-600/30 text-purple-300 border border-purple-500/30">
-                <Briefcase size={16} /> Manage offers
+                <Briefcase size={16} /> Manage Offers
               </Link>
               <Link to="/company/applications" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:bg-white/10">
-                <FileText size={16} /> Student Application
+                <FileText size={16} /> Student Applications
               </Link>
               {isCompanyManager && (
                 <>
@@ -321,7 +318,7 @@ export default function InternshipOfferManager() {
                     <UserCog size={16} /> Manage Hiring Managers
                   </Link>
                   <Link to="/company-manager/activity-logs" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:bg-white/10">
-                    <Activity size={16} /> Control Hiring Manager Activity
+                    <Activity size={16} /> Control HM Activity
                   </Link>
                 </>
               )}
@@ -340,7 +337,7 @@ export default function InternshipOfferManager() {
         </div>
       </div>
 
-      {/* Main content area unchanged */}
+      {/* Main content area */}
       <div className="ml-64 flex-1 min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <button
@@ -348,7 +345,7 @@ export default function InternshipOfferManager() {
             className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
           >
             <ArrowLeft size={18} />
-            Retour au tableau de bord
+            Back to Dashboard
           </button>
 
           <Msg msg={msg} onClose={() => setMsg(null)} />
@@ -374,7 +371,7 @@ export default function InternshipOfferManager() {
 
           {activeTab === 'list' && (
             <>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
                 <h1 className="text-2xl font-bold text-white">All Internship Offers</h1>
                 <button onClick={() => setActiveTab('create')}
                   className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
@@ -382,8 +379,9 @@ export default function InternshipOfferManager() {
                 </button>
               </div>
               <form onSubmit={(e) => { e.preventDefault(); loadOffers(search, fType, fActive); }} className="flex gap-3 mb-6 flex-wrap items-end">
-                <div className="relative">
-                  <input className={`${inp} pl-8 w-64`} placeholder="Search title or description..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+                  <input className={`${inp} pl-9`} placeholder="Search title or description..." value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
                 <select className={`${inp} w-40`} value={fType} onChange={(e) => setFType(e.target.value)}>
                   <option value="">All Types</option>
@@ -406,46 +404,48 @@ export default function InternshipOfferManager() {
                 </div>
               ) : (
                 <div className="rounded-xl border border-white/10 overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-white/10 text-white/50 text-xs uppercase">
-                      <tr>
-                        <th className="px-4 py-3 text-left">Title</th>
-                        <th className="px-4 py-3 text-left">Type</th>
-                        <th className="px-4 py-3 text-left">Wilaya</th>
-                        <th className="px-4 py-3 text-left">Duration</th>
-                        <th className="px-4 py-3 text-left">Start</th>
-                        <th className="px-4 py-3 text-left">Status</th>
-                        <th className="px-4 py-3 text-left">Image</th>
-                        <th className="px-4 py-3 text-left">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {offers.map((o) => (
-                        <tr key={o.id} className="hover:bg-white/5 transition">
-                          <td className="px-4 py-3 font-semibold text-white">{o.title}</td>
-                          <td className="px-4 py-3"><span className="bg-blue-900/60 text-blue-300 px-2 py-0.5 rounded text-xs font-medium">{o.internship_type}</span></td>
-                          <td className="px-4 py-3 text-white/70">{o.wilaya}</td>
-                          <td className="px-4 py-3 text-white/70">{o.duration}</td>
-                          <td className="px-4 py-3 text-white/50">{o.start_date || '—'}</td>
-                          <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-xs font-medium ${o.is_active ? 'bg-green-900/60 text-green-300' : 'bg-red-900/60 text-red-300'}`}>{o.is_active ? 'Active' : 'Inactive'}</span></td>
-                          <td className="px-4 py-3">
-                            {imgUrl(o.image_url) ? (
-                              <img src={imgUrl(o.image_url)} alt={o.title} className="w-10 h-10 object-cover rounded" />
-                            ) : (
-                              <span className="text-white/30 text-xs">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <button onClick={() => viewOffer(o.id)} title="View" className="text-indigo-400 hover:text-indigo-300 transition"><Eye size={16} /></button>
-                              <button onClick={() => openEdit(o)} title="Edit" className="text-yellow-400 hover:text-yellow-300 transition"><Pencil size={16} /></button>
-                              <button onClick={() => handleDelete(o)} title="Delete" className="text-red-400 hover:text-red-300 transition"><Trash2 size={16} /></button>
-                            </div>
-                          </td>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-white/10 text-white/50 text-xs uppercase">
+                        <tr>
+                          <th className="px-4 py-3 text-left">Title</th>
+                          <th className="px-4 py-3 text-left">Type</th>
+                          <th className="px-4 py-3 text-left">Wilaya</th>
+                          <th className="px-4 py-3 text-left">Duration</th>
+                          <th className="px-4 py-3 text-left">Start</th>
+                          <th className="px-4 py-3 text-left">Status</th>
+                          <th className="px-4 py-3 text-left">Image</th>
+                          <th className="px-4 py-3 text-left">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {offers.map((o) => (
+                          <tr key={o.id} className="hover:bg-white/5 transition">
+                            <td className="px-4 py-3 font-semibold text-white">{o.title}</td>
+                            <td className="px-4 py-3"><span className="bg-blue-900/60 text-blue-300 px-2 py-0.5 rounded text-xs font-medium">{o.internship_type}</span></td>
+                            <td className="px-4 py-3 text-white/70">{o.wilaya}</td>
+                            <td className="px-4 py-3 text-white/70">{o.duration}</td>
+                            <td className="px-4 py-3 text-white/50">{o.start_date || '—'}</td>
+                            <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-xs font-medium ${o.is_active ? 'bg-green-900/60 text-green-300' : 'bg-red-900/60 text-red-300'}`}>{o.is_active ? 'Active' : 'Inactive'}</span></td>
+                            <td className="px-4 py-3">
+                              {imgUrl(o.image_url) ? (
+                                <img src={imgUrl(o.image_url)} alt={o.title} className="w-10 h-10 object-cover rounded" />
+                              ) : (
+                                <span className="text-white/30 text-xs">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <button onClick={() => viewOffer(o.id)} title="View" className="text-indigo-400 hover:text-indigo-300 transition"><Eye size={16} /></button>
+                                <button onClick={() => openEdit(o)} title="Edit" className="text-yellow-400 hover:text-yellow-300 transition"><Pencil size={16} /></button>
+                                <button onClick={() => handleDelete(o)} title="Delete" className="text-red-400 hover:text-red-300 transition"><Trash2 size={16} /></button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </>
@@ -468,7 +468,7 @@ export default function InternshipOfferManager() {
         </div>
       </div>
 
-      {/* Modal for view details (unchanged logic, now with image) */}
+      {/* Modal for view details */}
       {modal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setModal(null)}>
           <div className="bg-[#1e293b] border border-slate-700 rounded-2xl w-full max-w-lg p-8 relative shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -500,13 +500,202 @@ export default function InternshipOfferManager() {
                 </div>
               </div>
             )}
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-3 pt-2 flex-wrap">
               <button onClick={() => { setModal(null); openEdit(modal); }} className="flex items-center gap-2 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-300 px-4 py-2 rounded-lg text-sm transition"><Pencil size={14} /> Edit</button>
               <button onClick={() => { setModal(null); handleDelete(modal); }} className="flex items-center gap-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 px-4 py-2 rounded-lg text-sm transition"><Trash2 size={14} /> Delete</button>
             </div>
           </div>
         </div>
       )}
+
+      <style>{`
+        /* ===== RESPONSIVE STYLES ===== */
+        @media (max-width: 768px) {
+          .ml-64 {
+            margin-left: 220px !important;
+          }
+          .max-w-7xl {
+            padding-left: 1rem;
+            padding-right: 1rem;
+          }
+          .flex.items-center.justify-between {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 0.75rem;
+          }
+          .overflow-x-auto {
+            overflow-x: auto;
+          }
+          table {
+            min-width: 800px;
+          }
+          .grid-cols-1.md\\:grid-cols-2 {
+            grid-template-columns: 1fr !important;
+          }
+          .flex.gap-3 {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .flex.gap-3 select,
+          .flex.gap-3 .relative,
+          .flex.gap-3 button {
+            width: 100%;
+          }
+        }
+        
+        @media (max-width: 580px) {
+          .ml-64 {
+            margin-left: 200px !important;
+          }
+          .px-4 {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+          }
+          .py-8 {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+          }
+          .text-2xl.font-bold {
+            font-size: 1.2rem;
+          }
+          .px-4.py-2 {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.7rem;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .ml-64 {
+            margin-left: 180px !important;
+          }
+          .w-40, .w-36 {
+            width: 100% !important;
+          }
+        }
+        
+        /* ===== LIGHT MODE STYLES ===== */
+        body.light-mode .w-64 {
+          background: linear-gradient(180deg, #ffffff 0%, #f5f0ff 100%) !important;
+          border-right: 1px solid rgba(141, 35, 212, 0.2) !important;
+        }
+        body.light-mode .text-white,
+        body.light-mode .text-white\\/70,
+        body.light-mode .text-white\\/80,
+        body.light-mode .text-white\\/90 {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .text-white\\/50,
+        body.light-mode .text-white\\/60,
+        body.light-mode .text-white\\/40,
+        body.light-mode .text-white\\/30 {
+          color: #666 !important;
+        }
+        body.light-mode .text-purple-300\\/60 {
+          color: #8D23D4 !important;
+          opacity: 0.7;
+        }
+        body.light-mode .bg-white\\/10 {
+          background: rgba(141, 35, 212, 0.08) !important;
+        }
+        body.light-mode .border-white\\/10,
+        body.light-mode .border-white\\/20 {
+          border-color: rgba(141, 35, 212, 0.15) !important;
+        }
+        body.light-mode .bg-purple-600\\/30 {
+          background: rgba(141, 35, 212, 0.15) !important;
+        }
+        body.light-mode .text-purple-300 {
+          color: #8D23D4 !important;
+        }
+        body.light-mode .hover\\:bg-white\\/10:hover {
+          background: rgba(141, 35, 212, 0.1) !important;
+        }
+        body.light-mode .text-red-300 {
+          color: #dc2626 !important;
+        }
+        body.light-mode .bg-slate-700 {
+          background: rgba(0, 0, 0, 0.05) !important;
+          border-color: rgba(141, 35, 212, 0.2) !important;
+          color: #1a1a2e !important;
+        }
+        body.light-mode input,
+        body.light-mode select,
+        body.light-mode textarea {
+          background: rgba(0, 0, 0, 0.05) !important;
+          border-color: rgba(141, 35, 212, 0.2) !important;
+          color: #1a1a2e !important;
+        }
+        body.light-mode input::placeholder,
+        body.light-mode textarea::placeholder {
+          color: #999 !important;
+        }
+        body.light-mode select option {
+          background: white !important;
+          color: #1a1a2e !important;
+        }
+        body.light-mode .bg-indigo-600 {
+          background: #8D23D4 !important;
+        }
+        body.light-mode .bg-indigo-600:hover {
+          background: #6B21A5 !important;
+        }
+        body.light-mode .bg-purple-600 {
+          background: #8D23D4 !important;
+        }
+        body.light-mode .bg-purple-600:hover {
+          background: #6B21A5 !important;
+        }
+        body.light-mode .bg-\\[\\#1e293b\\] {
+          background: white !important;
+          border-color: rgba(141, 35, 212, 0.2) !important;
+        }
+        body.light-mode .bg-\\[\\#1e293b\\] .text-white {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .bg-\\[\\#1e293b\\] .text-slate-500,
+        body.light-mode .bg-\\[\\#1e293b\\] .text-slate-300 {
+          color: #666 !important;
+        }
+        body.light-mode .bg-slate-800 {
+          background: rgba(0, 0, 0, 0.05) !important;
+        }
+        body.light-mode .bg-slate-800 .text-white {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .bg-green-500\\/10 {
+          background: rgba(5, 150, 105, 0.1) !important;
+        }
+        body.light-mode .bg-red-500\\/10 {
+          background: rgba(220, 38, 38, 0.1) !important;
+        }
+        body.light-mode .text-green-300 {
+          color: #059669 !important;
+        }
+        body.light-mode .text-red-300 {
+          color: #dc2626 !important;
+        }
+        body.light-mode .bg-blue-900\\/60 {
+          background: rgba(141, 35, 212, 0.1) !important;
+        }
+        body.light-mode .text-blue-300 {
+          color: #8D23D4 !important;
+        }
+        body.light-mode .bg-green-900\\/60 {
+          background: rgba(5, 150, 105, 0.1) !important;
+        }
+        body.light-mode .bg-red-900\\/60 {
+          background: rgba(220, 38, 38, 0.1) !important;
+        }
+        body.light-mode .text-indigo-400 {
+          color: #8D23D4 !important;
+        }
+        body.light-mode .text-yellow-400 {
+          color: #d97706 !important;
+        }
+        body.light-mode .text-red-400 {
+          color: #dc2626 !important;
+        }
+      `}</style>
     </div>
   );
 }

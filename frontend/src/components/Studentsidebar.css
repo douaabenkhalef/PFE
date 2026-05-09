@@ -237,3 +237,233 @@
   box-shadow: 0 4px 16px rgba(142, 47, 251, 0.40);
 }
 .ssb-logout:hover { opacity: 0.88; transform: translateY(-1px); }
+
+/* ===== RESPONSIVE STYLES FOR STUDENT SIDEBAR ===== */
+
+/* شاشات صغيرة (أقل من 768px) */
+@media (max-width: 768px) {
+  /* جعل الـ Sidebar بعرض أقل */
+  .ssb-panel,
+  .relative.w-64 {
+    width: 280px !important;
+  }
+  
+  /* تصغير حجم الأيقونة والاسم */
+  .ssb-avatar,
+  .w-10.h-10 {
+    width: 36px !important;
+    height: 36px !important;
+  }
+  
+  .ssb-avatar span,
+  .w-10.h-10 span {
+    font-size: 0.8rem !important;
+  }
+  
+  .ssb-name,
+  .text-white.font-medium.text-sm {
+    font-size: 0.8rem !important;
+  }
+  
+  .ssb-email,
+  .text-white\/50.text-xs {
+    font-size: 0.6rem !important;
+  }
+  
+  /* تصغير المسافات */
+  .ssb-user,
+  .p-4.border-b {
+    padding: 16px 16px !important;
+  }
+  
+  .ssb-search,
+  .p-4:first-of-type {
+    margin: 12px 12px 6px !important;
+  }
+  
+  .ssb-nav,
+  nav.flex-1 {
+    padding: 6px 8px 12px !important;
+  }
+  
+  /* تصغير حجم عناصر القائمة */
+  .ssb-item,
+  button.flex.items-center.justify-between {
+    padding: 8px 10px !important;
+    font-size: 0.78rem !important;
+  }
+  
+  .ssb-item-icon svg,
+  .flex.items-center.gap-3 svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+  
+  /* تصغير زر الخروج */
+  .ssb-footer,
+  .p-4.border-t {
+    padding: 12px !important;
+  }
+  
+  .ssb-logout,
+  button.flex.items-center.gap-3 {
+    padding: 8px !important;
+    font-size: 0.8rem !important;
+  }
+}
+
+/* شاشات صغيرة جداً (أقل من 480px) */
+@media (max-width: 480px) {
+  /* جعل الـ Sidebar يأخذ العرض الكامل تقريباً */
+  .ssb-panel,
+  .relative.w-64 {
+    width: 260px !important;
+  }
+  
+  /* تقليل المسافات بشكل أكبر */
+  .ssb-user,
+  .p-4.border-b {
+    padding: 12px 12px !important;
+  }
+  
+  .ssb-search input,
+  input.w-full {
+    padding: 8px 12px 8px 34px !important;
+    font-size: 0.75rem !important;
+  }
+  
+  .ssb-group-label,
+  .text-xs.text-purple-300\/60 {
+    font-size: 0.55rem !important;
+    padding: 8px 8px 4px !important;
+  }
+  
+  .ssb-item,
+  button.flex.items-center.justify-between {
+    padding: 6px 8px !important;
+    font-size: 0.74rem !important;
+  }
+  
+  /* تباعد بين العناصر */
+  .space-y-1 {
+    gap: 4px !important;
+  }
+}
+
+/* تحسين Light Mode للـ Sidebar */
+body.light-mode .ssb-panel,
+body.light-mode .relative.w-64 {
+  background: linear-gradient(180deg, #ffffff 0%, #f5f0ff 60%, #f0eaff 100%);
+  border-right: 1px solid rgba(141, 35, 212, 0.25);
+  box-shadow: 4px 0 40px rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .ssb-name,
+body.light-mode .text-white.font-medium.text-sm {
+  color: #1a1a2e;
+}
+
+body.light-mode .ssb-email,
+body.light-mode .text-white\/50.text-xs {
+  color: #666;
+}
+
+body.light-mode .ssb-search input,
+body.light-mode input.w-full {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(141, 35, 212, 0.2);
+  color: #1a1a2e;
+}
+
+body.light-mode .ssb-search input::placeholder {
+  color: #999;
+}
+
+body.light-mode .ssb-search-icon svg {
+  color: #8D23D4;
+}
+
+body.light-mode .ssb-item,
+body.light-mode button.flex.items-center.justify-between {
+  color: #555;
+}
+
+body.light-mode .ssb-item:hover,
+body.light-mode button.flex.items-center.justify-between:hover {
+  background: rgba(141, 35, 212, 0.1);
+  color: #8D23D4;
+}
+
+body.light-mode .ssb-item.active,
+body.light-mode button.bg-purple-600\/30 {
+  background: rgba(141, 35, 212, 0.15);
+  color: #8D23D4;
+}
+
+body.light-mode .ssb-item-icon svg,
+body.light-mode .flex.items-center.gap-3 svg {
+  color: #8D23D4;
+}
+
+body.light-mode .ssb-logout,
+body.light-mode button.flex.items-center.gap-3 {
+  background: linear-gradient(135deg, #8D23D4, #6B21A5);
+}
+
+body.light-mode .border-white\/10,
+body.light-mode .border-white\/20 {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .bg-black\/60 {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* تحسين أيقونة الحرف في Light Mode */
+body.light-mode .w-10.h-10.rounded-full {
+  background: linear-gradient(135deg, #8D23D4, #6B21A5);
+}
+
+body.light-mode .w-10.h-10.rounded-full span {
+  color: white;
+}
+/* إضافة إلى StudentSidebar.css للتأكيد */
+.ssb-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1200;
+  width: 280px;
+  height: 100vh;
+  background: linear-gradient(180deg, #13102a 0%, #0e0c22 60%, #0c0a1c 100%);
+  border-right: 1px solid rgba(141, 35, 212, 0.25);
+  transform: translateX(0);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* للرسوم المتحركة عند الفتح */
+@keyframes ssb-slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.ssb-panel {
+  animation: ssb-slide-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* التأكد من أن الخلفية تغطي الشاشة بالكامل */
+.ssb-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 1100;
+  cursor: pointer;
+}

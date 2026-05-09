@@ -41,7 +41,7 @@ const getImageUrl = (url) => {
   return `${BACKEND}/api/${url}`;
 };
 
-// Types de notifications avec icônes
+// Notification types with icons
 const NOTIFICATION_ICONS = {
     'application_accepted': { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10' },
     'application_rejected': { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
@@ -87,6 +87,21 @@ const MoonIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
+
+const SunIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <circle cx="12" cy="12" r="5" />
+    <line x1="12" y1="1" x2="12" y2="3" />
+    <line x1="12" y1="21" x2="12" y2="23" />
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+    <line x1="1" y1="12" x2="3" y2="12" />
+    <line x1="21" y1="12" x2="23" y2="12" />
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
   </svg>
 );
 
@@ -153,7 +168,7 @@ const NotificationItem = ({ notification, onMarkRead, onNavigate }) => {
     const config = NOTIFICATION_ICONS[notification.type] || NOTIFICATION_ICONS.default;
     const IconComponent = config.icon;
     
-    const isSuccess = notification.message.includes('✅') || notification.message.includes('Félicitations');
+    const isSuccess = notification.message.includes('✅') || notification.message.includes('Congratulations');
     const isError = notification.message.includes('❌');
     
     const handleClick = () => {
@@ -211,7 +226,7 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
                 </div>
                 {unreadCount > 0 && (
                     <button className="sd-notif-clear" onClick={onMarkAllRead}>
-                        Tout marquer comme lu
+                        Mark all as read
                     </button>
                 )}
             </div>
@@ -219,8 +234,8 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
                 {notifications.length === 0 ? (
                     <div className="sd-notif-empty">
                         <Bell size={32} className="mx-auto mb-2 opacity-30" />
-                        <p>Aucune notification</p>
-                        <span className="text-xs">Les notifications apparaîtront ici</span>
+                        <p>No notifications</p>
+                        <span className="text-xs">Notifications will appear here</span>
                     </div>
                 ) : (
                     notifications.slice(0, 15).map(notif => (
@@ -235,7 +250,7 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
             </div>
             {notifications.length > 0 && (
                 <div className="sd-notif-footer">
-                    <button onClick={onClose}>Fermer</button>
+                    <button onClick={onClose}>Close</button>
                 </div>
             )}
         </div>
@@ -423,8 +438,8 @@ const ApplyModal = ({ offer, onClose, onSuccess }) => {
             <div><label>University *</label><input type="text" value={cvFields.university} onChange={e => updateCvField('university', e.target.value)} className="w-full bg-white/10 border rounded px-3 py-2" /></div>
             <div><label>Major *</label><input type="text" value={cvFields.major} onChange={e => updateCvField('major', e.target.value)} className="w-full bg-white/10 border rounded px-3 py-2" /></div>
             <div><label>Education Level *</label><select value={cvFields.education_level} onChange={e => updateCvField('education_level', e.target.value)} className="w-full bg-white/10 border rounded px-3 py-2">
-              <option value="Licence">Licence</option><option value="Master 1">Master 1</option><option value="Master 2">Master 2</option>
-              <option value="Ingénieur">Ingénieur</option><option value="Doctorat">Doctorat</option>
+              <option value="Licence">Bachelor</option><option value="Master 1">Master 1</option><option value="Master 2">Master 2</option>
+              <option value="Ingénieur">Engineering</option><option value="Doctorat">Doctorate</option>
             </select></div>
             <div><label>Graduation Year *</label><input type="number" value={cvFields.graduation_year} onChange={e => updateCvField('graduation_year', e.target.value)} className="w-full bg-white/10 border rounded px-3 py-2" /></div>
             <div><label>Skills (comma-separated)</label><input type="text" value={cvFields.skills.join(', ')} onChange={e => updateCvField('skills', e.target.value.split(',').map(s => s.trim()))} className="w-full bg-white/10 border rounded px-3 py-2" /></div>
@@ -507,8 +522,9 @@ export default function StudentDashboard() {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showAllInternships, setShowAllInternships] = useState(false);
   const [showAllCompanies, setShowAllCompanies] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   
-  // États pour le chat
+  // Chat states
   const [privateChatOpen, setPrivateChatOpen] = useState(false);
   const [selectedChatUser, setSelectedChatUser] = useState(null);
   const [activeInternshipChat, setActiveInternshipChat] = useState(null);
@@ -532,6 +548,31 @@ export default function StudentDashboard() {
   const companiesRef = useRef(null);
   const internshipsRef = useRef(null);
   const groupsRef = useRef(null);
+
+  // Load saved settings from localStorage when page loads
+  useEffect(() => {
+    const savedMode = localStorage.getItem('darkMode');
+    if (savedMode === 'false') {
+      setIsDarkMode(false);
+      document.body.classList.add('light-mode');
+    } else {
+      setIsDarkMode(true);
+      document.body.classList.remove('light-mode');
+    }
+  }, []);
+
+  // Function to toggle theme
+  const toggleTheme = () => {
+    if (isDarkMode) {
+      document.body.classList.add('light-mode');
+      localStorage.setItem('darkMode', 'false');
+      setIsDarkMode(false);
+    } else {
+      document.body.classList.remove('light-mode');
+      localStorage.setItem('darkMode', 'true');
+      setIsDarkMode(true);
+    }
+  };
 
   // Display first 3 companies (they are already sorted by active_offers from API)
   const displayedCompanies = showAllCompanies ? companies : companies.slice(0, 3);
@@ -659,7 +700,7 @@ export default function StudentDashboard() {
             setNotifications(data.notifications || []);
         }
     } catch (err) {
-        console.error("Erreur lors du chargement des notifications:", err);
+        console.error("Error loading notifications:", err);
     }
   }, []);
 
@@ -673,7 +714,7 @@ export default function StudentDashboard() {
             prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
         );
     } catch (err) {
-        console.error("Erreur:", err);
+        console.error("Error:", err);
     }
   };
 
@@ -685,7 +726,7 @@ export default function StudentDashboard() {
         });
         setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     } catch (err) {
-        console.error("Erreur:", err);
+        console.error("Error:", err);
     }
   };
 
@@ -718,7 +759,7 @@ export default function StudentDashboard() {
   };
 
   const handleApplySuccess = useCallback(() => {
-    setToastMsg({ msg: "Candidature soumise avec succès !", type: "success" });
+    setToastMsg({ msg: "Application submitted successfully!", type: "success" });
     setTimeout(() => navigate('/student/applications'), 1500);
   }, [navigate]);
 
@@ -752,7 +793,7 @@ export default function StudentDashboard() {
         <Toast msg={toastMsg.msg} type={toastMsg.type} onHide={() => setToastMsg(null)} />
       )}
 
-      {/* Chat de groupe */}
+      {/* Group Chat */}
       {activeInternshipChat && (
         <ChatWidget 
           internshipId={activeInternshipChat}
@@ -760,17 +801,17 @@ export default function StudentDashboard() {
         />
       )}
       
-      {/* Chat privé */}
+      {/* Private Chat */}
       {privateChatOpen && selectedChatUser && (
         <PrivateChat
-          university={user?.university || "Université"}
+          university={user?.university || "University"}
           currentUser={user}
           targetUser={selectedChatUser}
           onClose={handleClosePrivateChat}
         />
       )}
 
-      {/* BOUTON CHAT FLOTTANT */}
+      {/* FLOATING CHAT BUTTON */}
       {!activeInternshipChat && acceptedInternships.length > 0 && (
         <button
           onClick={() => setShowGroupsPanel(!showGroupsPanel)}
@@ -780,13 +821,13 @@ export default function StudentDashboard() {
         </button>
       )}
 
-      {/* PANNEAU DES GROUPES DE CHAT */}
+      {/* CHAT GROUPS PANEL */}
       {showGroupsPanel && (
         <div className="fixed bottom-24 right-6 z-50 w-80 bg-[#1e293b] rounded-2xl shadow-2xl border border-slate-700 overflow-hidden">
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-3 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <MessageSquare size={16} className="text-white" />
-              <h3 className="text-white font-semibold text-sm">Mes groupes</h3>
+              <h3 className="text-white font-semibold text-sm">My Groups</h3>
             </div>
             <button onClick={() => setShowGroupsPanel(false)} className="text-white/80 hover:text-white">
               <X size={16} />
@@ -796,8 +837,8 @@ export default function StudentDashboard() {
             {acceptedInternships.length === 0 ? (
               <div className="text-center py-8 text-white/40">
                 <Briefcase size={32} className="mx-auto mb-2 opacity-30" />
-                <p className="text-xs">Aucun stage accepté</p>
-                <p className="text-xs mt-1">Les groupes apparaîtront ici</p>
+                <p className="text-xs">No accepted internships</p>
+                <p className="text-xs mt-1">Groups will appear here</p>
               </div>
             ) : (
               acceptedInternships.map(internship => (
@@ -888,8 +929,8 @@ export default function StudentDashboard() {
               />
             )}
           </div>
-          <button className="sd-icon-btn" aria-label="Dark mode">
-            <MoonIcon />
+          <button className="sd-icon-btn" aria-label="Dark mode" onClick={toggleTheme}>
+            {isDarkMode ? <MoonIcon /> : <SunIcon />}
           </button>
         </div>
       </nav>
@@ -910,13 +951,14 @@ export default function StudentDashboard() {
                 upload your CV, browse internships, and track your applications.
               </p>
               
-              {/* SECTION RECHERCHE */}
+              {/* SEARCH SECTION */}
               <div className="sd-search-container" style={{ marginTop: "2rem", width: "100%" }}>
                 <div className="sd-search-bar" style={{ 
                   maxWidth: "100%", 
                   display: "flex", 
                   alignItems: "center", 
                   gap: "10px", 
+                  flexWrap: "wrap",
                   background: "rgba(255,255,255,0.08)", 
                   border: "1px solid rgba(255,255,255,0.18)", 
                   borderRadius: "50px", 
@@ -1099,7 +1141,7 @@ export default function StudentDashboard() {
                             </div>
                             <div className="sd-intern-top-badges">
                               <span className="sd-badge-level">{offer.level || "Internship"}</span>
-                              <span className="sd-badge-type">{offer.type || "Stage"}</span>
+                              <span className="sd-badge-type">{offer.type || "Internship"}</span>
                             </div>
                           </div>
                           <div className="sd-intern-info">
@@ -1362,7 +1404,7 @@ export default function StudentDashboard() {
                     </div>
                     <div className="sd-intern-top-badges">
                       <span className="sd-badge-level">{offer.level || "Internship"}</span>
-                      <span className="sd-badge-type">{offer.type || "Stage"}</span>
+                      <span className="sd-badge-type">{offer.type || "Internship"}</span>
                     </div>
                   </div>
                   <div className="sd-intern-info">
@@ -1411,18 +1453,25 @@ export default function StudentDashboard() {
         <footer className="footer">
           <div className="footer-grid">
             <div className="footer-brand">
-              <div className="footer-brand-logo">🎓 UnivStage</div>
+              <div className="footer-brand-logo"> UnivStage</div>
               <p>
                 Connecting students with professional opportunities and
                 empowering the next generation of innovators.
               </p>
+              <p>By:</p>
+             <p>Nouha Labdi</p>
+             <p>Safa Oughidni</p>
+             <p>Douaa Benkhalef</p>
+
             </div>
             <div className="footer-contact">
               <h4>Contact Us</h4>
               <ul>
-                <li><MapPinIcon />123 University Ave, Campus Center, Algiers, Algeria</li>
-                <li><PhoneIcon />+213 (0) 23 45 67 89</li>
-                <li><MailIcon />contact@univstage.dz</li>
+              <li><MapPinIcon /> University constantine2, Algeria</li>
+              <li><PhoneIcon />+213 (0) 798864489</li>
+              <li><PhoneIcon />+213 (0) 799003478</li>
+              <li><PhoneIcon />+213 (0) 557217736</li>
+              <li><MailIcon />stageuniversity18@gmail.com </li>
               </ul>
             </div>
           </div>

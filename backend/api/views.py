@@ -1034,17 +1034,40 @@ def apply_to_offer(request, offer_id):
     )
     application.save()
 
+    # ✅ إرسال إيميل للطالب
     send_application_confirmation_student(student.user.email, student.full_name, offer.title)
+    
     company = offer.company
     if company and company.user:
+        # ✅ إرسال إيميل للشركة
         send_application_notification_company(company.user.email, offer.title, student.full_name)
+        
+        # ✅ إضافة إشعار لـ Company Manager
+        Notification.objects.create(
+            recipient=company.user,
+            message=f"📋 New application received for '{offer.title}' from {student.full_name}.",
+            related_id=str(application.id)
+        )
+        
+        # ✅ إضافة إشعار لجميع Hiring Managers
+        hiring_managers = User.objects(
+            role='company',
+            sub_role='hiring_manager',
+            status=True,
+            pending_company_id=str(company.id)
+        )
+        for hm in hiring_managers:
+            Notification.objects.create(
+                recipient=hm,
+                message=f"📋 New application for '{offer.title}' from {student.full_name}.",
+                related_id=str(application.id)
+            )
 
     return Response({
         'success': True,
         'message': 'Your application has been successfully submitted',
         'application_id': str(application.id)
     }, status=201)
-
 
 @api_view(['GET'])
 @jwt_authenticated
@@ -1877,6 +1900,7 @@ def respond_to_application(request, application_id):
         if new_status not in ['accepted', 'rejected']:
             return Response({'error': 'Status must be "accepted" or "rejected"'}, status=400)
 
+        # ========== حالة الرفض ==========
         if new_status == 'rejected':
             reason = request.data.get('rejection_reason', '').strip()
             if not reason:
@@ -1897,12 +1921,40 @@ def respond_to_application(request, application_id):
                 }
             )
             
+            # إشعار للطالب
             Notification.objects.create(
                 recipient=app.student.user,
                 message=f"❌ Votre candidature pour '{app.offer.title}' a été refusée par {company.company_name}.",
                 related_id=str(app.id)
             )
             
+            # ✅ إشعار لـ Company Manager
+            if company.user:
+                Notification.objects.create(
+                    recipient=company.user,
+                    message=f"❌ Application from {app.student.full_name} for '{app.offer.title}' has been rejected by {request.user.username}.",
+                    related_id=str(app.id)
+                )
+            
+            # ✅ إشعار لجميع Hiring Managers (ما عدا من قام بالإجراء)
+            hiring_managers = User.objects(
+                role='company',
+                sub_role='hiring_manager',
+                status=True,
+                pending_company_id=str(company.id)
+            )
+            for hm in hiring_managers:
+                if str(hm.id) != str(request.user.id):
+                    Notification.objects.create(
+                        recipient=hm,
+                        message=f"❌ Application from {app.student.full_name} for '{app.offer.title}' has been rejected.",
+                        related_id=str(app.id)
+                    )
+            
+            app.save()
+            return Response({'success': True, 'message': f'Application rejected successfully.'})
+
+        # ========== حالة القبول ==========
         else:  # new_status == 'accepted'
             app.company_notes = request.data.get('notes', '')
             app.status = 'accepted_by_company'
@@ -1921,9 +1973,7 @@ def respond_to_application(request, application_id):
                 }
             )
 
-            # ========== NOTIFICATIONS ==========
-            
-            # 1. Notification pour l'étudiant
+            # ========== 1. إشعار للطالب ==========
             Notification.objects.create(
                 recipient=app.student.user,
                 message=f"✅ Félicitations ! Votre candidature pour '{app.offer.title}' a été acceptée par {company.company_name}. En attente de validation par votre université.",
@@ -1931,10 +1981,33 @@ def respond_to_application(request, application_id):
             )
             print(f"✅ Notification envoyée à l'étudiant {app.student.user.email}")
             
-            # 2. Notification pour Department Head (admin avec sub_role='admin')
-            student_university = app.student.university
+            # ========== 2. إشعار لـ Company Manager ==========
+            if company.user and str(company.user.id) != str(request.user.id):
+                Notification.objects.create(
+                    recipient=company.user,
+                    message=f"✅ Application from {app.student.full_name} for '{app.offer.title}' has been accepted by {request.user.username}.",
+                    related_id=str(app.id)
+                )
+                print(f"✅ Notification envoyée au Company Manager {company.user.email}")
             
-            # Récupérer les Department Heads (admin avec sub_role='admin')
+            # ========== 3. إشعار لجميع Hiring Managers (ما عدا من قام بالإجراء) ==========
+            hiring_managers = User.objects(
+                role='company',
+                sub_role='hiring_manager',
+                status=True,
+                pending_company_id=str(company.id)
+            )
+            for hm in hiring_managers:
+                if str(hm.id) != str(request.user.id):
+                    Notification.objects.create(
+                        recipient=hm,
+                        message=f"✅ Application from {app.student.full_name} for '{app.offer.title}' has been accepted.",
+                        related_id=str(app.id)
+                    )
+                    print(f"✅ Notification envoyée au Hiring Manager {hm.email}")
+            
+            # ========== 4. إشعار لـ Department Head ==========
+            student_university = app.student.university
             dept_heads = Admin.objects(university=student_university)
             
             for admin in dept_heads:
@@ -1946,11 +2019,7 @@ def respond_to_application(request, application_id):
                     )
                     print(f"✅ Notification envoyée au Department Head {admin.user.email}")
             
-            # ==========================================================
-            # 3. Notification pour Co Department Head - CORRECTION ICI
-            # ==========================================================
-            
-            # Méthode 1: Filtrer d'abord les users co_dept_head
+            # ========== 5. إشعار لـ Co Department Head ==========
             co_dept_users = User.objects(
                 role='admin',
                 sub_role='co_dept_head',
@@ -1959,7 +2028,6 @@ def respond_to_application(request, application_id):
             
             found_co_dept = False
             for co_user in co_dept_users:
-                # Vérifier que l'admin appartient à la même université
                 co_admin = Admin.objects(user=co_user, university=student_university).first()
                 if co_admin:
                     Notification.objects.create(
@@ -1973,12 +2041,9 @@ def respond_to_application(request, application_id):
             if not found_co_dept:
                 print(f"⚠️ Aucun Co Department Head trouvé pour l'université {student_university}")
             
-            # ==========================================================
-            # 4. Envoi des emails
-            # ==========================================================
+            # ========== 6. Envoi des emails ==========
             send_company_response_email(app.student.user.email, app.offer.title, new_status)
             
-            # Récupérer un admin pour l'email (optionnel)
             dept_head_email = dept_heads.first().user.email if dept_heads else None
             dept_head_name = dept_heads.first().full_name if dept_heads else "Administrator"
             
@@ -1991,9 +2056,8 @@ def respond_to_application(request, application_id):
                 application_id=str(app.id)
             )
 
-        app.save()
-
-        return Response({'success': True, 'message': f'Application {new_status} successfully.'})
+            app.save()
+            return Response({'success': True, 'message': f'Application accepted successfully.'})
 
     except Exception as e:
         print(f"❌ Erreur: {str(e)}")

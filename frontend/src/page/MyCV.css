@@ -589,3 +589,164 @@
     margin-left: auto;
   }
 }
+/* ===== LIGHT MODE STYLES FOR MYCV PAGE ===== */
+
+body.light-mode .w-64.fixed {
+  background: linear-gradient(180deg, #ffffff 0%, #f5f0ff 100%);
+  border-right: 1px solid rgba(141, 35, 212, 0.2);
+}
+
+body.light-mode .w-64.fixed .text-white {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .w-64.fixed .text-white\/50,
+body.light-mode .w-64.fixed .text-white\/60,
+body.light-mode .w-64.fixed .text-white\/70 {
+  color: #666 !important;
+}
+
+body.light-mode .w-64.fixed .text-purple-300\/60 {
+  color: #8D23D4 !important;
+  opacity: 0.7;
+}
+
+body.light-mode .w-64.fixed .bg-white\/10 {
+  background: rgba(141, 35, 212, 0.08);
+}
+
+body.light-mode .w-64.fixed .border-white\/10,
+body.light-mode .w-64.fixed .border-white\/20 {
+  border-color: rgba(141, 35, 212, 0.15);
+}
+
+body.light-mode .w-64.fixed .bg-purple-600\/30 {
+  background: rgba(141, 35, 212, 0.15);
+}
+
+body.light-mode .w-64.fixed .text-purple-300 {
+  color: #8D23D4 !important;
+}
+
+body.light-mode .w-64.fixed .hover\:bg-white\/10:hover {
+  background: rgba(141, 35, 212, 0.1);
+}
+
+body.light-mode .w-64.fixed .bg-gradient-to-r.from-purple-600.to-pink-600 {
+  background: linear-gradient(135deg, #8D23D4, #6B21A5);
+}
+
+/* Light mode for main content */
+body.light-mode .bg-white\/10 {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(141, 35, 212, 0.25) !important;
+}
+
+body.light-mode .text-white {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .text-white\/40,
+body.light-mode .text-white\/50,
+body.light-mode .text-white\/60 {
+  color: #666 !important;
+}
+
+body.light-mode .text-purple-400 {
+  color: #8D23D4 !important;
+}
+
+body.light-mode .bg-purple-500\/20 {
+  background: rgba(141, 35, 212, 0.1) !important;
+}
+
+body.light-mode .bg-purple-600 {
+  background: #8D23D4 !important;
+}
+
+body.light-mode .bg-purple-600:hover {
+  background: #6B21A5 !important;
+}
+
+body.light-mode .bg-white\/10:hover {
+  background: rgba(141, 35, 212, 0.15) !important;
+}
+
+body.light-mode .bg-red-500\/20 {
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
+body.light-mode .text-red-300 {
+  color: #dc2626 !important;
+}
+
+body.light-mode .border-purple-500\/30 {
+  border-color: rgba(141, 35, 212, 0.3) !important;
+}
+
+body.light-mode .border-white\/20 {
+  border-color: rgba(141, 35, 212, 0.2) !important;
+}
+
+body.light-mode .border-purple-500\/30.border {
+  border-color: rgba(141, 35, 212, 0.3) !important;
+}
+
+/* Light mode for upload area */
+body.light-mode .border-purple-500\/30.border-2 {
+  border-color: rgba(141, 35, 212, 0.3) !important;
+}
+
+body.light-mode .hover\:border-purple-500:hover {
+  border-color: #8D23D4 !important;
+}
+
+body.light-mode .hover\:bg-purple-500\/10:hover {
+  background: rgba(141, 35, 212, 0.1) !important;
+}
+
+/* Light mode for buttons */
+body.light-mode .bg-green-600 {
+  background: #059669 !important;
+}
+
+body.light-mode .bg-green-600:hover {
+  background: #047857 !important;
+}
+
+/* Light mode for modal */
+body.light-mode .fixed.inset-0.bg-black\/90 {
+  background: rgba(0, 0, 0, 0.85) !important;
+}
+
+body.light-mode [style*="background: #0e0c27"] {
+  background: #ffffff !important;
+}
+
+body.light-mode [style*="color: #fff"] {
+  color: #1a1a2e !important;
+}
+
+/* Light mode for divider */
+body.light-mode .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(141, 35, 212, 0.1) !important;
+}
+
+/* Light mode untuk teks placeholder */
+body.light-mode input::placeholder {
+  color: #999 !important;
+}
+
+/* Light mode untuk scrollbar sidebar */
+body.light-mode .w-64.fixed::-webkit-scrollbar-thumb {
+  background: rgba(141, 35, 212, 0.3);
+}
+
+/* تأكيد أن الاسم والإيميل يظهران بشكل صحيح في light mode */
+body.light-mode .w-64.fixed .truncate.text-white.font-medium.text-sm {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .w-64.fixed .text-white\/50.text-xs.truncate {
+  color: #666 !important;
+}

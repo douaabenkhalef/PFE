@@ -7,10 +7,27 @@ import "./Home.css";
 
 // ==================== ICONS COMPONENTS ====================
 
+// أيقونة القمر (للوصف الداكن)
 const MoonIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
+
+// أيقونة الشمس (للوصف الفاتح)
+const SunIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <circle cx="12" cy="12" r="5" />
+    <line x1="12" y1="1" x2="12" y2="3" />
+    <line x1="12" y1="21" x2="12" y2="23" />
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+    <line x1="1" y1="12" x2="3" y2="12" />
+    <line x1="21" y1="12" x2="23" y2="12" />
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
   </svg>
 );
 
@@ -303,6 +320,7 @@ export default function Home() {
   const [showCompaniesModal, setShowCompaniesModal] = useState(false);
   const [showServicesModal, setShowServicesModal] = useState(false);
   const [showAllCompanies, setShowAllCompanies] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const searchInputRef = useRef(null);
   const navigate = useNavigate();
 
@@ -313,6 +331,31 @@ export default function Home() {
   const companiesRef = useRef(null);
   const servicesRef = useRef(null);
   const footerRef = useRef(null);
+
+  // تحميل الإعدادات المحفوظة من localStorage عند تحميل الصفحة
+  useEffect(() => {
+    const savedMode = localStorage.getItem('darkMode');
+    if (savedMode === 'false') {
+      setIsDarkMode(false);
+      document.body.classList.add('light-mode');
+    } else {
+      setIsDarkMode(true);
+      document.body.classList.remove('light-mode');
+    }
+  }, []);
+
+  // دالة تبديل الوضع
+  const toggleTheme = () => {
+    if (isDarkMode) {
+      document.body.classList.add('light-mode');
+      localStorage.setItem('darkMode', 'false');
+      setIsDarkMode(false);
+    } else {
+      document.body.classList.remove('light-mode');
+      localStorage.setItem('darkMode', 'true');
+      setIsDarkMode(true);
+    }
+  };
 
   // Fetch companies from API
   useEffect(() => {
@@ -342,7 +385,7 @@ export default function Home() {
     setSearchResults(filtered.slice(0, 5));
   };
 
-  // ✅ Handle company click - navigate to public company profile page
+  // Handle company click - navigate to public company profile page
   const handleCompanyClick = (companyId, companyName) => {
     console.log(`🔍 Navigating to company profile: ${companyName} (ID: ${companyId})`);
     navigate(`/company/${companyId}`);
@@ -500,7 +543,9 @@ export default function Home() {
         
         <div className="navbar-right">
           <button className="btn-contact" onClick={scrollToFooter}>Contact</button>
-          <button className="navbar-moon-btn"><MoonIcon /></button>
+          <button className="navbar-moon-btn" onClick={toggleTheme}>
+            {isDarkMode ? <MoonIcon /> : <SunIcon />}
+          </button>
         </div>
       </nav>
 

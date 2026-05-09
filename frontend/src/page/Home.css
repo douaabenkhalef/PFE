@@ -747,14 +747,101 @@ section { padding: 100px 5% 80px; }
 .footer-bottom-links span { color: rgba(255,255,255,0.30); font-size: 0.78rem; }
 
 /* ===== RESPONSIVE ===== */
+/* ===== RESPONSIVE HERO SECTION - الحفاظ على نفس الشكل ===== */
+
+/* لجميع الشاشات، الحفاظ على الصورة على اليمين والكتابة على اليسار */
 @media (max-width: 768px) {
-  .navbar-links { display: none; }
-  .hero-container { flex-direction: column; }
-  .hero-image-box { width: 100%; max-width: 100%; }
-  .companies-grid,
-  .services-grid { grid-template-columns: 1fr; }
-  .footer-grid { grid-template-columns: 1fr; }
-  .footer-bottom { flex-direction: column; align-items: flex-start; }
+  .hero-section {
+    min-height: auto;
+    padding: 80px 4% 50px;
+  }
+  
+  /* الحفاظ على الترتيب الأصلي (كتابة يسار - صورة يمين) */
+  .hero-container {
+    display: flex;
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+  
+  .hero-content {
+    flex: 1;
+    max-width: 48%;
+    text-align: left;
+  }
+  
+  .hero-content h1 {
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+  }
+  
+  .hero-content p {
+    font-size: 0.8rem;
+    margin: 1rem 0 1.5rem;
+  }
+  
+  .hero-buttons {
+    margin: 0;
+    justify-content: flex-start;
+  }
+  
+  .hero-buttons button {
+    padding: 6px 20px;
+    font-size: 0.75rem;
+  }
+  
+  .hero-image-box {
+    flex: 1;
+    max-width: 48%;
+    min-height: auto;
+  }
+  
+  .hero-image {
+    width: 100%;
+    height: auto;
+    max-height: 280px;
+    object-fit: contain;
+  }
+}
+
+/* للشاشات الصغيرة جداً (أقل من 550px) - فقط تصغير الحجم مع الحفاظ على الترتيب */
+@media (max-width: 550px) {
+  .hero-section {
+    padding: 70px 4% 40px;
+  }
+  
+  .hero-content h1 {
+    font-size: 1.6rem;
+  }
+  
+  .hero-content p {
+    font-size: 0.7rem;
+  }
+  
+  .hero-buttons button {
+    padding: 5px 14px;
+    font-size: 0.65rem;
+  }
+  
+  .hero-image-box {
+    max-width: 45%;
+  }
+}
+
+/* للشاشات الصغيرة جداً (أقل من 450px) */
+@media (max-width: 450px) {
+  .hero-container {
+    gap: 1rem;
+  }
+  
+  .hero-content h1 {
+    font-size: 1.3rem;
+  }
+  
+  .hero-buttons button {
+    padding: 4px 10px;
+    font-size: 0.6rem;
+  }
 }
 @media (max-width: 480px) {
   section { padding: 80px 4% 60px; }
@@ -2530,28 +2617,6 @@ section { padding: 100px 5% 80px; }
   }
 }
 
-/* تحسين عرض الأزرار في الشاشات الصغيرة */
-@media (max-width: 480px) {
-  .hero-buttons {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    
-    width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .btn-primary,
-  .btn-outline {
-    flex: 1;
-    min-width: 120px;
-    padding: 10px 16px;
-    font-size: 0.8rem;
-    text-align: center;
-    white-space: nowrap;
-    border-radius: 50px !important;
-  }
-}
 
 /* للشاشات الصغيرة جداً (أقل من 380px) */
 @media (max-width: 380px) {
@@ -2606,4 +2671,552 @@ section { padding: 100px 5% 80px; }
   .btn-outline::before {
     height: 20px;
   }
+}
+/* =====强制 الحفاظ على شكل الهيرو في جميع الشاشات ===== */
+@media (max-width: 768px) {
+  .hero-container {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+  }
+  
+  .hero-content {
+    text-align: left !important;
+  }
+  
+  .hero-buttons {
+    justify-content: flex-start !important;
+    flex-direction: row !important;
+  }
+}
+
+@media (max-width: 550px) {
+  .hero-container {
+    gap: 1rem;
+  }
+  
+  .hero-content h1 {
+    font-size: 1.5rem;
+  }
+  
+  .hero-buttons button {
+    padding: 5px 12px;
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-buttons {
+    flex-direction: row !important;   /* يبقى الأزرار بجانب بعض */
+    width: auto;
+    justify-content: center;
+  }
+  
+  .hero-buttons button {
+    width: auto;
+    padding: 4px 20px;
+    font-size: 0.7rem;
+    border-radius: 0 !important;
+  }
+}
+/* ===== LIGHT MODE STYLES ===== */
+body.light-mode {
+  background-color: #f5f5f5;
+  color: #1a1a2e;
+}
+
+body.light-mode .navbar {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .navbar-links a {
+  color: #333;
+}
+
+body.light-mode .navbar-links a:hover,
+body.light-mode .navbar-links a.active {
+  color: #8D23D4;
+}
+
+body.light-mode .navbar-links a::after {
+  background: #8D23D4;
+}
+
+body.light-mode .btn-contact {
+  background: linear-gradient(135deg, #8D23D4, #6B21A5);
+  color: #fff;
+}
+
+body.light-mode .hero-content h1 {
+  color: #1a1a2e;
+}
+
+body.light-mode .hero-content h1 span {
+  background: linear-gradient(90deg, #8D23D4, #6B21A5, #4a1090);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+body.light-mode .hero-content p {
+  color: #555;
+}
+
+body.light-mode .btn-primary {
+  background: #8D23D4;
+  color: #fff;
+}
+
+body.light-mode .btn-primary:hover {
+  background: #6B21A5;
+}
+
+body.light-mode .btn-outline {
+  background: #e0e0e0;
+  color: #333;
+}
+
+body.light-mode .btn-outline:hover {
+  background: #ccc;
+}
+
+body.light-mode .company-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(141, 35, 212, 0.3);
+}
+
+body.light-mode .company-info-zone {
+  background: linear-gradient(180deg, rgba(240, 230, 255, 0.95) 0%, rgba(255, 255, 255, 0.98) 100%);
+}
+
+body.light-mode .company-name {
+  color: #1a1a2e;
+}
+
+body.light-mode .rep-name {
+  color: #333;
+}
+
+body.light-mode .rep-label {
+  color: #666;
+}
+
+body.light-mode .internship-info {
+  color: #555;
+}
+
+body.light-mode .internship-info strong {
+  color: #8D23D4;
+}
+
+body.light-mode .internship-info span {
+  color: #666;
+}
+
+/* Service Cards in Light Mode */
+body.light-mode .service-card {
+  background: linear-gradient(160deg, #ffffff 0%, #f5f0ff 60%, #ffffff 100%);
+  border: 1px solid rgba(141, 35, 212, 0.25);
+}
+
+body.light-mode .service-card h3 {
+  color: #8D23D4;
+}
+
+body.light-mode .service-card h3::after {
+  background: #8D23D4;
+}
+
+body.light-mode .service-card p {
+  color: #444;
+}
+
+body.light-mode .service-img-box {
+  background: rgba(141, 35, 212, 0.08);
+  border-bottom-color: rgba(141, 35, 212, 0.15);
+}
+
+/* Learn More Button */
+body.light-mode .btn-learn-more {
+  background: #ffffff;
+  border: 1.5px solid #8D23D4;
+  color: #8D23D4;
+}
+
+body.light-mode .btn-learn-more:hover {
+  background: #8D23D4;
+  color: #ffffff;
+  border-color: #8D23D4;
+}
+
+/* Footer */
+body.light-mode .footer {
+  background: linear-gradient(135deg, #e8d5f5 0%, #d4c4f0 100%);
+}
+
+body.light-mode .footer-brand p {
+  color: #333;
+}
+
+body.light-mode .footer-brand-logo {
+  color: #1a1a2e;
+}
+
+body.light-mode .footer-contact h4 {
+  color: #1a1a2e;
+}
+
+body.light-mode .footer-contact ul li {
+  color: #333;
+}
+
+body.light-mode .footer-contact ul li svg {
+  color: #8D23D4;
+}
+
+body.light-mode .footer-bottom p {
+  color: #555;
+}
+
+body.light-mode .footer-bottom-links a {
+  color: #555;
+}
+
+body.light-mode .footer-bottom-links a:hover {
+  color: #8D23D4;
+}
+
+body.light-mode .footer-socials a {
+  color: #555;
+}
+
+body.light-mode .footer-socials a:hover {
+  color: #8D23D4;
+}
+
+/* Section Titles */
+body.light-mode .section-title {
+  color: #1a1a2e;
+}
+
+body.light-mode .section-title .word-top,
+body.light-mode .section-title .word-white {
+  color: #8D23D4;
+}
+
+body.light-mode .section-title .word-grad {
+  background: linear-gradient(74deg, #8D23D4, #4a1090);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Modals */
+body.light-mode .services-modal-content {
+  background: linear-gradient(145deg, #ffffff 0%, #f5f0ff 100%);
+}
+
+body.light-mode .services-modal-header h2 {
+  color: #1a1a2e;
+}
+
+body.light-mode .services-modal-header p {
+  color: #555;
+}
+
+body.light-mode .services-modal-service-card {
+  background: #ffffff;
+  border-color: rgba(141, 35, 212, 0.2);
+}
+
+body.light-mode .services-modal-service-card h4 {
+  color: #1a1a2e;
+}
+
+body.light-mode .services-modal-service-card > p {
+  color: #555;
+}
+
+body.light-mode .services-modal-services h3,
+body.light-mode .services-modal-guide h3 {
+  color: #1a1a2e;
+}
+
+body.light-mode .guide-step {
+  background: rgba(141, 35, 212, 0.05);
+  border-color: rgba(141, 35, 212, 0.15);
+}
+
+body.light-mode .guide-step-content h4 {
+  color: #1a1a2e;
+}
+
+body.light-mode .guide-step-content p {
+  color: #555;
+}
+
+body.light-mode .modal-content {
+  background: linear-gradient(145deg, #ffffff, #f5f0ff);
+}
+
+body.light-mode .modal-title {
+  color: #1a1a2e;
+}
+
+body.light-mode .modal-company-info h3 {
+  color: #1a1a2e;
+}
+
+body.light-mode .modal-company-info p {
+  color: #666;
+}
+
+body.light-mode .stat-badge {
+  background: rgba(141, 35, 212, 0.15);
+  color: #333;
+}
+
+/* Buttons & Elements */
+body.light-mode .navbar-moon-btn {
+  color: #333;
+}
+
+body.light-mode .navbar-moon-btn:hover {
+  color: #8D23D4;
+}
+
+body.light-mode .btn-see-all {
+  border-color: #8D23D4;
+  color: #8D23D4;
+}
+
+body.light-mode .btn-see-all:hover {
+  background: rgba(141, 35, 212, 0.1);
+}
+
+body.light-mode .see-details-btn {
+  color: #8D23D4;
+}
+
+body.light-mode .stars .star {
+  color: #ffc107;
+}
+
+body.light-mode .stars .star.empty {
+  color: rgba(0, 0, 0, 0.2);
+}
+
+/* Logo in Light Mode */
+body.light-mode .navbar-logo-img {
+  filter: brightness(0) saturate(100%) invert(29%) sepia(89%) saturate(2011%) hue-rotate(258deg) brightness(88%) contrast(95%);
+}
+
+/* Search Bar */
+body.light-mode .navbar-search-wrapper {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(141, 35, 212, 0.3);
+}
+
+body.light-mode .navbar-search-input {
+  color: #333;
+}
+
+body.light-mode .navbar-search-input::placeholder {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+body.light-mode .navbar-search-icon {
+  color: #8D23D4;
+}
+
+body.light-mode .navbar-search-dropdown {
+  background: #ffffff;
+  border-color: rgba(141, 35, 212, 0.3);
+}
+
+body.light-mode .navbar-search-result {
+  border-bottom-color: rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .navbar-search-result:hover {
+  background: rgba(141, 35, 212, 0.1);
+}
+
+body.light-mode .result-name {
+  color: #1a1a2e;
+}
+
+body.light-mode .result-detail {
+  color: #666;
+}
+
+body.light-mode .navbar-search-close {
+  color: #666;
+}
+
+body.light-mode .navbar-search-close:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #8D23D4;
+}
+
+/* Company Card Image Overlay */
+body.light-mode .company-img-box > span {
+  background: rgba(255, 255, 255, 0.9);
+  color: #8D23D4;
+  border: 1px solid rgba(141, 35, 212, 0.3);
+}
+
+body.light-mode .company-img-box {
+  background: rgba(141, 35, 212, 0.08);
+}
+
+/* Modal Close Buttons */
+body.light-mode .modal-close,
+body.light-mode .services-modal-close {
+  background: rgba(0, 0, 0, 0.05);
+  color: #666;
+}
+
+body.light-mode .modal-close:hover,
+body.light-mode .services-modal-close:hover {
+  background: rgba(141, 35, 212, 0.15);
+  color: #8D23D4;
+}
+
+/* Loading & Empty Placeholders */
+body.light-mode .loading-placeholder,
+body.light-mode .empty-placeholder {
+  color: #666;
+}
+
+/* Hero Image Box */
+body.light-mode .hero-image-box {
+  background: transparent;
+}
+
+body.light-mode .hero-image-box svg {
+  stroke: #8D23D4;
+  opacity: 0.3;
+}
+
+body.light-mode .hero-image-box > p {
+  color: rgba(141, 35, 212, 0.5);
+}
+
+/* Background */
+body.light-mode html {
+  background-color: #f5f5f5;
+}
+
+body.light-mode html::before {
+  opacity: 0.2;
+}
+
+/* Service Features List in Modal */
+body.light-mode .service-features-list li {
+  color: #555;
+  border-bottom-color: rgba(141, 35, 212, 0.1);
+}
+
+/* Guide Step Number */
+body.light-mode .guide-step-number {
+  background: linear-gradient(135deg, #8D23D4, #6B21A5);
+}
+/* ===== FIX: TOP COMPANIES LIGHT MODE - FORCED STYLES ===== */
+body.light-mode .companies-section {
+  background: transparent;
+}
+
+body.light-mode .companies-grid {
+  background: transparent;
+}
+
+body.light-mode .company-card {
+  background: rgb(255, 255, 255) !important;
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(141, 35, 212, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+body.light-mode .company-info-zone {
+  background: rgb(248, 245, 255) !important;
+}
+
+body.light-mode .company-name {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .rep-name {
+  color: #333 !important;
+}
+
+body.light-mode .rep-label {
+  color: #888 !important;
+}
+
+body.light-mode .rep-icon {
+  color: #8D23D4 !important;
+}
+
+body.light-mode .internship-info {
+  color: #555 !important;
+}
+
+body.light-mode .internship-info strong {
+  color: #8D23D4 !important;
+}
+
+body.light-mode .internship-info span {
+  color: #666 !important;
+}
+
+body.light-mode .see-details-btn {
+  color: #8D23D4 !important;
+}
+
+body.light-mode .stars .star {
+  color: #ffc107 !important;
+}
+
+body.light-mode .stars .star.empty {
+  color: rgba(0, 0, 0, 0.2) !important;
+}
+
+body.light-mode .company-img-box {
+  background: rgba(141, 35, 212, 0.1);
+}
+
+body.light-mode .company-img-box > span {
+  background: rgba(255, 255, 255, 0.9);
+  color: #8D23D4;
+  border: 1px solid rgba(141, 35, 212, 0.3);
+}
+/* ===== FORCE TOP COMPANIES LIGHT MODE - ULTIMATE FIX ===== */
+body.light-mode .companies-section,
+body.light-mode .companies-grid,
+body.light-mode .company-card,
+body.light-mode .company-info-zone,
+body.light-mode .company-img-box {
+  background: rgb(255, 255, 255) !important;
+}
+
+body.light-mode .company-info-zone {
+  background: linear-gradient(180deg, #f8f5ff 0%, #ffffff 100%) !important;
+}
+
+body.light-mode .company-name,
+body.light-mode .rep-name,
+body.light-mode .internship-info,
+body.light-mode .see-details-btn {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .internship-info strong {
+  color: #8D23D4 !important;
+}
+
+body.light-mode .rep-label {
+  color: #888 !important;
 }

@@ -152,7 +152,6 @@ body {
 
 /* Active link white underline - الخط الأبيض */
 .sd-nav-links a.active::after,
-/* Active link white underline - stays after click */
 .sd-nav-links a.active::after,
 .sd-nav-links a:hover::after {
   content: '';
@@ -254,10 +253,10 @@ body {
 
 
 .sd-hero {
-  min-height: 100vh;
+  min-height: auto;
   display: flex;
   align-items: center;
-  padding: 80px 5% 60px;
+  padding: 50px 5% 60px;
   overflow: hidden;
   position: relative;
 }
@@ -266,7 +265,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 3rem;
+  gap: 2rem;
   width: 100%;
 }
 
@@ -294,7 +293,7 @@ body {
   font-size: 0.92rem;
   color: #fff;
   line-height: 1.75;
-  margin: 1.2rem 0 2rem;
+  margin: 1rem 0 1.8rem;
   max-width: 400px;
   animation: fadeSlideUp 0.8s cubic-bezier(0.22,1,0.36,1) 0.38s both;
 }
@@ -318,33 +317,51 @@ body {
   border: 1px solid rgba(255,255,255,0.18);
   border-radius: 50px;
   padding: 10px 16px;
-  max-width: 380px;
+  max-width: 420px;
   backdrop-filter: blur(8px);
   animation: fadeSlideUp 0.8s cubic-bezier(0.22,1,0.36,1) 0.62s both;
+  transition: all 0.3s ease;
 }
+
+.sd-search-bar:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(247,90,250,0.4);
+}
+
 .sd-search-bar input {
   background: transparent;
   border: none;
   outline: none;
   color: #fff;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-family: 'Poppins', sans-serif;
   flex: 1;
+  padding: 8px 0;
 }
-.sd-search-bar input::placeholder { color: rgba(255,255,255,0.45); }
+
+.sd-search-bar input::placeholder {
+  color: rgba(255,255,255,0.45);
+  font-size: 0.85rem;
+}
+
 .sd-search-bar button {
   background: var(--grad-btn);
   border: none;
   border-radius: 50%;
-  width: 30px; height: 30px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   color: #fff;
-  transition: opacity 0.2s;
+  transition: all 0.3s ease;
 }
-.sd-search-bar button:hover { opacity: 0.85; }
+
+.sd-search-bar button:hover {
+  opacity: 0.85;
+  transform: scale(1.05);
+}
 
 
 
@@ -354,8 +371,8 @@ body {
   background: linear-gradient(135deg, #B556D7, #8E2FFB) !important;
   border: none !important;
   border-radius: 50% !important;
-  width: 32px !important;
-  height: 32px !important;
+  width: 34px !important;
+  height: 34px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -380,10 +397,9 @@ body {
 }
 
 .sd-hero-image {
-  flex: 1.1;
-  max-width: 900px;
+  flex: 1.3;
+  max-width: 650px;
   min-height: 400px;
-  
   display: flex;
   align-items: center;
   justify-content: center;
@@ -391,9 +407,11 @@ body {
     fadeSlideLeft 0.9s cubic-bezier(0.22,1,0.36,1) 0.3s both,
     float 5s ease-in-out 1.3s infinite;
 }
+
 .sd-hero-image img {
   width: 100%;
-  height: 100%;
+  height: auto;
+  max-height: 500px;
   object-fit: contain;
   border-radius: 22px;
 }
@@ -427,10 +445,10 @@ body {
 
 .sd-section-header {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
   margin-bottom: 2.5rem;
-  flex-wrap: wrap;
   gap: 1rem;
 }
 
@@ -438,6 +456,7 @@ body {
   font-size: clamp(1.8rem, 3.5vw, 2.6rem);
   font-weight: 800;
   line-height: 1.15;
+  text-align: center;
 }
 .sd-section-title .t-pink   { color: #F75AFA; }
 .sd-section-title .t-purple {
@@ -452,6 +471,7 @@ body {
   font-size: 0.9rem;
   color: rgba(255,255,255,0.55);
   margin-top: 6px;
+  text-align: center;
 }
 
 
@@ -483,8 +503,8 @@ body {
 
 .sd-companies-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.5rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.8rem;
 }
 
 .sd-company-card {
@@ -1112,23 +1132,6 @@ body {
 .sd-toast.success { border-color: rgba(74,222,128,0.50); }
 .sd-toast.error   { border-color: rgba(239,68,68,0.50); }
 
-
-@media (max-width: 1024px) {
-  .sd-companies-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 768px) {
-  .sd-nav-links { display: none; }
-  .sd-hero-container { flex-direction: column; }
-  .sd-hero-image { width: 100%; max-width: 100%; min-height: 260px; }
-  .sd-companies-grid,
-  .sd-internships-grid { grid-template-columns: 1fr; }
-  .footer-grid { grid-template-columns: 1fr; }
-  .footer-bottom { flex-direction: column; align-items: flex-start; }
-}
-@media (max-width: 480px) {
-  .sd-section { padding: 60px 4% 50px; }
-}
-
 /* Notification styles */
 .sd-notif-wrapper {
   position: relative;
@@ -1346,6 +1349,7 @@ body {
 .sd-badge-count:not(:empty) {
   animation: notifPulse 0.5s ease-in-out;
 }
+
 /* ===== STUDENT DASHBOARD NAVBAR - LIKE HOME PAGE ===== */
 
 .sd-navbar {
@@ -1599,51 +1603,807 @@ body {
   width: 14px;
   height: 14px;
 }
-/* frontend/src/page/StudentDashboard.css - أضف هذه الأنماط في نهاية الملف */
 
-/* جعل عناوين الأقسام في وسط الصفحة */
-.sd-section-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  margin-bottom: 2.5rem;
-  gap: 1rem;
+/* ===== LIGHT MODE STYLES FOR STUDENT DASHBOARD ===== */
+body.light-mode .sd-navbar {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-.sd-section-header > div {
-  text-align: center;
+body.light-mode .sd-nav-link {
+  color: #333;
 }
 
-.sd-section-header .sd-see-all-btn {
-  margin: 0 auto;
+body.light-mode .sd-nav-link:hover,
+body.light-mode .sd-nav-link.active {
+  color: #8D23D4;
 }
 
-/* تنسيق العناوين */
-.sd-section-title {
-  text-align: center;
+body.light-mode .sd-nav-link.active::after,
+body.light-mode .sd-nav-link:hover::after {
+  background: #8D23D4;
 }
 
-.sd-section-subtitle {
-  text-align: center;
+body.light-mode .sd-nav-link::after {
+  background: #8D23D4;
 }
 
-/* جعل شبكة الشركات 3 أعمدة بدلاً من 4 */
-.sd-companies-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.8rem;
+body.light-mode .sd-icon-btn {
+  color: #333;
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
-  .sd-companies-grid {
-    grid-template-columns: repeat(2, 1fr);
+body.light-mode .sd-icon-btn:hover {
+  color: #8D23D4;
+}
+
+body.light-mode .sd-avatar {
+  background: linear-gradient(135deg, #8D23D4, #6B21A5);
+}
+
+body.light-mode .sd-hero-content h1 {
+  color: #1a1a2e;
+}
+
+body.light-mode .sd-hero-content h1 .name-gradient {
+  background: linear-gradient(90deg, #8D23D4, #6B21A5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+body.light-mode .sd-hero-content p {
+  color: #555;
+}
+
+body.light-mode .sd-search-bar {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(141, 35, 212, 0.3);
+}
+
+body.light-mode .sd-search-bar input {
+  color: #1a1a2e;
+}
+
+body.light-mode .sd-search-bar input::placeholder {
+  color: #999;
+}
+
+body.light-mode .sd-filter-btn {
+  color: #8D23D4 !important;
+}
+
+/* Company Cards */
+body.light-mode .sd-company-card {
+  background: rgb(255, 255, 255);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(141, 35, 212, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+body.light-mode .sd-company-name {
+  color: #1a1a2e;
+}
+
+body.light-mode .sd-company-desc {
+  color: #666;
+}
+
+body.light-mode .sd-company-meta {
+  color: #555;
+}
+
+body.light-mode .sd-learn-btn {
+  background: linear-gradient(135deg, #8D23D4, #6B21A5);
+}
+
+/* Internship Cards */
+body.light-mode .sd-internship-card {
+  background: rgb(255, 255, 255);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(141, 35, 212, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+body.light-mode .sd-intern-title {
+  color: #1a1a2e;
+}
+
+body.light-mode .sd-intern-applicants {
+  color: #555;
+}
+
+body.light-mode .sd-intern-rep-name {
+  color: #666;
+}
+
+body.light-mode .sd-intern-rep-avatar {
+  background: linear-gradient(135deg, #8D23D4, #6B21A5);
+}
+
+body.light-mode .sd-enroll-btn {
+  background: linear-gradient(135deg, #8D23D4, #6B21A5);
+}
+
+body.light-mode .sd-stars .star {
+  color: #ffc107;
+}
+
+body.light-mode .sd-stars .star.empty {
+  color: rgba(0, 0, 0, 0.2);
+}
+
+/* Section Titles */
+body.light-mode .sd-section-title .t-pink,
+body.light-mode .sd-section-title .t-white {
+  color: #8D23D4;
+}
+
+body.light-mode .sd-section-title .t-purple {
+  background: linear-gradient(90deg, #8D23D4, #6B21A5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+body.light-mode .sd-section-subtitle {
+  color: #666;
+}
+
+body.light-mode .sd-see-all-btn {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid #8D23D4;
+  color: #8D23D4;
+}
+
+body.light-mode .sd-see-all-btn:hover {
+  background: rgba(141, 35, 212, 0.1);
+}
+
+/* Join Banner */
+body.light-mode .sd-join-banner {
+  background: linear-gradient(135deg, rgba(141, 35, 212, 0.15), rgba(107, 33, 165, 0.1));
+  border: 1px solid rgba(141, 35, 212, 0.3);
+}
+
+body.light-mode .sd-join-banner h3 {
+  color: #1a1a2e;
+}
+
+body.light-mode .sd-join-btn {
+  background: linear-gradient(135deg, #8D23D4, #6B21A5);
+}
+
+/* Modal */
+body.light-mode .sd-modal {
+  background: #ffffff;
+  border: 1px solid rgba(141, 35, 212, 0.3);
+}
+
+body.light-mode .sd-modal h3 {
+  color: #1a1a2e;
+}
+
+body.light-mode .sd-modal .sd-modal-company {
+  color: #666;
+}
+
+body.light-mode .sd-modal label {
+  color: #555;
+}
+
+body.light-mode .sd-modal textarea {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(141, 35, 212, 0.3);
+  color: #1a1a2e;
+}
+
+body.light-mode .sd-modal textarea::placeholder {
+  color: #999;
+}
+
+body.light-mode .sd-modal-submit {
+  background: linear-gradient(135deg, #8D23D4, #6B21A5);
+}
+
+body.light-mode .sd-modal-cancel {
+  background: rgba(0, 0, 0, 0.05);
+  color: #333;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .sd-modal-cancel:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #000;
+}
+
+body.light-mode .sd-modal-close {
+  color: #999;
+}
+
+body.light-mode .sd-modal-close:hover {
+  color: #8D23D4;
+}
+
+/* Notifications Dropdown */
+body.light-mode .sd-notif-dropdown {
+  background: #ffffff;
+  border: 1px solid rgba(141, 35, 212, 0.3);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+}
+
+body.light-mode .sd-notif-header {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+  color: #1a1a2e;
+}
+
+body.light-mode .sd-notif-clear {
+  color: #8D23D4;
+}
+
+body.light-mode .sd-notif-item {
+  border-bottom-color: rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .sd-notif-item:hover {
+  background: rgba(141, 35, 212, 0.05);
+}
+
+body.light-mode .sd-notif-item.unread {
+  background: rgba(141, 35, 212, 0.08);
+}
+
+body.light-mode .sd-notif-body p {
+  color: #333;
+}
+
+body.light-mode .sd-notif-time {
+  color: #999;
+}
+
+body.light-mode .sd-notif-empty p {
+  color: #666;
+}
+
+body.light-mode .sd-notif-empty span {
+  color: #999;
+}
+
+/* Footer */
+body.light-mode .footer {
+  background: linear-gradient(135deg, #e8d5f5 0%, #d4c4f0 100%);
+}
+
+body.light-mode .footer-brand p,
+body.light-mode .footer-brand-logo {
+  color: #1a1a2e;
+}
+
+body.light-mode .footer-contact h4 {
+  color: #1a1a2e;
+}
+
+body.light-mode .footer-contact ul li {
+  color: #333;
+}
+
+body.light-mode .footer-contact ul li svg {
+  color: #8D23D4;
+}
+
+body.light-mode .footer-bottom p {
+  color: #555;
+}
+
+body.light-mode .footer-socials a {
+  color: #555;
+}
+
+body.light-mode .footer-socials a:hover {
+  color: #8D23D4;
+}
+
+body.light-mode .footer-bottom-links a {
+  color: #555;
+}
+
+body.light-mode .footer-bottom-links a:hover {
+  color: #8D23D4;
+}
+
+/* Loading & Empty States */
+body.light-mode .sd-loading p {
+  color: #666;
+}
+
+body.light-mode .sd-empty {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+body.light-mode .sd-empty p {
+  color: #666;
+}
+
+/* Toast */
+body.light-mode .sd-toast {
+  background: #ffffff;
+  border: 1px solid #8D23D4;
+  color: #1a1a2e;
+}
+
+/* Logo in Light Mode */
+body.light-mode .sd-logo-img {
+  filter: brightness(0) saturate(100%) invert(29%) sepia(89%) saturate(2011%) hue-rotate(258deg) brightness(88%) contrast(95%);
+}
+
+body.light-mode .sd-site-name {
+  background: linear-gradient(90deg, #8D23D4, #6B21A5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Hamburger Menu */
+body.light-mode .sd-hamburger {
+  color: #333;
+}
+
+body.light-mode .sd-hamburger:hover {
+  color: #8D23D4;
+}
+
+/* Advanced Filters Panel */
+body.light-mode [style*="background: rgba(255,255,255,0.05)"] {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-color: rgba(141, 35, 212, 0.2) !important;
+}
+
+body.light-mode [style*="background: rgba(255,255,255,0.1)"] {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-color: rgba(141, 35, 212, 0.2) !important;
+  color: #1a1a2e !important;
+}
+
+body.light-mode [style*="background: rgba(255,255,255,0.1)"] option {
+  background: #ffffff !important;
+  color: #1a1a2e !important;
+}
+
+body.light-mode .sd-filter-btn {
+  background: transparent !important;
+}
+
+body.light-mode label.block {
+  color: #555 !important;
+}
+
+/* Chat Group Panel */
+body.light-mode .fixed.bg-\[\#1e293b\] {
+  background: #ffffff !important;
+  border: 1px solid rgba(141, 35, 212, 0.3) !important;
+}
+
+body.light-mode .bg-gradient-to-r.from-purple-600.to-pink-600 {
+  background: linear-gradient(135deg, #8D23D4, #6B21A5) !important;
+}
+
+body.light-mode .text-white\/40 {
+  color: #999 !important;
+}
+
+body.light-mode .border-slate-700 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+body.light-mode button.w-full.p-3.text-left {
+  color: #1a1a2e !important;
+}
+
+body.light-mode button.w-full.p-3.text-left:hover {
+  background: rgba(141, 35, 212, 0.05) !important;
+}
+
+/* ===== RESPONSIVE STYLES - مثل Home تماماً ===== */
+
+/* شاشات كبيرة - الحفاظ على الصورة مقابل الكتابة */
+@media (min-width: 769px) {
+  .sd-hero-container {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+  
+  .sd-hero-content {
+    flex: 1;
+    max-width: 480px;
+    text-align: left;
+  }
+  
+  .sd-hero-image {
+    flex: 1.3;
+    max-width: 600px;
+    min-height: 400px;
+  }
+  
+  .sd-hero-image img {
+    width: 100%;
+    height: auto;
+    max-height: 500px;
+    object-fit: contain;
   }
 }
 
+/* شاشات متوسطة (900px) */
+@media (max-width: 900px) {
+  .sd-hero-content h1 {
+    font-size: 2rem;
+  }
+  
+  .sd-hero-content p {
+    font-size: 0.85rem;
+  }
+  
+  .sd-hero-image {
+    min-height: 320px;
+  }
+  
+  .sd-hero-image img {
+    max-height: 400px;
+  }
+}
+
+/* شاشات صغيرة (768px) */
 @media (max-width: 768px) {
+  /* إخفاء روابط النافبار */
+  .sd-nav-links {
+    display: none;
+  }
+
+  /* تقليل الفراغ بين النافبار والهيرو */
+  .sd-hero {
+    padding: 18px 5% 28px;
+  }
+  
+  /* الهيرو: كتابة+صورة في صف، السيرش يأخذ عرض كامل تلقائياً لأنه داخل hero-content */
+  .sd-hero-container {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 1rem;
+    flex-wrap: nowrap !important;
+  }
+
+  .sd-hero-content {
+    flex: 1 !important;
+    max-width: 55% !important;
+    width: 55% !important;
+    display: block !important;
+    text-align: left;
+  }
+
+  .sd-hero-image {
+    flex: none !important;
+    width: 42% !important;
+    max-width: 42% !important;
+    min-height: unset !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    align-self: center !important;
+  }
+
+  .sd-hero-image img {
+    width: 100%;
+    max-height: 280px;
+    object-fit: contain;
+  }
+  
+  /* السيرش: عرض كامل داخل hero-content */
+  .sd-search-container {
+    width: 100% !important;
+    margin-top: 1.2rem !important;
+  }
+
+  .sd-search-bar {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 10px 16px !important;
+    border-radius: 50px !important;
+    flex-wrap: nowrap !important;
+  }
+  
+  .sd-search-bar input {
+    font-size: 0.85rem;
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+  
+  .sd-search-bar button {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 50% !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .sd-filter-btn {
+    width: 34px !important;
+    height: 34px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .sd-hero-content h1 {
+    font-size: 1.6rem;
+  }
+
+  .sd-hero-content p {
+    font-size: 0.78rem;
+    margin: 0.7rem 0 1rem;
+  }
+
+  /* شبكة الشركات والعروض */
   .sd-companies-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1rem;
+  }
+  
+  .sd-internships-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  /* تصغير حجم البطاقات */
+  .sd-company-card .sd-company-name {
+    font-size: 0.9rem;
+  }
+  
+  .sd-company-desc {
+    font-size: 0.7rem;
+  }
+  
+  .sd-intern-title {
+    font-size: 0.85rem;
+  }
+  
+  .sd-intern-applicants {
+    font-size: 0.65rem;
+  }
+  
+  .sd-enroll-btn {
+    padding: 5px 12px;
+    font-size: 0.65rem;
+  }
+  
+  .sd-learn-btn {
+    padding: 6px 16px;
+    font-size: 0.7rem;
+  }
+  
+  /* الأقسام */
+  .sd-section {
+    padding: 50px 4% 40px;
+  }
+  
+  .sd-section-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .sd-section-title {
+    font-size: 1.6rem;
+  }
+  
+  .sd-section-subtitle {
+    font-size: 0.8rem;
+  }
+  
+  /* الفوتر */
+  .footer-grid {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 1.5rem;
+  }
+  
+  .footer-bottom {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .footer-socials {
+    justify-content: center;
+  }
+  
+  .footer-bottom-links {
+    justify-content: center;
+  }
+  
+  /* نافذة الإشعارات */
+  .sd-notif-dropdown {
+    right: -80px;
+    width: 300px;
+  }
+  
+  /* الشعار */
+  .sd-site-name {
+    font-size: 1rem;
+  }
+  
+  .sd-logo-img {
+    height: 28px;
+  }
+}
+
+/* للشاشات الصغيرة (550px) */
+@media (max-width: 550px) {
+  .sd-hero {
+    padding: 14px 4% 22px;
+  }
+
+  .sd-hero-container {
+    gap: 0.8rem;
+  }
+  
+  .sd-hero-content h1 {
+    font-size: 1.35rem;
+  }
+  
+  .sd-hero-content p {
+    font-size: 0.68rem;
+  }
+  
+  .sd-hero-image img {
+    max-height: 240px;
+  }
+}
+
+/* للشاشات الصغيرة جداً (480px) */
+@media (max-width: 480px) {
+  .sd-hero {
+    padding: 12px 4% 18px;
+  }
+  
+  .sd-hero-container {
+    gap: 0.7rem !important;
+  }
+
+  .sd-hero-content {
+    max-width: 56% !important;
+    width: 56% !important;
+  }
+  
+  .sd-hero-content h1 {
+    font-size: 1.1rem;
+  }
+  
+  .sd-hero-content p {
+    font-size: 0.58rem;
+    margin: 0.4rem 0 0.7rem;
+  }
+  
+  .sd-hero-image {
+    width: 42% !important;
+    max-width: 42% !important;
+  }
+  
+  .sd-hero-image img {
+    max-height: 170px;
+  }
+  
+  /* شريط البحث */
+  .sd-search-bar {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 7px 10px !important;
+  }
+  
+  .sd-search-bar input {
+    font-size: 0.72rem;
+    padding: 4px 0;
+  }
+  
+  .sd-search-bar input::placeholder {
+    font-size: 0.68rem;
+  }
+  
+  .sd-search-bar button {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 50% !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .sd-filter-btn {
+    width: 28px !important;
+    height: 28px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .sd-companies-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .sd-internships-grid {
     grid-template-columns: 1fr;
   }
+  
+  .sd-section {
+    padding: 40px 4% 30px;
+  }
+  
+  .sd-section-title {
+    font-size: 1.3rem;
+  }
+  
+  .sd-see-all-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .sd-join-banner {
+    padding: 15px 20px;
+  }
+  
+  .sd-join-banner h3 {
+    font-size: 0.9rem;
+  }
+  
+  .sd-join-btn {
+    padding: 6px 16px;
+    font-size: 0.75rem;
+  }
+  
+  .sd-notif-dropdown {
+    right: -40px;
+    width: 280px;
+  }
+  
+  .sd-site-name {
+    font-size: 0.85rem;
+  }
+  
+  .sd-logo-img {
+    height: 24px;
+  }
+  
+  .sd-company-card .sd-company-name {
+    font-size: 0.85rem;
+  }
+  
+  .sd-intern-title {
+    font-size: 0.8rem;
+  }
+  
+  .sd-enroll-btn {
+    padding: 4px 8px;
+    font-size: 0.55rem;
+  }
+  
+  .sd-learn-btn {
+    padding: 5px 10px;
+    font-size: 0.6rem;
+  }
+}
+
+/* تحسين النافذة المنبثقة */
+@media (max-width: 640px) {
+  .sd-modal {
+    padding: 20px !important;
+    max-width: 95% !important;
+  }
+  
+  .sd-modal h3 {
+    font-size: 1.1rem;
+  }
+  
+  .sd-modal-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .sd-modal-submit,
+  .sd-modal-cancel {
+    width: 100%;
+  }
+  
 }

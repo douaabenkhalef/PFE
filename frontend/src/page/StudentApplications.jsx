@@ -5,10 +5,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   ArrowLeft, FileText, X, ExternalLink, CheckCircle, 
   XCircle, Clock, AlertCircle, Download, Eye, Loader2,
-  Search, LogOut, User
+  Search, LogOut, User, ClipboardList
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import "./StudentDashboard.css";
+import "./StudentApplications.css";
 
 const API = 'https://pfe-l31r.onrender.com/api';
 const token = () => localStorage.getItem('access_token');
@@ -21,32 +22,32 @@ const authHeaders = () => ({
 function StatusBadge({ status }) {
   const statusConfig = {
     'pending': {
-      label: 'En attente entreprise',
+      label: 'Awaiting company',
       icon: <Clock size={12} />,
       color: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
     },
     'accepted_by_company': {
-      label: 'Accepté par entreprise',
+      label: 'Accepted by company',
       icon: <CheckCircle size={12} />,
       color: 'bg-blue-500/20 text-blue-300 border-blue-500/30'
     },
     'rejected_by_company': {
-      label: 'Refusé par entreprise',
+      label: 'Rejected by company',
       icon: <XCircle size={12} />,
       color: 'bg-red-500/20 text-red-300 border-red-500/30'
     },
     'validated_by_co_dept': {
-      label: 'Validé - Convention disponible',
+      label: 'Validated - Convention available',
       icon: <FileText size={12} />,
       color: 'bg-green-500/20 text-green-300 border-green-500/30'
     },
     'rejected_by_co_dept': {
-      label: 'Refusé par l\'université',
+      label: 'Rejected by university',
       icon: <XCircle size={12} />,
       color: 'bg-red-500/20 text-red-300 border-red-500/30'
     },
     'completed': {
-      label: 'Stage terminé',
+      label: 'Internship completed',
       icon: <CheckCircle size={12} />,
       color: 'bg-purple-500/20 text-purple-300 border-purple-500/30'
     }
@@ -77,7 +78,7 @@ function CVViewer({ applicationId, onClose }) {
         const accessToken = localStorage.getItem('access_token');
         
         if (!accessToken) {
-          toast.error('Session expirée. Veuillez vous reconnecter.');
+          toast.error('Session expired. Please log in again.');
           setError(true);
           setLoading(false);
           return;
@@ -92,7 +93,7 @@ function CVViewer({ applicationId, onClose }) {
         if (response.status === 401) {
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
-          toast.error('Session expirée. Veuillez vous reconnecter.');
+          toast.error('Session expired. Please log in again.');
           window.location.href = '/login';
           return;
         }
@@ -110,7 +111,7 @@ function CVViewer({ applicationId, onClose }) {
           newWindow.document.write(`
             <html>
               <head>
-                <title>Mon CV</title>
+                <title>My CV</title>
                 <style>
                   body { margin: 0; padding: 0; }
                   embed, object, iframe { width: 100%; height: 100vh; border: none; }
@@ -121,7 +122,7 @@ function CVViewer({ applicationId, onClose }) {
               </body>
             </html>
           `);
-          newWindow.document.title = 'Mon CV';
+          newWindow.document.title = 'My CV';
         }
         
         // Clean up
@@ -143,7 +144,7 @@ function CVViewer({ applicationId, onClose }) {
       <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-[10000]" onClick={onClose}>
         <div className="bg-[#0e0c27] rounded-2xl p-8 flex flex-col items-center" onClick={e => e.stopPropagation()}>
           <Loader2 size={40} className="animate-spin text-purple-400 mb-4" />
-          <p className="text-white/70">Chargement du CV...</p>
+          <p className="text-white/70">Loading CV...</p>
         </div>
       </div>
     );
@@ -154,13 +155,13 @@ function CVViewer({ applicationId, onClose }) {
       <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-[10000]" onClick={onClose}>
         <div className="bg-[#0e0c27] rounded-2xl p-8 max-w-md text-center" onClick={e => e.stopPropagation()}>
           <FileText size={48} className="mx-auto mb-4 text-red-400 opacity-50" />
-          <h3 className="text-white font-semibold text-lg mb-2">Impossible de charger le CV</h3>
-          <p className="text-white/60 text-sm mb-4">Le fichier n'a pas pu être chargé ou votre session a expiré.</p>
+          <h3 className="text-white font-semibold text-lg mb-2">Unable to load CV</h3>
+          <p className="text-white/60 text-sm mb-4">The file could not be loaded or your session has expired.</p>
           <button
             onClick={onClose}
             className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition"
           >
-            Fermer
+            Close
           </button>
         </div>
       </div>
@@ -193,15 +194,15 @@ function AppDetailModal({ app, onClose, onGenerateConvention }) {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `convention_${app.student_name || 'stage'}_${app.company_name || 'entreprise'}.pdf`;
+      a.download = `convention_${app.student_name || 'internship'}_${app.company_name || 'company'}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success('Convention téléchargée avec succès');
+      toast.success('Convention downloaded successfully');
     } catch (error) {
-      console.error('Erreur lors du téléchargement:', error);
-      toast.error('Erreur lors du téléchargement de la convention');
+      console.error('Error during download:', error);
+      toast.error('Error downloading convention');
     } finally {
       setDownloadingConvention(false);
     }
@@ -221,20 +222,20 @@ function AppDetailModal({ app, onClose, onGenerateConvention }) {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `convention_${app.student_name || 'stage'}_${app.company_name || 'entreprise'}.pdf`;
+        a.download = `convention_${app.student_name || 'internship'}_${app.company_name || 'company'}.pdf`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        toast.success('Convention générée avec succès !');
+        toast.success('Convention generated successfully!');
         if (onGenerateConvention) onGenerateConvention();
       } else {
         const data = await response.json();
-        toast.error(data.error || 'Erreur lors de la génération de la convention');
+        toast.error(data.error || 'Error generating convention');
       }
     } catch (error) {
-      console.error('Erreur:', error);
-      toast.error('Erreur de connexion');
+      console.error('Error:', error);
+      toast.error('Connection error');
     } finally {
       setGenerating(false);
     }
@@ -243,13 +244,13 @@ function AppDetailModal({ app, onClose, onGenerateConvention }) {
   const getStatusMessage = () => {
     switch (app.status) {
       case 'accepted_by_company':
-        return "✅ Votre candidature a été acceptée par l'entreprise. En attente de validation par votre université.";
+        return "✅ Your application has been accepted by the company. Waiting for university validation.";
       case 'validated_by_co_dept':
-        return "🎉 Félicitations ! Votre convention de stage a été validée par l'université. Vous pouvez la télécharger ci-dessous.";
+        return "🎉 Congratulations! Your internship agreement has been validated by the university. You can download it below.";
       case 'rejected_by_co_dept':
-        return `❌ Votre candidature a été refusée par l'université. Motif : ${app.co_dept_notes || 'Non spécifié'}`;
+        return `❌ Your application has been rejected by the university. Reason: ${app.co_dept_notes || 'Not specified'}`;
       case 'rejected_by_company':
-        return `❌ Votre candidature a été refusée par l'entreprise. Motif : ${app.company_notes || 'Non spécifié'}`;
+        return `❌ Your application has been rejected by the company. Reason: ${app.company_notes || 'Not specified'}`;
       default:
         return null;
     }
@@ -282,7 +283,7 @@ function AppDetailModal({ app, onClose, onGenerateConvention }) {
           <div className="p-6 space-y-5">
             <p className="text-purple-400">
               {app.company_name || '—'}
-              {app.applied_at && ` · Candidature envoyée le ${new Date(app.applied_at).toLocaleDateString()}`}
+              {app.applied_at && ` · Application sent on ${new Date(app.applied_at).toLocaleDateString()}`}
             </p>
             
             <div>
@@ -301,7 +302,7 @@ function AppDetailModal({ app, onClose, onGenerateConvention }) {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-white/50 text-xs uppercase tracking-wider">Type de stage</label>
+                <label className="text-white/50 text-xs uppercase tracking-wider">Internship type</label>
                 <p className="text-white">{app.offer_type || '—'}</p>
               </div>
               <div>
@@ -309,26 +310,26 @@ function AppDetailModal({ app, onClose, onGenerateConvention }) {
                 <p className="text-white">{app.offer_wilaya || '—'}</p>
               </div>
               <div>
-                <label className="text-white/50 text-xs uppercase tracking-wider">Durée</label>
+                <label className="text-white/50 text-xs uppercase tracking-wider">Duration</label>
                 <p className="text-white">{app.offer_duration || '—'}</p>
               </div>
               <div>
-                <label className="text-white/50 text-xs uppercase tracking-wider">Date de début</label>
+                <label className="text-white/50 text-xs uppercase tracking-wider">Start date</label>
                 <p className="text-white">{app.offer_start_date || '—'}</p>
               </div>
               <div>
-                <label className="text-white/50 text-xs uppercase tracking-wider">Date de candidature</label>
+                <label className="text-white/50 text-xs uppercase tracking-wider">Application date</label>
                 <p className="text-white">{app.applied_at ? new Date(app.applied_at).toLocaleDateString() : '—'}</p>
               </div>
               <div>
-                <label className="text-white/50 text-xs uppercase tracking-wider">Réponse entreprise</label>
-                <p className="text-white">{app.company_response_date ? new Date(app.company_response_date).toLocaleDateString() : 'En attente'}</p>
+                <label className="text-white/50 text-xs uppercase tracking-wider">Company response</label>
+                <p className="text-white">{app.company_response_date ? new Date(app.company_response_date).toLocaleDateString() : 'Pending'}</p>
               </div>
             </div>
 
             {app.cover_letter && (
               <div>
-                <label className="text-white/50 text-xs uppercase tracking-wider block mb-2">Lettre de motivation</label>
+                <label className="text-white/50 text-xs uppercase tracking-wider block mb-2">Cover letter</label>
                 <p className="text-white/80 text-sm bg-white/5 p-3 rounded-lg">{app.cover_letter}</p>
               </div>
             )}
@@ -337,14 +338,14 @@ function AppDetailModal({ app, onClose, onGenerateConvention }) {
               className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition"
               onClick={handleViewCV}
             >
-              <Eye size={15} /> Voir mon CV
+              <Eye size={15} /> View my CV
             </button>
 
             {app.status === 'accepted_by_company' && (
               <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                 <p className="text-blue-300 text-sm font-medium mb-3 flex items-center gap-2">
                   <FileText size={16} />
-                  La convention n'a pas encore été générée
+                  Convention has not yet been generated
                 </p>
                 <button
                   onClick={handleGenerateConvention}
@@ -352,7 +353,7 @@ function AppDetailModal({ app, onClose, onGenerateConvention }) {
                   className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-50"
                 >
                   {generating ? <Loader2 size={16} className="animate-spin" /> : <FileText size={14} />}
-                  Générer ma convention
+                  Generate my convention
                 </button>
               </div>
             )}
@@ -361,7 +362,7 @@ function AppDetailModal({ app, onClose, onGenerateConvention }) {
               <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
                 <p className="text-green-300 text-sm font-medium mb-3 flex items-center gap-2">
                   <FileText size={16} />
-                  Convention de stage disponible
+                  Internship agreement available
                 </p>
                 <button
                   onClick={handleDownloadConvention}
@@ -369,7 +370,7 @@ function AppDetailModal({ app, onClose, onGenerateConvention }) {
                   className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-50"
                 >
                   {downloadingConvention ? <Loader2 size={16} className="animate-spin" /> : <Download size={14} />}
-                  Télécharger ma convention
+                  Download my convention
                 </button>
               </div>
             )}
@@ -441,7 +442,7 @@ export default function StudentApplications() {
       }
     } catch (err) {
       console.error(err);
-      toast.error('Erreur lors du chargement des candidatures');
+      toast.error('Error loading applications');
     } finally {
       setLoading(false);
     }
@@ -540,7 +541,7 @@ export default function StudentApplications() {
                   to="/student/applications" 
                   className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm bg-purple-600/30 text-purple-300 border border-purple-500/30"
                 >
-                  <FileText size={16} /> Application status
+                  <ClipboardList size={16} /> Application status
                 </Link>
               </div>
             </div>
@@ -564,12 +565,12 @@ export default function StudentApplications() {
               className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
             >
               <ArrowLeft size={18} />
-              Retour au tableau de bord
+              Back to Dashboard
             </button>
 
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-white mb-2">Mes candidatures</h1>
-              <p className="text-white/60">Suivez l'état de vos candidatures aux offres de stage</p>
+              <h1 className="text-3xl font-bold text-white mb-2">My Applications</h1>
+              <p className="text-white/60">Track the status of your internship applications</p>
             </div>
 
             <div className="flex gap-2 mb-6 flex-wrap">
@@ -579,7 +580,7 @@ export default function StudentApplications() {
                   filter === 'all' ? 'bg-purple-600 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'
                 }`}
               >
-                Toutes ({stats.all})
+                All ({stats.all})
               </button>
               <button
                 onClick={() => setFilter('pending')}
@@ -587,7 +588,7 @@ export default function StudentApplications() {
                   filter === 'pending' ? 'bg-yellow-600 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'
                 }`}
               >
-                En attente ({stats.pending})
+                Pending ({stats.pending})
               </button>
               <button
                 onClick={() => setFilter('accepted_by_company')}
@@ -595,7 +596,7 @@ export default function StudentApplications() {
                   filter === 'accepted_by_company' ? 'bg-blue-600 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'
                 }`}
               >
-                Acceptées ({stats.accepted_by_company})
+                Accepted ({stats.accepted_by_company})
               </button>
               <button
                 onClick={() => setFilter('validated_by_co_dept')}
@@ -603,7 +604,7 @@ export default function StudentApplications() {
                   filter === 'validated_by_co_dept' ? 'bg-green-600 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'
                 }`}
               >
-                Validées ({stats.validated_by_co_dept})
+                Validated ({stats.validated_by_co_dept})
               </button>
               <button
                 onClick={() => setFilter('rejected')}
@@ -611,7 +612,7 @@ export default function StudentApplications() {
                   filter === 'rejected' ? 'bg-red-600 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'
                 }`}
               >
-                Refusées ({stats.rejected})
+                Rejected ({stats.rejected})
               </button>
             </div>
 
@@ -623,13 +624,13 @@ export default function StudentApplications() {
               <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 p-12 text-center">
                 <FileText size={48} className="mx-auto text-white/30 mb-4" />
                 <p className="text-white/60 mb-4">
-                  {filter === 'all' ? "Vous n'avez pas encore postulé à des stages." : "Aucune candidature dans cette catégorie."}
+                  {filter === 'all' ? "You haven't applied for any internships yet." : "No applications in this category."}
                 </p>
                 <button 
                   onClick={() => navigate('/student/dashboard')} 
                   className="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition"
                 >
-                  Parcourir les offres
+                  Browse offers
                 </button>
               </div>
             ) : (
@@ -638,11 +639,11 @@ export default function StudentApplications() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-white/10">
-                        <th className="text-left p-4 text-white/40 text-xs font-semibold uppercase tracking-wider">Offre</th>
-                        <th className="text-left p-4 text-white/40 text-xs font-semibold uppercase tracking-wider">Entreprise</th>
+                        <th className="text-left p-4 text-white/40 text-xs font-semibold uppercase tracking-wider">Offer</th>
+                        <th className="text-left p-4 text-white/40 text-xs font-semibold uppercase tracking-wider">Company</th>
                         <th className="text-left p-4 text-white/40 text-xs font-semibold uppercase tracking-wider">Type</th>
-                        <th className="text-left p-4 text-white/40 text-xs font-semibold uppercase tracking-wider">Date candidature</th>
-                        <th className="text-left p-4 text-white/40 text-xs font-semibold uppercase tracking-wider">Statut</th>
+                        <th className="text-left p-4 text-white/40 text-xs font-semibold uppercase tracking-wider">Application date</th>
+                        <th className="text-left p-4 text-white/40 text-xs font-semibold uppercase tracking-wider">Status</th>
                         <th className="text-left p-4 text-white/40 text-xs font-semibold uppercase tracking-wider">Action</th>
                       </tr>
                     </thead>
@@ -663,7 +664,7 @@ export default function StudentApplications() {
                               onClick={() => setSelected(app)} 
                               className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-semibold transition"
                             >
-                              <Eye size={14} /> Détails
+                              <Eye size={14} /> Details
                             </button>
                           </td>
                         </tr>

@@ -518,3 +518,590 @@ html, body {
     padding: 12px;
   }
 }
+/* ===== تحسين عرض نموذج التسجيل (Sign Up) على الشاشات الصغيرة ===== */
+
+/* تحسين عرض الحاوية الرئيسية للتسجيل */
+@media (max-width: 650px) {
+  .main-container {
+    height: auto !important;
+    min-height: 560px;
+    max-width: 500px;
+  }
+  
+  /* جعل النموذج قابل للتمرير بشكل أفضل */
+  .form-scrollable {
+    max-height: 380px;
+    overflow-y: auto;
+    padding-right: 8px;
+  }
+  
+  /* تحسين عرض الحقول */
+  .input-group {
+    flex-wrap: wrap;
+  }
+  
+  .input-group .icon {
+    margin-left: 0;
+    margin-right: 8px;
+  }
+  
+  /* تحسين عرض النصوص في الحقول */
+  .input-group input,
+  .input-group select,
+  .input-group textarea {
+    font-size: 0.8rem !important;
+    width: 100%;
+  }
+  
+  /* تحسين عرض الـ select */
+  .input-group select {
+    background: transparent;
+    color: white;
+    font-size: 0.8rem;
+    padding: 5px 0;
+  }
+  
+  .input-group select option {
+    background: #120d1d;
+    color: white;
+    font-size: 0.75rem;
+    padding: 8px;
+  }
+  
+  /* تحسين عرض الـ textarea */
+  .input-group textarea {
+    font-size: 0.75rem !important;
+  }
+  
+  /* تحسين عرض الـ skills */
+  .input-group div[style*="display: flex"] {
+    flex-wrap: wrap;
+  }
+  
+  /* تحسين عرض الأزرار */
+  .auth-btn {
+    font-size: 0.85rem !important;
+    padding: 10px !important;
+  }
+  
+  /* تحسين العناوين */
+  .form-title {
+    font-size: 1.3rem !important;
+  }
+  
+  h3 {
+    font-size: 0.9rem !important;
+  }
+}
+
+/* تحسينات إضافية للشاشات الصغيرة جداً */
+@media (max-width: 480px) {
+  .main-container {
+    max-width: 400px;
+    min-height: 520px;
+  }
+  
+  .form-scrollable {
+    max-height: 340px;
+  }
+  
+  .input-group input,
+  .input-group select,
+  .input-group textarea {
+    font-size: 0.7rem !important;
+  }
+  
+  .input-group .icon svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .role-item {
+    font-size: 0.65rem !important;
+    padding: 6px 10px;
+  }
+  
+  .role-selector {
+    font-size: 0.75rem;
+    padding: 6px 0;
+  }
+  
+  /* تحسين عرض الـ skills tags */
+  .input-group span[style*="background: #2d1b4d"] {
+    font-size: 0.6rem !important;
+    padding: 2px 6px !important;
+  }
+  
+  /* تحسين المسافات */
+  .input-stack {
+    gap: 10px !important;
+  }
+  
+  .auth-btn {
+    font-size: 0.8rem !important;
+    padding: 8px !important;
+  }
+}
+
+/* تحسين عرض الـ dropdown في الشاشات الصغيرة */
+@media (max-width: 400px) {
+  .main-container {
+    max-width: 340px;
+    min-height: 500px;
+  }
+  
+  .form-scrollable {
+    max-height: 300px;
+  }
+  
+  .form-section {
+    padding: 12px !important;
+  }
+  
+  .input-group input,
+  .input-group select,
+  .input-group textarea {
+    font-size: 0.65rem !important;
+  }
+  
+  .welcome-text {
+    font-size: 1.3rem !important;
+  }
+  
+  .sub-text {
+    font-size: 0.65rem !important;
+  }
+  
+  .form-title {
+    font-size: 1.1rem !important;
+    margin-bottom: 10px !important;
+  }
+  
+  h3 {
+    font-size: 0.8rem !important;
+    margin-bottom: 10px !important;
+  }
+  
+  .role-item {
+    font-size: 0.6rem !important;
+  }
+}
+
+/* تحسين عرض النصوص الطويلة */
+.input-group select,
+.input-group input,
+.input-group textarea {
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* تحسين عرض placeholder */
+.input-group input::placeholder,
+.input-group textarea::placeholder {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.4);
+}
+
+@media (max-width: 480px) {
+  .input-group input::placeholder,
+  .input-group textarea::placeholder {
+    font-size: 0.65rem;
+  }
+}
+
+/* تحسين عرض أيقونات العين في كلمة المرور */
+.input-group button {
+  flex-shrink: 0;
+}
+
+/* تحسين عرض رسائل الخطأ */
+[style*="background: rgba(239,68,68,0.15)"] {
+  font-size: 0.7rem !important;
+  padding: 6px 10px !important;
+}
+
+@media (max-width: 480px) {
+  [style*="background: rgba(239,68,68,0.15)"] {
+    font-size: 0.6rem !important;
+  }
+}
+/* ===== إصلاح وضع النص أمام الأيقونة ===== */
+
+/* التأكد من أن الأيقونة والنص في نفس السطر */
+.input-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.input-group .icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.input-group input,
+.input-group select {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: white;
+  font-size: 0.95rem;
+  padding: 10px 0;
+}
+
+/* إصلاح حقل إضافة المهارة */
+.input-group > div {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.input-group > div input {
+  flex: 1;
+  min-width: 100px;
+}
+
+.input-group > div button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* إصلاح الـ select */
+.input-group select {
+  cursor: pointer;
+}
+
+.input-group select option {
+  background: #120d1d;
+  color: white;
+}
+
+/* إصلاح الـ textarea */
+.input-group textarea {
+  width: 100%;
+  background: transparent;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  color: white;
+  padding: 10px;
+  margin-top: 5px;
+  resize: vertical;
+}
+
+/* على الشاشات الصغيرة */
+@media (max-width: 650px) {
+  .input-group input,
+  .input-group select {
+    font-size: 0.8rem;
+    padding: 8px 0;
+  }
+  
+  .input-group {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .input-group .icon svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .input-group input,
+  .input-group select {
+    font-size: 0.75rem;
+  }
+}
+/* ===== تحسين عرض النصوص الطويلة في حقول البريد الإلكتروني ===== */
+
+/* تحسين عرض label النصوص الطويلة */
+.input-group label {
+  display: none;
+}
+
+/* بدلاً من ذلك، نستخدم placeholder أفضل */
+.input-group input::placeholder {
+  font-size: 0.8rem;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* تحسين خاص للحقول التي تحتوي على نصوص طويلة */
+.input-group input[placeholder*="Company Manager Email"],
+.input-group input[placeholder*="Company Name"],
+.input-group input[placeholder*="Department Head Email"],
+.input-group input[placeholder*="University name"] {
+  font-size: 0.8rem;
+}
+
+/* على الشاشات الصغيرة، تصغير حجم النص في الحقول */
+@media (max-width: 650px) {
+  .input-group input::placeholder {
+    font-size: 0.7rem;
+  }
+  
+  .input-group input[placeholder*="Company Manager Email"]::placeholder,
+  .input-group input[placeholder*="Department Head Email"]::placeholder,
+  .input-group input[placeholder*="Company Name"]::placeholder,
+  .input-group input[placeholder*="University name"]::placeholder {
+    font-size: 0.65rem;
+    white-space: normal;
+    line-height: 1.3;
+  }
+}
+
+@media (max-width: 480px) {
+  .input-group input::placeholder {
+    font-size: 0.6rem;
+  }
+  
+  .input-group input[placeholder*="Company Manager Email"]::placeholder,
+  .input-group input[placeholder*="Department Head Email"]::placeholder,
+  .input-group input[placeholder*="Company Name"]::placeholder,
+  .input-group input[placeholder*="University name"]::placeholder {
+    font-size: 0.55rem;
+  }
+}
+
+/* تحسين عرض النص التوضيحي الصغير (ⓘ) */
+.input-group div[style*="font-size: 12px"] {
+  font-size: 0.65rem !important;
+  line-height: 1.4 !important;
+  margin-top: 4px !important;
+  margin-bottom: 4px !important;
+}
+
+@media (max-width: 480px) {
+  .input-group div[style*="font-size: 12px"] {
+    font-size: 0.55rem !important;
+  }
+}
+
+/* تحسين المسافات بين الحقول */
+.input-stack {
+  gap: 16px;
+}
+
+@media (max-width: 650px) {
+  .input-stack {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .input-stack {
+    gap: 10px;
+  }
+}
+/* ===== LIGHT MODE STYLES FOR AUTH PAGE ===== */
+body.light-mode .auth-page-wrapper {
+  background: #f5f5f5;
+}
+
+body.light-mode .main-container {
+  background-color: #ffffff;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.1), 0 0 40px rgba(147, 51, 234, 0.15);
+}
+
+body.light-mode .main-container::before {
+  background: linear-gradient(120deg, rgba(147, 51, 234, 0.05), rgba(147, 51, 234, 0.01));
+}
+
+body.light-mode .sliding-panel {
+  background: linear-gradient(135deg, #8D23D4, #6B21A5);
+}
+
+body.light-mode .welcome-text {
+  color: #fff;
+}
+
+body.light-mode .sub-text {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+body.light-mode .form-title {
+  color: #1a1a2e;
+}
+
+body.light-mode .input-group {
+  border-bottom: 1px solid #e0e0e0;
+}
+
+body.light-mode .input-group input {
+  color: #1a1a2e;
+}
+
+body.light-mode .input-group input::placeholder {
+  color: #999;
+}
+
+body.light-mode .input-group .icon {
+  color: #8D23D4;
+}
+
+body.light-mode .input-group:focus-within {
+  border-bottom: 1px solid #8D23D4;
+}
+
+body.light-mode .auth-btn {
+  background-color: #8D23D4;
+}
+
+body.light-mode .auth-btn:hover {
+  background-color: #6B21A5;
+}
+
+body.light-mode .toggle-text {
+  color: #666;
+}
+
+body.light-mode .toggle-text span {
+  color: #8D23D4;
+}
+
+body.light-mode .toggle-text span:hover {
+  color: #6B21A5;
+}
+
+body.light-mode .role-selector {
+  border-bottom: 1px solid #e0e0e0;
+  color: #1a1a2e;
+}
+
+body.light-mode .role-selector span {
+  color: #1a1a2e;
+}
+
+body.light-mode .role-dropdown-bottom {
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .role-item {
+  color: #1a1a2e;
+}
+
+body.light-mode .role-item:hover {
+  background-color: #f0e6ff;
+}
+
+body.light-mode .form-scrollable::-webkit-scrollbar-track {
+  background: #e0e0e0;
+}
+
+body.light-mode .form-scrollable::-webkit-scrollbar-thumb {
+  background: #8D23D4;
+}
+
+body.light-mode h3 {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .input-group select {
+  color: #1a1a2e;
+}
+
+body.light-mode .input-group select option {
+  background: #ffffff;
+  color: #1a1a2e;
+}
+
+body.light-mode .input-group textarea {
+  color: #1a1a2e;
+  border-color: #e0e0e0;
+}
+
+body.light-mode .input-group textarea::placeholder {
+  color: #999;
+}
+
+body.light-mode .input-group > div input {
+  color: #1a1a2e;
+}
+
+body.light-mode .input-group > div input::placeholder {
+  color: #999;
+}
+
+body.light-mode .input-group > div button {
+  color: #8D23D4;
+}
+
+body.light-mode .input-group > div button:hover {
+  color: #6B21A5;
+}
+
+body.light-mode .input-group span[style*="background: #2d1b4d"] {
+  background: #f0e6ff !important;
+  color: #8D23D4 !important;
+}
+
+body.light-mode .panel-login-link {
+  color: #fff;
+}
+
+body.light-mode .panel-login-link:hover {
+  color: #f0e6ff;
+}
+
+/* 2FA Modal Light Mode */
+body.light-mode .fixed.inset-0.bg-black\/80 {
+  background: rgba(0, 0, 0, 0.5) !important;
+}
+
+body.light-mode .bg-\[\#1e293b\] {
+  background: #ffffff !important;
+  border-color: #e0e0e0 !important;
+}
+
+body.light-mode .text-white {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .text-white\/60 {
+  color: #666 !important;
+}
+
+body.light-mode .text-white\/40 {
+  color: #999 !important;
+}
+
+body.light-mode .bg-white\/10 {
+  background: #f0f0f0 !important;
+  border-color: #e0e0e0 !important;
+  color: #1a1a2e !important;
+}
+
+body.light-mode .bg-purple-600 {
+  background: #8D23D4 !important;
+}
+
+body.light-mode .bg-purple-600:hover {
+  background: #6B21A5 !important;
+}
+
+body.light-mode .text-purple-400 {
+  color: #8D23D4 !important;
+}
+
+body.light-mode .border-purple-500 {
+  border-color: #8D23D4 !important;
+}
+
+/* Error messages in light mode */
+body.light-mode [style*="background: rgba(239,68,68,0.15)"] {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #dc2626 !important;
+}
+
+/* Pending banner in light mode */
+body.light-mode [style*="background: rgba(168,85,247,0.15)"] {
+  background: rgba(141, 35, 212, 0.1) !important;
+  color: #8D23D4 !important;
+}

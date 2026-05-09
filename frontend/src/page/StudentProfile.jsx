@@ -30,10 +30,10 @@ const wilayas = [
   "Aïn Témouchent","Ghardaïa","Relizane",
 ];
 
-const educationLevels = ["Licence", "Master 1", "Master 2", "Ingénieur", "Doctorat"];
+const educationLevels = ["Bachelor", "Master 1", "Master 2", "Engineering", "Doctorate"];
 
-// Composant OTP Modal pour la vérification (générique)
-const OTPVerificationModal = ({ email, onVerify, onClose, loading, title = "Vérification de l'email" }) => {
+// OTP Modal component for verification (generic)
+const OTPVerificationModal = ({ email, onVerify, onClose, loading, title = "Email Verification" }) => {
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
 
@@ -53,7 +53,7 @@ const OTPVerificationModal = ({ email, onVerify, onClose, loading, title = "Vér
   const handleSubmit = async () => {
     const fullCode = code.join('');
     if (fullCode.length !== 6) {
-      setError('Le code doit contenir exactement 6 chiffres');
+      setError('The code must contain exactly 6 digits');
       return;
     }
     setError('');
@@ -69,9 +69,9 @@ const OTPVerificationModal = ({ email, onVerify, onClose, loading, title = "Vér
           <button className="profile-modal-close" onClick={onClose}>×</button>
         </div>
         <div className="profile-modal-body">
-          <p>Un code de vérification a été envoyé à :</p>
+          <p>A verification code has been sent to:</p>
           <p className="text-purple-400 font-semibold">{email}</p>
-          <p className="text-sm text-white/60 mt-2">Veuillez entrer le code à 6 chiffres reçu par email.</p>
+          <p className="text-sm text-white/60 mt-2">Please enter the 6-digit code received by email.</p>
           
           <div className="flex justify-center gap-3 mt-4">
             {code.map((digit, index) => (
@@ -94,9 +94,9 @@ const OTPVerificationModal = ({ email, onVerify, onClose, loading, title = "Vér
           )}
         </div>
         <div className="profile-modal-footer">
-          <button className="profile-modal-cancel" onClick={onClose}>Annuler</button>
+          <button className="profile-modal-cancel" onClick={onClose}>Cancel</button>
           <button className="profile-modal-confirm" onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Vérification...' : 'Vérifier le code'}
+            {loading ? 'Verifying...' : 'Verify Code'}
           </button>
         </div>
       </div>
@@ -104,7 +104,7 @@ const OTPVerificationModal = ({ email, onVerify, onClose, loading, title = "Vér
   );
 };
 
-// Composant pour le changement de mot de passe avec OTP
+// Component for password change with OTP
 const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -115,12 +115,12 @@ const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
 
   const handleInitiate = async () => {
     if (newPassword !== confirmPassword) {
-      toast.error('Les mots de passe ne correspondent pas');
+      toast.error('Passwords do not match');
       return;
     }
     
     if (newPassword.length < 8) {
-      toast.error('Le mot de passe doit contenir au moins 8 caractères');
+      toast.error('Password must be at least 8 characters');
       return;
     }
     
@@ -137,10 +137,10 @@ const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
         setShowOTPModal(true);
         toast.success(data.message);
       } else {
-        toast.error(data.error || 'Erreur lors de l\'envoi du code');
+        toast.error(data.error || 'Error sending code');
       }
     } catch (err) {
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     } finally {
       setLoading(false);
     }
@@ -160,16 +160,16 @@ const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success('Mot de passe changé avec succès !');
+        toast.success('Password changed successfully!');
         if (onSuccess) onSuccess();
         onClose();
       } else if (data.code_invalid) {
-        toast.error(data.error || 'Code invalide. Veuillez réessayer.');
+        toast.error(data.error || 'Invalid code. Please try again.');
       } else {
-        toast.error(data.error || 'Erreur lors du changement');
+        toast.error(data.error || 'Error changing password');
       }
     } catch (err) {
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     } finally {
       setLoading(false);
       setShowOTPModal(false);
@@ -181,19 +181,19 @@ const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
       <div className="profile-password-form">
         <p className="text-white/70 text-sm mb-3 flex items-center gap-2">
           <KeyRound size={14} />
-          Pour des raisons de sécurité, un code de vérification sera envoyé à {usingRecovery ? 'votre email de récupération' : 'votre email principal'}.
+          For security reasons, a verification code will be sent to {usingRecovery ? 'your recovery email' : 'your primary email'}.
         </p>
         
         <input 
           type="password" 
-          placeholder="Nouveau mot de passe" 
+          placeholder="New password" 
           value={newPassword} 
           onChange={(e) => setNewPassword(e.target.value)} 
           className="profile-edit-input" 
         />
         <input 
           type="password" 
-          placeholder="Confirmer le mot de passe" 
+          placeholder="Confirm password" 
           value={confirmPassword} 
           onChange={(e) => setConfirmPassword(e.target.value)} 
           className="profile-edit-input" 
@@ -205,10 +205,10 @@ const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
             disabled={loading || !newPassword || newPassword !== confirmPassword}
             className="profile-save-password-btn"
           >
-            {loading ? 'Envoi...' : 'Envoyer le code'}
+            {loading ? 'Sending...' : 'Send Code'}
           </button>
           <button onClick={onClose} className="profile-cancel-password-btn">
-            Annuler
+            Cancel
           </button>
         </div>
       </div>
@@ -222,7 +222,7 @@ const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
             onClose();
           }}
           loading={loading}
-          title="Vérification pour changement de mot de passe"
+          title="Password Change Verification"
         />
       )}
     </>
@@ -313,12 +313,12 @@ export default function StudentProfile() {
 
   const handleAddRecoveryEmail = async () => {
     if (!recoveryEmail || !recoveryEmail.includes('@')) {
-      toast.error('Veuillez entrer une adresse email valide');
+      toast.error('Please enter a valid email address');
       return;
     }
     
     if (recoveryEmail === user?.email) {
-      toast.error('L\'email de récupération ne peut pas être identique à votre email principal');
+      toast.error('Recovery email cannot be the same as your primary email');
       return;
     }
     
@@ -334,12 +334,12 @@ export default function StudentProfile() {
         setPendingRecoveryEmail(data.recovery_email);
         setShowRecoveryModal(false);
         setShowRecoveryOTPModal(true);
-        toast.success('Code de vérification envoyé à votre email de récupération');
+        toast.success('Verification code sent to your recovery email');
       } else {
-        toast.error(data.error || 'Échec de l\'ajout de l\'email de récupération');
+        toast.error(data.error || 'Failed to add recovery email');
       }
     } catch (err) {
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     } finally {
       setLoadingRecovery(false);
     }
@@ -359,15 +359,15 @@ export default function StudentProfile() {
       const data = await res.json();
       if (data.success) {
         setRecoveryEmailAdded(true);
-        toast.success('Email de récupération ajouté avec succès');
+        toast.success('Recovery email added successfully');
         setShowRecoveryOTPModal(false);
         setPendingRecoveryEmail('');
         setRecoveryEmail('');
       } else {
-        toast.error(data.error || 'Code invalide');
+        toast.error(data.error || 'Invalid code');
       }
     } catch (err) {
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     } finally {
       setLoadingRecovery(false);
     }
@@ -383,7 +383,7 @@ export default function StudentProfile() {
       const data = await res.json();
       if (data.success) {
         setRecoveryEmailAdded(false);
-        toast.success('Email de récupération supprimé');
+        toast.success('Recovery email removed');
       } else {
         toast.error(data.error || 'Failed to remove recovery email');
       }
@@ -418,7 +418,7 @@ export default function StudentProfile() {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success('Photo de profil mise à jour ✅');
+        toast.success('Profile picture updated ✅');
         setTimeout(async () => {
           await fetchProfile();
         }, 500);
@@ -427,7 +427,7 @@ export default function StudentProfile() {
       }
     } catch (err) {
       console.error('Upload error:', err);
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     }
   };
 
@@ -461,12 +461,12 @@ export default function StudentProfile() {
         setVisibility(data.visibility || {});
         setIsOwner(data.is_owner !== undefined ? data.is_owner : true);
       } else {
-        toast.error(data.error || 'Erreur de chargement');
+        toast.error(data.error || 'Error loading profile');
         if (!username) navigate('/student/dashboard');
       }
     } catch (err) {
       console.error(err);
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     } finally {
       setLoading(false);
     }
@@ -516,16 +516,16 @@ export default function StudentProfile() {
       const data = await res.json();
       
       if (data.success) {
-        toast.success('Profil mis à jour avec succès ✅');
+        toast.success('Profile updated successfully ✅');
         if (data.profile) setProfile(prev => ({ ...prev, ...data.profile }));
         setIsEditing(false);
         await fetchProfile();
       } else {
-        toast.error(data.error || 'Erreur lors de la mise à jour');
+        toast.error(data.error || 'Error updating profile');
       }
     } catch (err) {
       console.error('Save error:', err);
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     } finally {
       setSaving(false);
     }
@@ -551,7 +551,7 @@ export default function StudentProfile() {
   if (!profile) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
-        <div className="text-white text-xl">Profil non trouvé</div>
+        <div className="text-white text-xl">Profile not found</div>
       </div>
     );
   }
@@ -645,7 +645,7 @@ export default function StudentProfile() {
             className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
           >
             <ArrowLeft size={18} />
-            Retour au tableau de bord
+            Back to Dashboard
           </button>
 
           {/* User info header with avatar */}
@@ -682,7 +682,7 @@ export default function StudentProfile() {
               <p className="text-purple-400">@{profile.username}</p>
               {profile.is_placed && (
                 <p className="text-green-400 text-sm flex items-center gap-1 mt-1">
-                  <Briefcase size={14} /> Placé chez {profile.placed_company_name || 'une entreprise'}
+                  <Briefcase size={14} /> Placed at {profile.placed_company_name || 'a company'}
                 </p>
               )}
             </div>
@@ -866,7 +866,7 @@ export default function StudentProfile() {
                       placeholder="React, Python, Django, ..." 
                     />
                   ) : (
-                    <div className="flex-1 flex flex-wrap gap-2">
+                    <div className="flex-1 flex-wrap gap-2">
                       {profile.skills?.length > 0 ? (
                         profile.skills.map(s => <span key={s} className="bg-purple-900/60 text-purple-300 text-xs px-2.5 py-1 rounded-full">{s}</span>)
                       ) : '—'}
@@ -1103,7 +1103,7 @@ export default function StudentProfile() {
             setPendingRecoveryEmail('');
           }}
           loading={loadingRecovery}
-          title="Vérification de l'email de récupération"
+          title="Recovery Email Verification"
         />
       )}
     </div>

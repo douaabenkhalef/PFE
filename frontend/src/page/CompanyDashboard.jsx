@@ -4,14 +4,14 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell, CheckCheck, X, FileText, CheckCircle, XCircle, Clock,
-  Briefcase, MapPin, Users, ChevronLeft, ChevronRight
+  Briefcase, MapPin, Users, ChevronLeft, ChevronRight, Moon, Sun
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CompanySidebar from '../components/CompanySidebar';
 import ChatWidget from '../components/ChatWidget';
 import PrivateChat from '../components/PrivateChat';
-// AJOUTER cette ligne
 import LanguageSelector from '../components/LanguageSelector';
+
 const API = 'https://pfe-l31r.onrender.com/api';
 const BACKEND = 'https://pfe-l31r.onrender.com';
 
@@ -26,6 +26,27 @@ const authHeaders = () => ({
   'Content-Type': 'application/json',
   Authorization: `Bearer ${token()}`,
 });
+
+// Moon and Sun icons for theme toggle
+const MoonIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
+
+const SunIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <circle cx="12" cy="12" r="5" />
+    <line x1="12" y1="1" x2="12" y2="3" />
+    <line x1="12" y1="21" x2="12" y2="23" />
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+    <line x1="1" y1="12" x2="3" y2="12" />
+    <line x1="21" y1="12" x2="23" y2="12" />
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+  </svg>
+);
 
 /* ========== NOTIFICATION ICONS ========== */
 const NOTIFICATION_ICONS = {
@@ -89,15 +110,15 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
           )}
         </div>
         {unreadCount > 0 && (
-          <button className="sd-notif-clear" onClick={onMarkAllRead}>Tout marquer comme lu</button>
+          <button className="sd-notif-clear" onClick={onMarkAllRead}>Mark all as read</button>
         )}
       </div>
       <div className="sd-notif-list">
         {notifications.length === 0 ? (
           <div className="sd-notif-empty">
             <Bell size={32} className="mx-auto mb-2 opacity-30" />
-            <p>Aucune notification</p>
-            <span className="text-xs">Les notifications apparaîtront ici</span>
+            <p>No notifications</p>
+            <span className="text-xs">Notifications will appear here</span>
           </div>
         ) : (
           notifications.slice(0, 15).map(notif => (
@@ -106,7 +127,7 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
         )}
       </div>
       {notifications.length > 0 && (
-        <div className="sd-notif-footer"><button onClick={onClose}>Fermer</button></div>
+        <div className="sd-notif-footer"><button onClick={onClose}>Close</button></div>
       )}
     </div>
   );
@@ -302,11 +323,37 @@ const CompanyDashboard = () => {
   const [activeSection, setActiveSection] = useState('home');
   const homeRef = useRef(null);
   const internshipsRef = useRef(null);
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
   const [companyProfile, setCompanyProfile] = useState(null);
   const [topOffers, setTopOffers] = useState([]);
   const [loadingOffers, setLoadingOffers] = useState(true);
   const [selectedOffer, setSelectedOffer] = useState(null);
+
+  // Load theme from localStorage
+  useEffect(() => {
+    const savedMode = localStorage.getItem('darkMode');
+    if (savedMode === 'false') {
+      setIsDarkMode(false);
+      document.body.classList.add('light-mode');
+    } else {
+      setIsDarkMode(true);
+      document.body.classList.remove('light-mode');
+    }
+  }, []);
+
+  // Toggle theme function
+  const toggleTheme = () => {
+    if (isDarkMode) {
+      document.body.classList.add('light-mode');
+      localStorage.setItem('darkMode', 'false');
+      setIsDarkMode(false);
+    } else {
+      document.body.classList.remove('light-mode');
+      localStorage.setItem('darkMode', 'true');
+      setIsDarkMode(true);
+    }
+  };
 
   const fetchCompanyProfile = useCallback(async () => {
     try {
@@ -314,7 +361,7 @@ const CompanyDashboard = () => {
       const data = await res.json();
       if (data.success) setCompanyProfile(data.profile);
     } catch (err) {
-      console.error("Erreur chargement profil entreprise:", err);
+      console.error("Error loading company profile:", err);
     }
   }, []);
 
@@ -324,7 +371,7 @@ const CompanyDashboard = () => {
       const data = await res.json();
       if (data.success) setNotifications(data.notifications || []);
     } catch (err) {
-      console.error("Erreur chargement notifications:", err);
+      console.error("Error loading notifications:", err);
     }
   }, []);
 
@@ -353,7 +400,7 @@ const CompanyDashboard = () => {
         headers: { Authorization: `Bearer ${token()}` }
       });
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-    } catch (err) { console.error("Erreur:", err); }
+    } catch (err) { console.error("Error:", err); }
   };
 
   const markAllNotificationsRead = async () => {
@@ -363,8 +410,8 @@ const CompanyDashboard = () => {
         headers: authHeaders()
       });
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      toast.success('Toutes les notifications ont été marquées comme lues');
-    } catch (err) { console.error("Erreur:", err); }
+      toast.success('All notifications marked as read');
+    } catch (err) { console.error("Error:", err); }
   };
 
   const navigateToApplication = (applicationId) => {
@@ -441,6 +488,139 @@ const CompanyDashboard = () => {
         .section-animated.is-visible {
           animation: sectionFadeUp 0.65s cubic-bezier(0.4,0,0.2,1) forwards;
         }
+
+        /* ===== RESPONSIVE STYLES ===== */
+        @media (max-width: 768px) {
+          .grid-cols-3 {
+            grid-template-columns: 1fr !important;
+          }
+          .sd-hero-container {
+            flex-direction: column !important;
+            text-align: center !important;
+          }
+          .sd-hero-content p {
+            margin-left: auto !important;
+            margin-right: auto !important;
+          }
+          .sd-hero-image {
+            margin-top: 2rem !important;
+            min-height: 300px !important;
+          }
+          .carousel-track {
+            gap: 1rem;
+          }
+          .offer-card .h-64 {
+            height: 200px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .sd-nav-links {
+            display: none;
+          }
+          .sd-hero-content h1 {
+            font-size: 2rem !important;
+          }
+          .offer-card .h-64 {
+            height: 160px;
+          }
+        }
+
+        /* ===== LIGHT MODE STYLES ===== */
+        body.light-mode .sd-hero-content h1,
+        body.light-mode .sd-hero-content p {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .sd-hero-content p {
+          color: #555 !important;
+        }
+        body.light-mode .offer-card {
+          background: white !important;
+          border-color: rgba(141, 35, 212, 0.2) !important;
+        }
+        body.light-mode .offer-card h3,
+        body.light-mode .offer-card .text-white\/60,
+        body.light-mode .offer-card .text-white\/50 {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .offer-card .text-white\/60 {
+          color: #666 !important;
+        }
+        body.light-mode .offer-card .text-white\/50 {
+          color: #777 !important;
+        }
+        body.light-mode .bg-white\/10 {
+          background: rgba(141, 35, 212, 0.08) !important;
+        }
+        body.light-mode .sd-notif-dropdown {
+          background: white !important;
+          border-color: rgba(141, 35, 212, 0.2) !important;
+        }
+        body.light-mode .sd-notif-header {
+          color: #1a1a2e !important;
+          border-bottom-color: rgba(0, 0, 0, 0.1) !important;
+        }
+        body.light-mode .sd-notif-body p {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .sd-notif-time {
+          color: #999 !important;
+        }
+        body.light-mode .sd-notif-empty p,
+        body.light-mode .sd-notif-empty span {
+          color: #666 !important;
+        }
+        body.light-mode .footer {
+          background: linear-gradient(135deg, #e8d5f5 0%, #d4c4f0 100%) !important;
+        }
+        body.light-mode .footer-brand p,
+        body.light-mode .footer-brand-logo,
+        body.light-mode .footer-contact h4,
+        body.light-mode .footer-contact ul li {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .footer-bottom p,
+        body.light-mode .footer-bottom-links a {
+          color: #555 !important;
+        }
+        body.light-mode .footer-socials a {
+          background: rgba(141, 35, 212, 0.1) !important;
+          color: #1a1a2e !important;
+        }
+        body.light-mode .footer-socials a:hover {
+          background: rgba(141, 35, 212, 0.2) !important;
+          color: #8D23D4 !important;
+        }
+        body.light-mode .bg-\\[\\#1e293b\\] {
+          background: white !important;
+          border-color: rgba(141, 35, 212, 0.2) !important;
+        }
+        body.light-mode .bg-\\[\\#1e293b\\] .text-white {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .bg-\\[\\#1e293b\\] .text-slate-500 {
+          color: #666 !important;
+        }
+        body.light-mode .bg-slate-800 {
+          background: rgba(0, 0, 0, 0.05) !important;
+        }
+        body.light-mode .bg-slate-800 .text-white {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .bg-slate-800 .text-slate-500 {
+          color: #999 !important;
+        }
+        body.light-mode .border-slate-700 {
+          border-color: rgba(141, 35, 212, 0.15) !important;
+        }
+        body.light-mode .text-white\/90 {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .text-white\/50,
+        body.light-mode .text-white\/60,
+        body.light-mode .text-white\/70 {
+          color: #666 !important;
+        }
       `}</style>
       {sidebarOpen && <CompanySidebar user={user} onLogout={handleLogout} onClose={() => setSidebarOpen(false)} />}
 
@@ -449,7 +629,10 @@ const CompanyDashboard = () => {
       <nav className="sd-navbar" style={{ borderBottom: 'none' }}>
         <div className="sd-navbar-left">
           <button className="sd-hamburger" onClick={() => setSidebarOpen(true)}><span /><span /><span /></button>
-          <a className="sd-logo" href="/">UnivStage</a>
+          <div className="sd-logo-container" style={{ cursor: 'default' }}>
+            <img src="/images/logo.png" alt="UnivStage Logo" className="sd-logo-img" />
+            <span className="sd-site-name">UnivStage</span>
+          </div>
         </div>
         <ul className="sd-nav-links">
           <li><a href="#home" className={activeSection === 'home' ? 'active' : ''} onClick={e => { e.preventDefault(); scrollTo('home', homeRef); }}>Home</a></li>
@@ -463,17 +646,19 @@ const CompanyDashboard = () => {
             </button>
             {notifOpen && <NotificationsDropdown notifications={notifications} onClose={() => setNotifOpen(false)} onMarkRead={markNotificationRead} onMarkAllRead={markAllNotificationsRead} onNavigate={navigateToApplication} />}
           </div>
-          <button className="sd-icon-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg></button>
+          <button className="sd-icon-btn" onClick={toggleTheme}>
+            {isDarkMode ? <MoonIcon /> : <SunIcon />}
+          </button>
         </div>
       </nav>
 
       <main className="sd-main">
-        {/* HOME SECTION – matches Home.jsx hero */}
+        {/* HOME SECTION */}
         <section className={`sd-hero section-animated ${sectionVisible.home ? 'is-visible' : ''}`} id="home" ref={homeRef} data-section="home" style={{ minHeight: 'auto', padding: '60px 5% 40px' }}>
           <div className="sd-hero-container">
             <div className="sd-hero-content">
               <h1 style={{
-                fontSize: 'clamp(3rem, 6vw, 5rem)',
+                fontSize: 'clamp(2rem, 6vw, 5rem)',
                 fontWeight: 800,
                 lineHeight: 1.08,
                 color: '#fff',
@@ -490,7 +675,7 @@ const CompanyDashboard = () => {
                 </span>
               </h1>
               <p style={{
-                fontSize: '1.2rem',
+                fontSize: 'clamp(1rem, 4vw, 1.2rem)',
                 fontWeight: 600,
                 color: '#ffffff',
                 margin: '0.5rem 0 1rem'
@@ -498,7 +683,7 @@ const CompanyDashboard = () => {
                 from {companyProfile?.name || user?.company_name || ''}
               </p>
               <p style={{
-                fontSize: '0.92rem',
+                fontSize: 'clamp(0.8rem, 3vw, 0.92rem)',
                 color: 'rgba(255,255,255,0.62)',
                 lineHeight: 1.75,
                 maxWidth: '420px',
@@ -511,7 +696,7 @@ const CompanyDashboard = () => {
             <div className="sd-hero-image" style={{
               flex: '1.1',
               maxWidth: '550px',
-              minHeight: '500px',
+              minHeight: '300px',
               border: 'none',
               borderRadius: '20px',
               overflow: 'hidden',
@@ -534,13 +719,13 @@ const CompanyDashboard = () => {
           </div>
         </section>
 
-        {/* TOP INTERNSHIPS SECTION unchanged */}
+        {/* TOP INTERNSHIPS SECTION */}
         <section className={`sd-section section-animated ${sectionVisible.internships ? 'is-visible' : ''}`} id="internships" ref={internshipsRef} data-section="internships" style={{ paddingBottom: '50px' }}>
           <div className="text-center mb-8">
             <h2 className="sd-section-title">
               <span className="t-pink">Top </span><span className="t-purple">Internships</span>
             </h2>
-            <p className="sd-section-subtitle">The three top Internships in our Company</p>
+            <p className="sd-section-subtitle">The top three internships in our company</p>
           </div>
 
           {loadingOffers ? (
@@ -565,10 +750,40 @@ const CompanyDashboard = () => {
 
       <footer className="footer">
         <div className="footer-grid">
-          <div className="footer-brand"><div className="footer-brand-logo">🎓 UnivStage</div><p>Connecting students with professional opportunities and empowering the next generation of innovators.</p></div>
-          <div className="footer-contact"><h4>Contact Us</h4><ul><li><MapPinIcon />123 University Ave, Campus Center, CA 94000</li><li><PhoneIcon />+1 (555) 123-4567</li><li><MailIcon />internships@university.edu</li></ul></div>
+          <div className="footer-brand">
+            <div className="footer-brand-logo">🎓 UnivStage</div>
+            <p>Connecting students with professional opportunities and empowering the next generation of innovators.</p>
+            <p>By:</p>
+            <p>Nouha Labdi</p>
+            <p>Safa Oughidni</p>
+            <p>Douaa Benkhalef</p>
+          </div>
+          <div className="footer-contact">
+            <h4>Contact Us</h4>
+            <ul>
+              <li><MapPinIcon /> University constantine2, Algeria</li>
+              <li><PhoneIcon />+213 (0) 798864489</li>
+              <li><PhoneIcon />+213 (0) 799003478</li>
+              <li><PhoneIcon />+213 (0) 557217736</li>
+              <li><MailIcon />stageuniversity18@gmail.com</li>
+            </ul>
+          </div>
         </div>
-        <div className="footer-bottom"><p>© 2026 UnivStage. All rights reserved.</p><div className="footer-socials"><a href="#!">f</a><a href="#!">𝕏</a><a href="#!">in</a><a href="#!">◎</a></div><div className="footer-bottom-links"><a href="#!">Privacy Policy</a><span>|</span><a href="#!">Terms of Service</a></div></div>
+        <div className="footer-bottom">
+          <p>© 2026 UnivStage. All rights reserved.</p>
+          <div className="footer-socials">
+            <a href="https://www.facebook.com/univstage" target="_blank" rel="noopener noreferrer">f</a>
+            <a href="https://www.instagram.com/univstage" target="_blank" rel="noopener noreferrer">𝕏</a>
+            <a href="https://www.linkedin.com/company/univstage" target="_blank" rel="noopener noreferrer">in</a>
+          </div>
+          <div className="footer-bottom-links">
+            <a href="/privacy-policy">Privacy Policy</a>
+            <span>|</span>
+            <a href="/terms-of-service">Terms of Service</a>
+            <span>|</span>
+            <a href="/faq">FAQ</a>
+          </div>
+        </div>
       </footer>
     </div>
   );

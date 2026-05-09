@@ -1,0 +1,431 @@
+/* frontend/src/page/StudentApplications.css */
+
+/* ===== RESPONSIVE STYLES FOR STUDENT APPLICATIONS ===== */
+
+/* تحسين الـ Sidebar للشاشات الصغيرة */
+@media (max-width: 1024px) {
+  .w-64.fixed {
+    width: 220px !important;
+  }
+  
+  .ml-64 {
+    margin-left: 220px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .w-64.fixed {
+    width: 200px !important;
+  }
+  
+  .ml-64 {
+    margin-left: 200px !important;
+  }
+  
+  /* تصغير النصوص في الـ Sidebar */
+  .w-64.fixed .p-4 {
+    padding: 12px;
+  }
+  
+  .w-64.fixed .w-10.h-10 {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .w-64.fixed .w-10.h-10 span {
+    font-size: 0.8rem;
+  }
+  
+  .w-64.fixed .text-white.font-medium.text-sm {
+    font-size: 0.75rem;
+  }
+  
+  .w-64.fixed .text-white\/50.text-xs {
+    font-size: 0.6rem;
+  }
+  
+  .w-64.fixed .text-xs.text-purple-300\/60 {
+    font-size: 0.6rem;
+  }
+  
+  .w-64.fixed .space-y-1 a,
+  .w-64.fixed .space-y-1 button {
+    padding: 8px 10px;
+    font-size: 0.75rem;
+  }
+  
+  .w-64.fixed .space-y-1 a svg,
+  .w-64.fixed .space-y-1 button svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .w-64.fixed .relative input {
+    font-size: 0.75rem;
+    padding: 8px 10px 8px 32px;
+  }
+  
+  .w-64.fixed .relative svg {
+    width: 14px;
+    height: 14px;
+    left: 10px;
+  }
+  
+  /* تصغير المحتوى الرئيسي */
+  .max-w-5xl.mx-auto.px-6.py-8 {
+    padding: 20px 16px !important;
+  }
+  
+  .text-3xl.font-bold {
+    font-size: 1.5rem;
+  }
+  
+  /* تحسين الجدول للشاشات الصغيرة */
+  .overflow-x-auto {
+    overflow-x: auto;
+  }
+  
+  table {
+    min-width: 600px;
+  }
+  
+  .p-4 {
+    padding: 12px 8px !important;
+  }
+  
+  .text-sm {
+    font-size: 0.7rem !important;
+  }
+  
+  /* تحسين أزرار الفلترة */
+  .flex.gap-2.mb-6 {
+    gap: 6px;
+  }
+  
+  .px-4.py-2 {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 580px) {
+  .w-64.fixed {
+    width: 180px !important;
+  }
+  
+  .ml-64 {
+    margin-left: 180px !important;
+  }
+  
+  .w-64.fixed .p-4 {
+    padding: 10px;
+  }
+  
+  .w-64.fixed .w-10.h-10 {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .w-64.fixed .w-10.h-10 span {
+    font-size: 0.7rem;
+  }
+  
+  .w-64.fixed .text-white.font-medium.text-sm {
+    font-size: 0.7rem;
+  }
+  
+  .w-64.fixed .text-white\/50.text-xs {
+    font-size: 0.55rem;
+  }
+  
+  .w-64.fixed .space-y-1 a,
+  .w-64.fixed .space-y-1 button {
+    padding: 6px 8px;
+    font-size: 0.7rem;
+  }
+  
+  .w-64.fixed .space-y-1 a svg,
+  .w-64.fixed .space-y-1 button svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .w-64.fixed .relative input {
+    font-size: 0.7rem;
+    padding: 6px 8px 6px 28px;
+  }
+  
+  .w-64.fixed .relative svg {
+    width: 12px;
+    height: 12px;
+    left: 8px;
+  }
+  
+  .max-w-5xl.mx-auto.px-6.py-8 {
+    padding: 16px 12px !important;
+  }
+  
+  .text-3xl.font-bold {
+    font-size: 1.3rem;
+  }
+  
+  .text-white\/60 {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .w-64.fixed {
+    width: 160px !important;
+  }
+  
+  .ml-64 {
+    margin-left: 160px !important;
+  }
+  
+  .w-64.fixed .p-4 {
+    padding: 8px;
+  }
+  
+  .w-64.fixed .w-10.h-10 {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .w-64.fixed .w-10.h-10 span {
+    font-size: 0.6rem;
+  }
+  
+  .w-64.fixed .text-white.font-medium.text-sm {
+    font-size: 0.65rem;
+  }
+  
+  .w-64.fixed .text-white\/50.text-xs {
+    font-size: 0.5rem;
+  }
+  
+  .w-64.fixed .text-xs.text-purple-300\/60 {
+    font-size: 0.55rem;
+  }
+  
+  .w-64.fixed .space-y-1 a,
+  .w-64.fixed .space-y-1 button {
+    padding: 5px 6px;
+    font-size: 0.65rem;
+  }
+  
+  .w-64.fixed .space-y-1 a svg,
+  .w-64.fixed .space-y-1 button svg {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .w-64.fixed .relative input {
+    font-size: 0.6rem;
+    padding: 5px 6px 5px 24px;
+  }
+  
+  .w-64.fixed .relative svg {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .text-3xl.font-bold {
+    font-size: 1.1rem;
+  }
+  
+  .flex.gap-2.mb-6 {
+    flex-wrap: wrap;
+  }
+  
+  .px-4.py-2 {
+    padding: 4px 8px;
+    font-size: 0.65rem;
+  }
+}
+
+/* ===== LIGHT MODE STYLES FOR STUDENT APPLICATIONS ===== */
+
+body.light-mode .w-64.fixed {
+  background: linear-gradient(180deg, #ffffff 0%, #f5f0ff 100%);
+  border-right: 1px solid rgba(141, 35, 212, 0.2);
+}
+
+body.light-mode .w-64.fixed .text-white {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .w-64.fixed .text-white\/50,
+body.light-mode .w-64.fixed .text-white\/60,
+body.light-mode .w-64.fixed .text-white\/70 {
+  color: #666 !important;
+}
+
+body.light-mode .w-64.fixed .text-purple-300\/60 {
+  color: #8D23D4 !important;
+  opacity: 0.7;
+}
+
+body.light-mode .w-64.fixed .bg-white\/10 {
+  background: rgba(141, 35, 212, 0.08);
+}
+
+body.light-mode .w-64.fixed .border-white\/10,
+body.light-mode .w-64.fixed .border-white\/20 {
+  border-color: rgba(141, 35, 212, 0.15);
+}
+
+body.light-mode .w-64.fixed .bg-purple-600\/30 {
+  background: rgba(141, 35, 212, 0.15);
+}
+
+body.light-mode .w-64.fixed .text-purple-300 {
+  color: #8D23D4 !important;
+}
+
+body.light-mode .w-64.fixed .hover\:bg-white\/10:hover {
+  background: rgba(141, 35, 212, 0.1);
+}
+
+body.light-mode .w-64.fixed .bg-gradient-to-r.from-purple-600.to-pink-600 {
+  background: linear-gradient(135deg, #8D23D4, #6B21A5);
+}
+
+/* Light mode for main content */
+body.light-mode .bg-white\/10 {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(141, 35, 212, 0.25) !important;
+}
+
+body.light-mode .text-white {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .text-white\/40,
+body.light-mode .text-white\/50,
+body.light-mode .text-white\/60,
+body.light-mode .text-white\/70 {
+  color: #666 !important;
+}
+
+body.light-mode .text-purple-400 {
+  color: #8D23D4 !important;
+}
+
+/* Light mode for filter buttons */
+body.light-mode .bg-white\/10 {
+  background: rgba(141, 35, 212, 0.1) !important;
+  color: #1a1a2e !important;
+}
+
+body.light-mode .bg-purple-600 {
+  background: #8D23D4 !important;
+}
+
+body.light-mode .bg-yellow-600 {
+  background: #d97706 !important;
+}
+
+body.light-mode .bg-blue-600 {
+  background: #2563eb !important;
+}
+
+body.light-mode .bg-green-600 {
+  background: #059669 !important;
+}
+
+body.light-mode .bg-red-600 {
+  background: #dc2626 !important;
+}
+
+/* Light mode for table */
+body.light-mode .border-white\/10,
+body.light-mode .border-white\/5 {
+  border-color: rgba(141, 35, 212, 0.15) !important;
+}
+
+body.light-mode .hover\:bg-white\/5:hover {
+  background: rgba(141, 35, 212, 0.05) !important;
+}
+
+/* Light mode for modal */
+body.light-mode .bg-\[\#1e293b\] {
+  background: #ffffff !important;
+  border-color: rgba(141, 35, 212, 0.25) !important;
+}
+
+body.light-mode .bg-\[\#1e293b\] .text-white {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .text-slate-500 {
+  color: #666 !important;
+}
+
+/* Light mode for status badges */
+body.light-mode .bg-yellow-500\/20 {
+  background: rgba(245, 158, 11, 0.15) !important;
+}
+
+body.light-mode .bg-blue-500\/20 {
+  background: rgba(59, 130, 246, 0.15) !important;
+}
+
+body.light-mode .bg-green-500\/20 {
+  background: rgba(16, 185, 129, 0.15) !important;
+}
+
+body.light-mode .bg-red-500\/20 {
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+
+body.light-mode .text-yellow-300 {
+  color: #d97706 !important;
+}
+
+body.light-mode .text-blue-300 {
+  color: #2563eb !important;
+}
+
+body.light-mode .text-green-300 {
+  color: #059669 !important;
+}
+
+body.light-mode .text-red-300 {
+  color: #dc2626 !important;
+}
+
+/* Light mode for buttons */
+body.light-mode .bg-purple-600 {
+  background: #8D23D4 !important;
+}
+
+body.light-mode .bg-purple-600:hover {
+  background: #6B21A5 !important;
+}
+
+body.light-mode .bg-white\/10 {
+  background: rgba(141, 35, 212, 0.1) !important;
+}
+
+body.light-mode .bg-white\/10:hover {
+  background: rgba(141, 35, 212, 0.2) !important;
+}
+
+/* Light mode for input */
+body.light-mode input::placeholder {
+  color: #999 !important;
+}
+
+body.light-mode input {
+  color: #1a1a2e !important;
+}
+
+/* تأكيد أن الاسم والإيميل يظهران بشكل صحيح في light mode */
+body.light-mode .w-64.fixed .truncate.text-white.font-medium.text-sm {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .w-64.fixed .text-white\/50.text-xs.truncate {
+  color: #666 !important;
+}

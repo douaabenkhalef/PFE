@@ -68,10 +68,10 @@ export default function CompanyPublicProfile() {
         });
         setCanEdit(data.profile.can_edit || false);
       } else {
-        toast.error(data.error || 'Erreur de chargement');
+        toast.error(data.error || 'Error loading profile');
       }
     } catch {
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     } finally {
       setLoading(false);
     }
@@ -87,15 +87,15 @@ export default function CompanyPublicProfile() {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success('Profil entreprise mis à jour');
+        toast.success('Company profile updated');
         setProfile({ ...profile, ...form });
         setIsEditing(false);
         window.dispatchEvent(new Event('companyProfileUpdated'));
       } else {
-        toast.error(data.error || 'Erreur lors de la sauvegarde');
+        toast.error(data.error || 'Error saving profile');
       }
     } catch {
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     } finally {
       setSaving(false);
     }
@@ -103,7 +103,7 @@ export default function CompanyPublicProfile() {
 
   const handleEditClick = () => {
     if (!canEdit) {
-      toast.error("Vous n'avez pas la permission de modifier le profil entreprise.");
+      toast.error("You don't have permission to edit the company profile.");
       return;
     }
     setIsEditing(true);
@@ -213,15 +213,15 @@ export default function CompanyPublicProfile() {
             onClick={() => navigate(isCompanyManager ? '/company-manager/dashboard' : '/company/dashboard')}
             className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
           >
-            ← Retour au tableau de bord
+            ← Back to Dashboard
           </button>
 
           {!canEdit && user?.sub_role === 'hiring_manager' && (
             <div className="flex items-center gap-3 bg-red-500/10 backdrop-blur-lg border border-red-500/30 rounded-xl p-4 mb-6">
               <Lock className="w-5 h-5 text-red-400" />
               <div>
-                <p className="text-red-300 font-medium">Permission refusée</p>
-                <p className="text-red-400/80 text-sm">Vous ne pouvez pas modifier le profil entreprise. Seul le Company Manager peut vous accorder cette permission.</p>
+                <p className="text-red-300 font-medium">Permission Denied</p>
+                <p className="text-red-400/80 text-sm">You cannot edit the company profile. Only the Company Manager can grant you this permission.</p>
               </div>
             </div>
           )}
@@ -242,7 +242,7 @@ export default function CompanyPublicProfile() {
                   <label className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm cursor-pointer group">
                     <div className="flex flex-col items-center gap-2 text-white opacity-0 group-hover:opacity-100 transition">
                       <Camera size={24} />
-                      <span className="text-sm font-medium">Changer la photo de couverture</span>
+                      <span className="text-sm font-medium">Change cover photo</span>
                     </div>
                     <input
                       type="file" accept="image/*" className="hidden"
@@ -288,17 +288,17 @@ export default function CompanyPublicProfile() {
                     )}
                   </div>
 
-                  <div className="flex-1 flex items-center justify-between pt-10">
+                  <div className="flex-1 flex items-center justify-between pt-10 flex-wrap gap-3">
                     <div>
                       {isEditing ? (
                         <input
                           value={form.name}
                           onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
                           className="text-2xl font-bold bg-transparent border-b border-purple-500 text-white focus:outline-none w-full"
-                          placeholder="Nom de l'entreprise"
+                          placeholder="Company name"
                         />
                       ) : (
-                        <h1 className="text-2xl font-bold text-white">{form.name || 'Entreprise'}</h1>
+                        <h1 className="text-2xl font-bold text-white">{form.name || 'Company'}</h1>
                       )}
                       <p className="text-purple-400 text-sm mt-1">
                         {isCompanyManager ? 'Company Manager' : 'Hiring Manager'} · {user?.company_name || user?.email}
@@ -313,16 +313,16 @@ export default function CompanyPublicProfile() {
                           }`}
                         >
                           {canEdit ? <Edit2 size={15} /> : <Lock size={15} />}
-                          {canEdit ? 'Modifier' : 'Accès limité'}
+                          {canEdit ? 'Edit' : 'Limited Access'}
                         </button>
                       ) : (
                         <>
                           <button onClick={handleCancel} className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-medium transition">
-                            <X size={15} /> Annuler
+                            <X size={15} /> Cancel
                           </button>
                           <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-xl text-sm font-medium transition disabled:opacity-60">
                             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-                            Sauvegarder
+                            Save
                           </button>
                         </>
                       )}
@@ -338,26 +338,26 @@ export default function CompanyPublicProfile() {
               <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-6">
                 <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-4 flex items-center gap-2">
                   <Building2 size={15} className="text-purple-400" />
-                  À propos
+                  About
                 </h3>
                 {isEditing ? (
                   <textarea
                     value={form.description}
                     onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
                     rows={5}
-                    placeholder="Description de l'entreprise..."
+                    placeholder="Company description..."
                     className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-purple-500 resize-none"
                   />
                 ) : (
                   <p className="text-white/70 text-sm leading-relaxed">
-                    {form.description || <span className="text-white/40 italic">Aucune description</span>}
+                    {form.description || <span className="text-white/40 italic">No description</span>}
                   </p>
                 )}
 
                 <div className="mt-4 space-y-3">
                   {[
-                    { icon: Briefcase, key: 'industry', label: "Secteur d'activité", type: 'text', placeholder: 'Tech, Finance, Santé...' },
-                    { icon: MapPin, key: 'location', label: 'Adresse / Wilaya', type: 'text', placeholder: 'Alger, Constantine...' },
+                    { icon: Briefcase, key: 'industry', label: "Industry", type: 'text', placeholder: 'Tech, Finance, Health...' },
+                    { icon: MapPin, key: 'location', label: 'Location / Wilaya', type: 'text', placeholder: 'Algiers, Constantine...' },
                   ].map(({ icon: Icon, key, label, type, placeholder }) => (
                     <div key={key}>
                       <label className="text-xs text-white/50 flex items-center gap-1 mb-1">
@@ -373,7 +373,7 @@ export default function CompanyPublicProfile() {
                         />
                       ) : (
                         <p className="text-white/70 text-sm">
-                          {form[key] || <span className="text-white/40 italic">Non renseigné</span>}
+                          {form[key] || <span className="text-white/40 italic">Not provided</span>}
                         </p>
                       )}
                     </div>
@@ -385,15 +385,15 @@ export default function CompanyPublicProfile() {
               <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-6">
                 <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-4 flex items-center gap-2">
                   <Mail size={15} className="text-purple-400" />
-                  Informations de contact
+                  Contact Information
                 </h3>
                 <div className="space-y-3">
                   {[
-                    { icon: Mail,     key: 'contact_email', label: 'Email de contact', type: 'email', placeholder: 'contact@entreprise.com' },
-                    { icon: Phone,    key: 'phone',         label: 'Téléphone',        type: 'tel',   placeholder: '+213 5xx xxx xxx' },
-                    { icon: Globe,    key: 'website',       label: 'Site web',         type: 'url',   placeholder: 'https://...' },
-                    { icon: Linkedin, key: 'linkedin',      label: 'LinkedIn',         type: 'url',   placeholder: 'https://linkedin.com/company/...' },
-                    { icon: Twitter,  key: 'twitter',       label: 'Twitter / X',      type: 'url',   placeholder: 'https://twitter.com/...' },
+                    { icon: Mail,     key: 'contact_email', label: 'Contact Email', type: 'email', placeholder: 'contact@company.com' },
+                    { icon: Phone,    key: 'phone',         label: 'Phone',          type: 'tel',   placeholder: '+213 5xx xxx xxx' },
+                    { icon: Globe,    key: 'website',       label: 'Website',        type: 'url',   placeholder: 'https://...' },
+                    { icon: Linkedin, key: 'linkedin',      label: 'LinkedIn',       type: 'url',   placeholder: 'https://linkedin.com/company/...' },
+                    { icon: Twitter,  key: 'twitter',       label: 'Twitter / X',    type: 'url',   placeholder: 'https://twitter.com/...' },
                   ].map(({ icon: Icon, key, label, type, placeholder }) => (
                     <div key={key}>
                       <label className="text-xs text-white/50 flex items-center gap-1 mb-1">
@@ -413,7 +413,7 @@ export default function CompanyPublicProfile() {
                             type === 'url'
                               ? <a href={form[key]} target="_blank" rel="noreferrer" className="text-purple-400 hover:underline">{form[key]}</a>
                               : form[key]
-                          ) : <span className="text-white/40 italic">Non renseigné</span>}
+                          ) : <span className="text-white/40 italic">Not provided</span>}
                         </p>
                       )}
                     </div>
@@ -425,12 +425,168 @@ export default function CompanyPublicProfile() {
             {!isEditing && form.cover_picture && (
               <div className="flex items-center gap-2 bg-blue-500/10 backdrop-blur-sm border border-blue-500/20 rounded-xl px-4 py-3 text-sm text-blue-300">
                 <CheckCircle size={15} />
-                La photo de couverture s'affiche sur le côté droit des tableaux de bord Company et Company Manager.
+                The cover photo displays on the right side of Company and Company Manager dashboards.
               </div>
             )}
           </div>
         </div>
       </div>
+
+      <style>{`
+        /* ===== RESPONSIVE STYLES ===== */
+        @media (max-width: 768px) {
+          .w-64.fixed {
+            width: 220px !important;
+          }
+          .ml-64 {
+            margin-left: 220px !important;
+          }
+          .flex.items-end.gap-5 {
+            flex-direction: column;
+            align-items: flex-start !important;
+          }
+          .pt-10 {
+            padding-top: 0 !important;
+          }
+          .flex-1.flex.items-center.justify-between {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 1rem;
+          }
+          .px-6 {
+            padding-left: 1rem;
+            padding-right: 1rem;
+          }
+          .grid-cols-1.lg\\:grid-cols-2 {
+            grid-template-columns: 1fr !important;
+          }
+        }
+        
+        @media (max-width: 580px) {
+          .w-64.fixed {
+            width: 200px !important;
+          }
+          .ml-64 {
+            margin-left: 200px !important;
+          }
+          .text-2xl.font-bold {
+            font-size: 1.2rem;
+          }
+          .w-20.h-20 {
+            width: 60px;
+            height: 60px;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .w-64.fixed {
+            width: 180px !important;
+          }
+          .ml-64 {
+            margin-left: 180px !important;
+          }
+          .px-6 {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+          }
+          .gap-2 {
+            gap: 0.5rem;
+          }
+          .px-4.py-2 {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.7rem;
+          }
+          .text-sm {
+            font-size: 0.7rem;
+          }
+        }
+        
+        /* ===== LIGHT MODE STYLES ===== */
+        body.light-mode .w-64.fixed {
+          background: linear-gradient(180deg, #ffffff 0%, #f5f0ff 100%) !important;
+          border-right: 1px solid rgba(141, 35, 212, 0.2) !important;
+        }
+        body.light-mode .text-white {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .text-white\\/50,
+        body.light-mode .text-white\\/60,
+        body.light-mode .text-white\\/70 {
+          color: #666 !important;
+        }
+        body.light-mode .text-purple-300\\/60 {
+          color: #8D23D4 !important;
+          opacity: 0.7;
+        }
+        body.light-mode .bg-white\\/10 {
+          background: rgba(141, 35, 212, 0.08) !important;
+        }
+        body.light-mode .bg-white\\/10.backdrop-blur-lg {
+          background: rgba(255, 255, 255, 0.9) !important;
+          border-color: rgba(141, 35, 212, 0.25) !important;
+        }
+        body.light-mode .border-white\\/20 {
+          border-color: rgba(141, 35, 212, 0.2) !important;
+        }
+        body.light-mode .bg-purple-600 {
+          background: #8D23D4 !important;
+        }
+        body.light-mode .bg-purple-600:hover {
+          background: #6B21A5 !important;
+        }
+        body.light-mode .bg-white\\/10.border-white\\/20 {
+          background: rgba(0, 0, 0, 0.05) !important;
+          border-color: rgba(141, 35, 212, 0.2) !important;
+          color: #1a1a2e !important;
+        }
+        body.light-mode input,
+        body.light-mode textarea {
+          color: #1a1a2e !important;
+        }
+        body.light-mode input::placeholder,
+        body.light-mode textarea::placeholder {
+          color: #999 !important;
+        }
+        body.light-mode .bg-black\\/40 {
+          background: rgba(0, 0, 0, 0.5) !important;
+        }
+        body.light-mode .bg-black\\/50 {
+          background: rgba(0, 0, 0, 0.6) !important;
+        }
+        body.light-mode .text-purple-400 {
+          color: #8D23D4 !important;
+        }
+        body.light-mode .bg-purple-500\\/20 {
+          background: rgba(141, 35, 212, 0.1) !important;
+        }
+        body.light-mode .bg-red-500\\/10 {
+          background: rgba(239, 68, 68, 0.1) !important;
+        }
+        body.light-mode .text-red-300 {
+          color: #dc2626 !important;
+        }
+        body.light-mode .text-red-400\\/80 {
+          color: #dc2626 !important;
+        }
+        body.light-mode .bg-blue-500\\/10 {
+          background: rgba(59, 130, 246, 0.1) !important;
+        }
+        body.light-mode .text-blue-300 {
+          color: #2563eb !important;
+        }
+        body.light-mode .border-blue-500\\/20 {
+          border-color: rgba(59, 130, 246, 0.2) !important;
+        }
+        body.light-mode .bg-green-600 {
+          background: #059669 !important;
+        }
+        body.light-mode .bg-green-600:hover {
+          background: #047857 !important;
+        }
+        body.light-mode .text-red-300.hover\\:bg-red-500\\/20:hover {
+          background: rgba(220, 38, 38, 0.1) !important;
+        }
+      `}</style>
     </div>
   );
 }

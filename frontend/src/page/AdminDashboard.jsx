@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import {
-  Bell, Image, Search, X, ChevronDown, GraduationCap, MapPin, BookOpen, Mail, User, Briefcase, Calendar, CheckCircle, XCircle, Clock, FileText, AlertTriangle, CheckCheck
+  Bell, Image, Search, X, ChevronDown, GraduationCap, MapPin, BookOpen, Mail, User, Briefcase, Calendar, CheckCircle, XCircle, Clock, FileText, AlertTriangle, CheckCheck, Moon, Sun
 } from "lucide-react";
 import ChatWidget from "../components/ChatWidget";
 import PrivateChat from "../components/PrivateChat";
@@ -180,6 +180,27 @@ const MailIcon   = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="n
 const SearchIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
 const FilterIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>;
 
+// Moon and Sun icons for theme toggle
+const MoonIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
+
+const SunIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <circle cx="12" cy="12" r="5" />
+    <line x1="12" y1="1" x2="12" y2="3" />
+    <line x1="12" y1="21" x2="12" y2="23" />
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+    <line x1="1" y1="12" x2="3" y2="12" />
+    <line x1="21" y1="12" x2="23" y2="12" />
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+  </svg>
+);
+
 // Notification Icons Mapping
 const NOTIFICATION_ICONS = {
   'convention_validated': { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10' },
@@ -237,7 +258,7 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
         </div>
         {unreadCount > 0 && (
           <button className="sd-notif-clear" onClick={onMarkAllRead}>
-            Tout marquer comme lu
+            Mark all as read
           </button>
         )}
       </div>
@@ -245,8 +266,8 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
         {notifications.length === 0 ? (
           <div className="sd-notif-empty">
             <Bell size={32} className="mx-auto mb-2 opacity-30"/>
-            <p>Aucune notification</p>
-            <span className="text-xs">Les notifications apparaîtront ici</span>
+            <p>No notifications</p>
+            <span className="test-xs">Notifications will appear here</span>
           </div>
         ) : (
           notifications.slice(0, 15).map(notif => (
@@ -261,7 +282,7 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
       </div>
       {notifications.length > 0 && (
         <div className="sd-notif-footer">
-          <button onClick={onClose}>Fermer</button>
+          <button onClick={onClose}>Close</button>
         </div>
       )}
     </div>
@@ -341,6 +362,7 @@ const AdminDashboard = () => {
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef(null);
   const unreadCount = notifications.filter(n => !n.is_read).length;
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
   const [homeStudents, setHomeStudents] = useState([]);
   const [homeSearchLoading, setHomeSearchLoading] = useState(false);
@@ -358,6 +380,31 @@ const AdminDashboard = () => {
   const studentsPageRef = useRef(null);
   const [activeSection,  setActiveSection]  = useState("home");
   const [sectionVisible, setSectionVisible] = useState({ home: true, stats: false, students: false });
+
+  // Load theme from localStorage
+  useEffect(() => {
+    const savedMode = localStorage.getItem('darkMode');
+    if (savedMode === 'false') {
+      setIsDarkMode(false);
+      document.body.classList.add('light-mode');
+    } else {
+      setIsDarkMode(true);
+      document.body.classList.remove('light-mode');
+    }
+  }, []);
+
+  // Toggle theme function
+  const toggleTheme = () => {
+    if (isDarkMode) {
+      document.body.classList.add('light-mode');
+      localStorage.setItem('darkMode', 'false');
+      setIsDarkMode(false);
+    } else {
+      document.body.classList.remove('light-mode');
+      localStorage.setItem('darkMode', 'true');
+      setIsDarkMode(true);
+    }
+  };
 
   useEffect(() => {
     fetchPlacementStats();
@@ -449,10 +496,10 @@ const AdminDashboard = () => {
         headers: authHeaders() 
       });
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      toast.success('Toutes les notifications ont été marquées comme lues');
+      toast.success('All notifications marked as read');
     } catch (error) {
       console.error("Error marking all notifications read:", error);
-      toast.error('Erreur lors du marquage des notifications');
+      toast.error('Error marking notifications');
     }
   };
 
@@ -529,9 +576,9 @@ const AdminDashboard = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-black p-8">
         <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Accès non autorisé</h1>
-          <p className="text-white/60">Seul le Department Head peut accéder à ce dashboard.</p>
-          <button onClick={handleLogout} className="mt-4 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-lg transition">Retour</button>
+          <h1 className="text-2xl font-bold text-white mb-4">Unauthorized Access</h1>
+          <p className="text-white/60">Only the Department Head can access this dashboard.</p>
+          <button onClick={handleLogout} className="mt-4 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-lg transition">Back</button>
         </div>
       </div>
     );
@@ -891,6 +938,118 @@ const AdminDashboard = () => {
         }
         .footer-bottom-links a:hover { color: #fff; }
         .footer-bottom-links span { color: rgba(255,255,255,0.30); font-size: 0.78rem; }
+
+        /* ===== LIGHT MODE OVERRIDES ===== */
+        body.light-mode .donut-card,
+        body.light-mode [style*="background: rgba(255,255,255,0.07)"],
+        body.light-mode [style*="background: rgba(255,255,255,0.05)"] {
+          background: rgba(255, 255, 255, 0.9) !important;
+          border-color: rgba(141, 35, 212, 0.25) !important;
+        }
+        body.light-mode .donut-card span,
+        body.light-mode [style*="color: rgba(255,255,255,0.8)"] {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .donut-card [style*="color: rgba(255,255,255,0.55)"] {
+          color: #666 !important;
+        }
+        body.light-mode .sd-notif-dropdown {
+          background: white !important;
+          border-color: rgba(141, 35, 212, 0.2) !important;
+        }
+        body.light-mode .sd-notif-header {
+          color: #1a1a2e !important;
+          border-bottom-color: rgba(0, 0, 0, 0.1) !important;
+        }
+        body.light-mode .sd-notif-item.unread {
+          background: rgba(141, 35, 212, 0.08) !important;
+        }
+        body.light-mode .sd-notif-body p {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .sd-notif-time {
+          color: #999 !important;
+        }
+        body.light-mode .sd-notif-empty p,
+        body.light-mode .sd-notif-empty span {
+          color: #666 !important;
+        }
+        body.light-mode .footer {
+          background: linear-gradient(135deg, #e8d5f5 0%, #d4c4f0 100%) !important;
+        }
+        body.light-mode .footer-brand p,
+        body.light-mode .footer-brand-logo,
+        body.light-mode .footer-contact h4,
+        body.light-mode .footer-contact ul li {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .footer-bottom p,
+        body.light-mode .footer-bottom-links a {
+          color: #555 !important;
+        }
+        body.light-mode .footer-socials a {
+          background: rgba(141, 35, 212, 0.1) !important;
+          color: #1a1a2e !important;
+        }
+        body.light-mode .footer-socials a:hover {
+          background: rgba(141, 35, 212, 0.2) !important;
+          color: #8D23D4 !important;
+        }
+        body.light-mode .bg-white/10 {
+          background: rgba(141, 35, 212, 0.08) !important;
+        }
+        body.light-mode .text-white {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .text-white/90 {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .text-white/50,
+        body.light-mode .text-white/40,
+        body.light-mode .text-white/60 {
+          color: #666 !important;
+        }
+        body.light-mode .bg-purple-500/20 {
+          background: rgba(141, 35, 212, 0.1) !important;
+        }
+        body.light-mode .bg-green-500/20 {
+          background: rgba(5, 150, 105, 0.1) !important;
+        }
+        body.light-mode .bg-yellow-500/20 {
+          background: rgba(217, 119, 6, 0.1) !important;
+        }
+        body.light-mode .text-green-300 {
+          color: #059669 !important;
+        }
+        body.light-mode .text-yellow-300 {
+          color: #d97706 !important;
+        }
+        body.light-mode .text-purple-300 {
+          color: #8D23D4 !important;
+        }
+        body.light-mode .bg-slate-800/60 {
+          background: rgba(0, 0, 0, 0.05) !important;
+        }
+        body.light-mode .bg-slate-800/60 .text-white {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .bg-slate-800/60 .text-slate-400 {
+          color: #999 !important;
+        }
+        body.light-mode .border-slate-700 {
+          border-color: rgba(141, 35, 212, 0.2) !important;
+        }
+        body.light-mode input,
+        body.light-mode select {
+          color: #1a1a2e !important;
+        }
+        body.light-mode input::placeholder {
+          color: #999 !important;
+        }
+        body.light-mode select option {
+          background: white !important;
+          color: #1a1a2e !important;
+        }
       `}</style>
 
       <nav className="sd-navbar" style={{ borderBottom: "none", position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000, height: "70px" }}>
@@ -916,7 +1075,7 @@ const AdminDashboard = () => {
           ))}
         </ul>
         <div className="sd-navbar-right">
-          {/* 🔥 NOTIFICATION ICON - SANS BADGE ROUGE, SEULEMENT LE BADGE MAUVE POUR NOTIFICATIONS NON LUES */}
+          {/* 🔥 NOTIFICATION ICON */}
           <div className="sd-notif-wrapper" ref={notifRef}>
             <button className="sd-icon-btn relative" onClick={() => setNotifOpen(!notifOpen)}>
               <Bell size={20}/>
@@ -934,10 +1093,8 @@ const AdminDashboard = () => {
               />
             )}
           </div>
-          <button className="sd-icon-btn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-            </svg>
+          <button className="sd-icon-btn" onClick={toggleTheme}>
+            {isDarkMode ? <MoonIcon /> : <SunIcon />}
           </button>
         </div>
       </nav>
@@ -1093,27 +1250,35 @@ const AdminDashboard = () => {
           <div className="footer-brand">
             <div className="footer-brand-logo">🎓 UnivStage</div>
             <p>Connecting students with professional opportunities and empowering the next generation of innovators.</p>
+            <p>By:</p>
+            <p>Nouha Labdi</p>
+            <p>Safa Oughidni</p>
+            <p>Douaa Benkhalef</p>
           </div>
           <div className="footer-contact">
             <h4>Contact Us</h4>
             <ul>
-              <li><MapPinIcon />123 University Ave, Campus Center, Algiers, Algeria</li>
-              <li><PhoneIcon />+213 (0) 23 45 67 89</li>
-              <li><MailIcon />contact@univstage.dz</li>
+              <li><MapPinIcon /> University constantine2, Algeria</li>
+              <li><PhoneIcon />+213 (0) 798864489</li>
+              <li><PhoneIcon />+213 (0) 799003478</li>
+              <li><PhoneIcon />+213 (0) 557217736</li>
+              <li><MailIcon />stageuniversity18@gmail.com</li>
             </ul>
           </div>
         </div>
         <div className="footer-bottom">
-          <p>© 2025 UnivStage. All rights reserved.</p>
+          <p>© 2026 UnivStage. All rights reserved.</p>
           <div className="footer-socials">
-            <a href="#">f</a>
-            <a href="#">𝕏</a>
-            <a href="#">in</a>
+            <a href="https://www.facebook.com/univstage" target="_blank" rel="noopener noreferrer">f</a>
+            <a href="https://www.instagram.com/univstage" target="_blank" rel="noopener noreferrer">𝕏</a>
+            <a href="https://www.linkedin.com/company/univstage" target="_blank" rel="noopener noreferrer">in</a>
           </div>
           <div className="footer-bottom-links">
-            <a href="#">Privacy Policy</a>
+            <a href="/privacy-policy">Privacy Policy</a>
             <span>|</span>
-            <a href="#">Terms of Service</a>
+            <a href="/terms-of-service">Terms of Service</a>
+            <span>|</span>
+            <a href="/faq">FAQ</a>
           </div>
         </div>
       </footer>
@@ -1121,7 +1286,7 @@ const AdminDashboard = () => {
       {sidebarOpen && <AdminSidebar user={user} onLogout={handleLogout} onClose={() => setSidebarOpen(false)}/>}
       {user?.university && <ChatWidget university={user.university}/>}
       {privateChatOpen && selectedChatUser && (
-        <PrivateChat university={user?.university || "Université"} currentUser={user} targetUser={selectedChatUser} onClose={handleClosePrivateChat}/>
+        <PrivateChat university={user?.university || "University"} currentUser={user} targetUser={selectedChatUser} onClose={handleClosePrivateChat}/>
       )}
       {selectedStudent && <StudentDetailModal student={selectedStudent} onClose={() => setSelectedStudent(null)} />}
     </div>

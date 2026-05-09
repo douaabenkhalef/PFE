@@ -24,8 +24,8 @@ const authHeaders = () => ({
   'Authorization': `Bearer ${token()}`
 });
 
-// OTP Verification Modal (unchanged)
-const OTPVerificationModal = ({ email, onVerify, onClose, loading, title = "Vérification de l'email" }) => {
+// OTP Verification Modal
+const OTPVerificationModal = ({ email, onVerify, onClose, loading, title = "Email Verification" }) => {
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
 
@@ -45,7 +45,7 @@ const OTPVerificationModal = ({ email, onVerify, onClose, loading, title = "Vér
   const handleSubmit = async () => {
     const fullCode = code.join('');
     if (fullCode.length !== 6) {
-      setError('Le code doit contenir exactement 6 chiffres');
+      setError('The code must contain exactly 6 digits');
       return;
     }
     setError('');
@@ -61,9 +61,9 @@ const OTPVerificationModal = ({ email, onVerify, onClose, loading, title = "Vér
           <button className="profile-modal-close" onClick={onClose}>×</button>
         </div>
         <div className="profile-modal-body">
-          <p>Un code de vérification a été envoyé à :</p>
+          <p>A verification code has been sent to:</p>
           <p className="text-purple-400 font-semibold">{email}</p>
-          <p className="text-sm text-white/60 mt-2">Veuillez entrer le code à 6 chiffres reçu par email.</p>
+          <p className="text-sm text-white/60 mt-2">Please enter the 6-digit code received by email.</p>
           
           <div className="flex justify-center gap-3 mt-4">
             {code.map((digit, index) => (
@@ -86,9 +86,9 @@ const OTPVerificationModal = ({ email, onVerify, onClose, loading, title = "Vér
           )}
         </div>
         <div className="profile-modal-footer">
-          <button className="profile-modal-cancel" onClick={onClose}>Annuler</button>
+          <button className="profile-modal-cancel" onClick={onClose}>Cancel</button>
           <button className="profile-modal-confirm" onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Vérification...' : 'Vérifier le code'}
+            {loading ? 'Verifying...' : 'Verify Code'}
           </button>
         </div>
       </div>
@@ -96,7 +96,7 @@ const OTPVerificationModal = ({ email, onVerify, onClose, loading, title = "Vér
   );
 };
 
-// Password Change Component (unchanged)
+// Password Change Component
 const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -107,12 +107,12 @@ const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
 
   const handleInitiate = async () => {
     if (newPassword !== confirmPassword) {
-      toast.error('Les mots de passe ne correspondent pas');
+      toast.error('Passwords do not match');
       return;
     }
     
     if (newPassword.length < 8) {
-      toast.error('Le mot de passe doit contenir au moins 8 caractères');
+      toast.error('Password must be at least 8 characters');
       return;
     }
     
@@ -129,10 +129,10 @@ const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
         setShowOTPModal(true);
         toast.success(data.message);
       } else {
-        toast.error(data.error || 'Erreur lors de l\'envoi du code');
+        toast.error(data.error || 'Error sending code');
       }
     } catch (err) {
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     } finally {
       setLoading(false);
     }
@@ -152,16 +152,16 @@ const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success('Mot de passe changé avec succès !');
+        toast.success('Password changed successfully!');
         if (onSuccess) onSuccess();
         onClose();
       } else if (data.code_invalid) {
-        toast.error(data.error || 'Code invalide. Veuillez réessayer.');
+        toast.error(data.error || 'Invalid code. Please try again.');
       } else {
-        toast.error(data.error || 'Erreur lors du changement');
+        toast.error(data.error || 'Error changing password');
       }
     } catch (err) {
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     } finally {
       setLoading(false);
       setShowOTPModal(false);
@@ -173,19 +173,19 @@ const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
       <div className="profile-password-form">
         <p className="text-white/70 text-sm mb-3 flex items-center gap-2">
           <KeyRound size={14} />
-          Pour des raisons de sécurité, un code de vérification sera envoyé à {usingRecovery ? 'votre email de récupération' : 'votre email principal'}.
+          For security reasons, a verification code will be sent to {usingRecovery ? 'your recovery email' : 'your primary email'}.
         </p>
         
         <input 
           type="password" 
-          placeholder="Nouveau mot de passe" 
+          placeholder="New password" 
           value={newPassword} 
           onChange={(e) => setNewPassword(e.target.value)} 
           className="profile-edit-input" 
         />
         <input 
           type="password" 
-          placeholder="Confirmer le nouveau mot de passe" 
+          placeholder="Confirm new password" 
           value={confirmPassword} 
           onChange={(e) => setConfirmPassword(e.target.value)} 
           className="profile-edit-input" 
@@ -197,10 +197,10 @@ const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
             disabled={loading || !newPassword || newPassword !== confirmPassword}
             className="profile-save-password-btn"
           >
-            {loading ? 'Envoi...' : 'Envoyer le code'}
+            {loading ? 'Sending...' : 'Send Code'}
           </button>
           <button onClick={onClose} className="profile-cancel-password-btn">
-            Annuler
+            Cancel
           </button>
         </div>
       </div>
@@ -214,7 +214,7 @@ const PasswordChangeWithOTP = ({ onClose, onSuccess }) => {
             onClose();
           }}
           loading={loading}
-          title="Vérification pour changement de mot de passe"
+          title="Password Change Verification"
         />
       )}
     </>
@@ -264,10 +264,10 @@ export default function AdminMyProfile() {
           setProfileImage(null);
         }
       } else {
-        toast.error(data.error || 'Erreur de chargement du profil');
+        toast.error(data.error || 'Error loading profile');
       }
     } catch (err) {
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     } finally {
       setLoading(false);
     }
@@ -305,14 +305,14 @@ export default function AdminMyProfile() {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success('Profil mis à jour ✅');
+        toast.success('Profile updated ✅');
         setIsEditing(false);
         await fetchProfile();
       } else {
-        toast.error(data.error || 'Erreur lors de la sauvegarde');
+        toast.error(data.error || 'Error saving profile');
       }
     } catch (err) {
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     } finally {
       setSaving(false);
     }
@@ -322,9 +322,9 @@ export default function AdminMyProfile() {
   const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error('Fichier trop volumineux (max 5 MB)'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('File too large (max 5 MB)'); return; }
     if (!['image/jpeg', 'image/png', 'image/jpg', 'image/gif'].includes(file.type)) {
-      toast.error('Utilisez JPEG, PNG ou GIF');
+      toast.error('Use JPEG, PNG or GIF');
       return;
     }
     const form = new FormData();
@@ -337,17 +337,17 @@ export default function AdminMyProfile() {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success('Photo de profil mise à jour ✅');
+        toast.success('Profile picture updated ✅');
         await fetchProfile();
       } else {
-        toast.error(data.error || 'Échec de l\'upload');
+        toast.error(data.error || 'Upload failed');
       }
     } catch (err) {
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     }
   };
 
-  // ================== Security / 2FA (unchanged) ==================
+  // ================== Security / 2FA ==================
   const handleEnable2FA = async () => {
     setLoading2FA(true);
     try {
@@ -357,11 +357,11 @@ export default function AdminMyProfile() {
       const data = await res.json();
       if (data.success) {
         setTwoFAEnabled(true);
-        toast.success('2FA activé');
+        toast.success('2FA enabled');
       } else {
-        toast.error(data.error || 'Échec');
+        toast.error(data.error || 'Failed');
       }
-    } catch (err) { toast.error('Erreur'); } finally { setLoading2FA(false); setShow2FAModal(false); }
+    } catch (err) { toast.error('Connection error'); } finally { setLoading2FA(false); setShow2FAModal(false); }
   };
 
   const handleDisable2FA = async () => {
@@ -373,20 +373,20 @@ export default function AdminMyProfile() {
       const data = await res.json();
       if (data.success) {
         setTwoFAEnabled(false);
-        toast.success('2FA désactivé');
+        toast.success('2FA disabled');
       } else {
-        toast.error(data.error || 'Échec');
+        toast.error(data.error || 'Failed');
       }
-    } catch (err) { toast.error('Erreur'); } finally { setLoading2FA(false); }
+    } catch (err) { toast.error('Connection error'); } finally { setLoading2FA(false); }
   };
 
   const handleAddRecoveryEmail = async () => {
     if (!recoveryEmail || !recoveryEmail.includes('@')) {
-      toast.error('Veuillez entrer une adresse email valide');
+      toast.error('Please enter a valid email address');
       return;
     }
     if (recoveryEmail === user?.email) {
-      toast.error('L\'email de récupération ne peut pas être identique à votre email principal');
+      toast.error('Recovery email cannot be the same as your primary email');
       return;
     }
     setLoadingRecovery(true);
@@ -400,11 +400,11 @@ export default function AdminMyProfile() {
         setPendingRecoveryEmail(data.recovery_email);
         setShowRecoveryModal(false);
         setShowRecoveryOTPModal(true);
-        toast.success('Code de vérification envoyé à votre email de récupération');
+        toast.success('Verification code sent to your recovery email');
       } else {
-        toast.error(data.error || 'Échec de l\'ajout');
+        toast.error(data.error || 'Failed to add recovery email');
       }
-    } catch (err) { toast.error('Erreur de connexion'); } finally { setLoadingRecovery(false); }
+    } catch (err) { toast.error('Connection error'); } finally { setLoadingRecovery(false); }
   };
 
   const handleVerifyRecoveryOTP = async (otpCode) => {
@@ -417,14 +417,14 @@ export default function AdminMyProfile() {
       const data = await res.json();
       if (data.success) {
         setRecoveryEmailAdded(true);
-        toast.success('Email de récupération ajouté avec succès');
+        toast.success('Recovery email added successfully');
         setShowRecoveryOTPModal(false);
         setPendingRecoveryEmail('');
         setRecoveryEmail('');
       } else {
-        toast.error(data.error || 'Code invalide');
+        toast.error(data.error || 'Invalid code');
       }
-    } catch (err) { toast.error('Erreur de connexion'); } finally { setLoadingRecovery(false); }
+    } catch (err) { toast.error('Connection error'); } finally { setLoadingRecovery(false); }
   };
 
   const handleRemoveRecoveryEmail = async () => {
@@ -436,11 +436,11 @@ export default function AdminMyProfile() {
       const data = await res.json();
       if (data.success) {
         setRecoveryEmailAdded(false);
-        toast.success('Email de récupération supprimé');
+        toast.success('Recovery email removed');
       } else {
-        toast.error(data.error || 'Échec de la suppression');
+        toast.error(data.error || 'Failed to remove recovery email');
       }
-    } catch (err) { toast.error('Erreur de connexion'); } finally { setLoadingRecovery(false); }
+    } catch (err) { toast.error('Connection error'); } finally { setLoadingRecovery(false); }
   };
 
   const handleLogout = () => { logout(); navigate('/login'); };
@@ -459,7 +459,7 @@ export default function AdminMyProfile() {
   );
   if (!profile) return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
-      <div className="text-white text-xl">Profil non trouvé</div>
+      <div className="text-white text-xl">Profile not found</div>
     </div>
   );
 
@@ -470,7 +470,7 @@ export default function AdminMyProfile() {
       <div className="ml-64 flex-1 min-h-screen py-8 px-6">
         <div className="max-w-5xl mx-auto">
           <button onClick={() => navigate(dashboardPath)} className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6">
-            <ArrowLeft size={18} /> Retour au tableau de bord
+            <ArrowLeft size={18} /> Back to Dashboard
           </button>
 
           {showRecoveryOTPModal && (
@@ -479,7 +479,7 @@ export default function AdminMyProfile() {
               onVerify={handleVerifyRecoveryOTP}
               onClose={() => { setShowRecoveryOTPModal(false); setPendingRecoveryEmail(''); }}
               loading={loadingRecovery}
-              title="Vérification de l'email de récupération"
+              title="Recovery Email Verification"
             />
           )}
 
@@ -498,23 +498,23 @@ export default function AdminMyProfile() {
                         </div>
                       )}
                     </div>
-                    <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-2xl cursor-pointer opacity-0 hover:opacity-100 transition" title="Changer la photo de profil">
+                    <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-2xl cursor-pointer opacity-0 hover:opacity-100 transition" title="Change profile picture">
                       <Camera size={16} className="text-white" />
                       <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/jpg,image/gif" className="hidden" onChange={handleAvatarUpload} />
                     </label>
                   </div>
-                  <div className="flex-1 flex items-center justify-between pt-10">
+                  <div className="flex-1 flex items-center justify-between pt-10 flex-wrap gap-3">
                     <div>
                       <h1 className="text-2xl font-bold text-white">{profile?.full_name || profile?.username}</h1>
                       <p className="text-purple-400 text-sm mt-1">{roleBadge} · {profile?.university || ''}</p>
                     </div>
                     <div className="flex gap-2">
                       {!isEditing ? (
-                        <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-medium transition"><Edit2 size={15} /> Modifier le profil</button>
+                        <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-medium transition"><Edit2 size={15} /> Edit Profile</button>
                       ) : (
                         <div className="flex gap-2">
-                          <button onClick={() => { setIsEditing(false); fetchProfile(); }} className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-medium transition"><X size={15} /> Annuler</button>
-                          <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-xl text-sm font-medium transition disabled:opacity-60">{saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />} Sauvegarder</button>
+                          <button onClick={() => { setIsEditing(false); fetchProfile(); }} className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-medium transition"><X size={15} /> Cancel</button>
+                          <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-xl text-sm font-medium transition disabled:opacity-60">{saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />} Save</button>
                         </div>
                       )}
                     </div>
@@ -525,8 +525,8 @@ export default function AdminMyProfile() {
 
             {/* Tabs */}
             <div className="flex gap-2 border-b border-white/20 pb-2">
-              <button onClick={() => setActiveTab('public')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'public' ? 'bg-purple-600 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}>Profil public</button>
-              <button onClick={() => setActiveTab('private')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'private' ? 'bg-purple-600 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}>Informations privées & Sécurité</button>
+              <button onClick={() => setActiveTab('public')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'public' ? 'bg-purple-600 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}>Public Profile</button>
+              <button onClick={() => setActiveTab('private')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'private' ? 'bg-purple-600 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}>Private Info & Security</button>
             </div>
 
             {/* PUBLIC TAB */}
@@ -534,17 +534,17 @@ export default function AdminMyProfile() {
               <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-6 space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
-                    <label className="text-xs text-white/50 font-medium">Nom d'utilisateur</label>
+                    <label className="text-xs text-white/50 font-medium">Username</label>
                     <p className="text-white text-sm mt-1">@{profile?.username || '—'}</p>
                   </div>
                   <div>
-                    <label className="text-xs text-white/50 font-medium">Rôle</label>
+                    <label className="text-xs text-white/50 font-medium">Role</label>
                     <p className="text-white text-sm mt-1"><span className="px-2 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300">{roleBadge}</span></p>
                   </div>
                   <div className="md:col-span-2">
                     <label className="text-xs text-white/50 font-medium">Bio / Description</label>
                     {isEditing ? (
-                      <textarea value={profile?.bio || ''} onChange={(e) => setProfile(prev => ({ ...prev, bio: e.target.value }))} rows={3} className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white focus:border-purple-500 focus:outline-none mt-1 resize-none" placeholder="Décrivez-vous..." />
+                      <textarea value={profile?.bio || ''} onChange={(e) => setProfile(prev => ({ ...prev, bio: e.target.value }))} rows={3} className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white focus:border-purple-500 focus:outline-none mt-1 resize-none" placeholder="Describe yourself..." />
                     ) : (
                       <p className="text-white/80 text-sm mt-1">{profile?.bio || '—'}</p>
                     )}
@@ -559,42 +559,42 @@ export default function AdminMyProfile() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div><label className="text-xs text-white/50 font-medium">Email</label><p className="text-white text-sm mt-1">{profile?.email || '—'}</p></div>
                   <div>
-                    <label className="text-xs text-white/50 font-medium">Téléphone</label>
+                    <label className="text-xs text-white/50 font-medium">Phone</label>
                     {isEditing ? (
                       <input type="tel" value={profile?.phone || ''} onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))} className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white focus:border-purple-500 focus:outline-none mt-1" placeholder="+213 XX XXX XXXX" />
                     ) : (
                       <p className="text-white text-sm mt-1">{profile?.phone || '—'}</p>
                     )}
                   </div>
-                  <div><label className="text-xs text-white/50 font-medium">Statut du compte</label><p className="text-white text-sm mt-1"><span className={`px-2 py-1 rounded-full text-xs font-semibold ${profile?.status ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}`}>{profile?.status ? 'Actif' : 'En attente'}</span></p></div>
-                  <div><label className="text-xs text-white/50 font-medium">Date d'inscription</label><p className="text-white text-sm mt-1">{profile?.created_at || '—'}</p></div>
+                  <div><label className="text-xs text-white/50 font-medium">Account Status</label><p className="text-white text-sm mt-1"><span className={`px-2 py-1 rounded-full text-xs font-semibold ${profile?.status ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}`}>{profile?.status ? 'Active' : 'Pending'}</span></p></div>
+                  <div><label className="text-xs text-white/50 font-medium">Registration Date</label><p className="text-white text-sm mt-1">{profile?.created_at || '—'}</p></div>
                 </div>
 
                 <div className="pt-4 border-t border-white/10">
-                  <h3 className="text-sm font-semibold text-white/70 mb-4 flex items-center gap-2"><ShieldCheck size={18} /> Sécurité</h3>
+                  <h3 className="text-sm font-semibold text-white/70 mb-4 flex items-center gap-2"><ShieldCheck size={18} /> Security</h3>
                   <div className="space-y-4">
                     <div className="flex flex-col gap-2">
-                      <label className="text-xs text-white/50 font-medium">Mot de passe</label>
+                      <label className="text-xs text-white/50 font-medium">Password</label>
                       {!showChangePassword ? (
-                        <button onClick={() => setShowChangePassword(true)} className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white px-4 py-2 rounded-lg text-sm hover:bg-white/20 transition"><KeyRound size={14} /> Changer le mot de passe</button>
+                        <button onClick={() => setShowChangePassword(true)} className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white px-4 py-2 rounded-lg text-sm hover:bg-white/20 transition"><KeyRound size={14} /> Change Password</button>
                       ) : (
                         <PasswordChangeWithOTP onClose={() => setShowChangePassword(false)} onSuccess={() => setShowChangePassword(false)} />
                       )}
                     </div>
                     <div className="flex items-center justify-between bg-white/5 rounded-lg p-4">
-                      <div><p className="text-sm font-medium text-white">Authentification à deux facteurs</p><p className="text-xs text-white/50">Ajoutez une couche de sécurité supplémentaire à votre compte</p></div>
+                      <div><p className="text-sm font-medium text-white">Two-factor authentication</p><p className="text-xs text-white/50">Add an extra layer of security to your account</p></div>
                       {!twoFAEnabled ? (
-                        <button onClick={() => setShow2FAModal(true)} disabled={loading2FA} className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-50">Activer</button>
+                        <button onClick={() => setShow2FAModal(true)} disabled={loading2FA} className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-50">Enable</button>
                       ) : (
-                        <button onClick={handleDisable2FA} disabled={loading2FA} className="bg-red-600/20 hover:bg-red-600/30 text-red-300 px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-50">Désactiver</button>
+                        <button onClick={handleDisable2FA} disabled={loading2FA} className="bg-red-600/20 hover:bg-red-600/30 text-red-300 px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-50">Disable</button>
                       )}
                     </div>
                     <div className="flex items-center justify-between bg-white/5 rounded-lg p-4">
-                      <div><p className="text-sm font-medium text-white">Email de récupération</p><p className="text-xs text-white/50">Ajoutez un email de récupération pour réinitialiser votre mot de passe</p></div>
+                      <div><p className="text-sm font-medium text-white">Recovery email</p><p className="text-xs text-white/50">Add a recovery email to reset your password</p></div>
                       {!recoveryEmailAdded ? (
-                        <button onClick={() => setShowRecoveryModal(true)} disabled={loadingRecovery} className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-50">Ajouter</button>
+                        <button onClick={() => setShowRecoveryModal(true)} disabled={loadingRecovery} className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-50">Add</button>
                       ) : (
-                        <button onClick={handleRemoveRecoveryEmail} disabled={loadingRecovery} className="bg-red-600/20 hover:bg-red-600/30 text-red-300 px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-50">Supprimer</button>
+                        <button onClick={handleRemoveRecoveryEmail} disabled={loadingRecovery} className="bg-red-600/20 hover:bg-red-600/30 text-red-300 px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-50">Remove</button>
                       )}
                     </div>
                   </div>
@@ -605,18 +605,18 @@ export default function AdminMyProfile() {
         </div>
       </div>
 
-      <ChatWidget university={user?.university || 'Université'} />
+      <ChatWidget university={user?.university || 'University'} />
 
       {/* 2FA Modal */}
       {show2FAModal && (
         <div className="profile-modal-overlay" onClick={() => setShow2FAModal(false)}>
           <div className="profile-modal" onClick={e => e.stopPropagation()}>
-            <div className="profile-modal-header"><Smartphone size={20} /><h3>Activer l'authentification à deux facteurs</h3><button className="profile-modal-close" onClick={() => setShow2FAModal(false)}>×</button></div>
+            <div className="profile-modal-header"><Smartphone size={20} /><h3>Enable Two-Factor Authentication</h3><button className="profile-modal-close" onClick={() => setShow2FAModal(false)}>×</button></div>
             <div className="profile-modal-body">
-              <p>L'authentification à deux facteurs ajoute une couche de sécurité supplémentaire à votre compte.</p>
-              <div className="profile-modal-info"><strong>Comment ça fonctionne :</strong><ul><li>Téléchargez une application d'authentification (Google Authenticator, Microsoft Authenticator)</li><li>Scannez le code QR qui apparaîtra</li><li>Entrez le code à 6 chiffres de l'application pour vérifier</li></ul></div>
+              <p>Two-factor authentication adds an extra layer of security to your account.</p>
+              <div className="profile-modal-info"><strong>How it works:</strong><ul><li>Download an authenticator app (Google Authenticator, Microsoft Authenticator)</li><li>Scan the QR code that will appear</li><li>Enter the 6-digit code from the app to verify</li></ul></div>
             </div>
-            <div className="profile-modal-footer"><button className="profile-modal-cancel" onClick={() => setShow2FAModal(false)}>Annuler</button><button className="profile-modal-confirm" onClick={handleEnable2FA}>Activer 2FA</button></div>
+            <div className="profile-modal-footer"><button className="profile-modal-cancel" onClick={() => setShow2FAModal(false)}>Cancel</button><button className="profile-modal-confirm" onClick={handleEnable2FA}>Enable 2FA</button></div>
           </div>
         </div>
       )}
@@ -625,16 +625,147 @@ export default function AdminMyProfile() {
       {showRecoveryModal && (
         <div className="profile-modal-overlay" onClick={() => setShowRecoveryModal(false)}>
           <div className="profile-modal" onClick={e => e.stopPropagation()}>
-            <div className="profile-modal-header"><Key size={20} /><h3>Ajouter un email de récupération</h3><button className="profile-modal-close" onClick={() => setShowRecoveryModal(false)}>×</button></div>
+            <div className="profile-modal-header"><Key size={20} /><h3>Add Recovery Email</h3><button className="profile-modal-close" onClick={() => setShowRecoveryModal(false)}>×</button></div>
             <div className="profile-modal-body">
-              <p>Ajoutez un email de récupération pour réinitialiser votre mot de passe si vous perdez l'accès à votre compte.</p>
-              <p className="text-sm text-white/50 mt-2">Un code de vérification sera envoyé à cet email.</p>
-              <input type="email" placeholder="Entrez l'email de récupération" value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)} className="profile-modal-input" />
+              <p>Add a recovery email to reset your password if you lose access to your account.</p>
+              <p className="text-sm text-white/50 mt-2">A verification code will be sent to this email.</p>
+              <input type="email" placeholder="Enter recovery email" value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)} className="profile-modal-input" />
             </div>
-            <div className="profile-modal-footer"><button className="profile-modal-cancel" onClick={() => setShowRecoveryModal(false)}>Annuler</button><button className="profile-modal-confirm" onClick={handleAddRecoveryEmail} disabled={loadingRecovery}>{loadingRecovery ? 'Envoi...' : 'Envoyer le code'}</button></div>
+            <div className="profile-modal-footer"><button className="profile-modal-cancel" onClick={() => setShowRecoveryModal(false)}>Cancel</button><button className="profile-modal-confirm" onClick={handleAddRecoveryEmail} disabled={loadingRecovery}>{loadingRecovery ? 'Sending...' : 'Send Code'}</button></div>
           </div>
         </div>
       )}
+
+      <style>{`
+        /* ===== RESPONSIVE STYLES ===== */
+        @media (max-width: 768px) {
+          .ml-64 {
+            margin-left: 220px !important;
+          }
+          .flex.items-end.gap-5 {
+            flex-direction: column;
+            align-items: flex-start !important;
+          }
+          .pt-10 {
+            padding-top: 0 !important;
+          }
+          .flex-1.flex.items-center.justify-between {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 1rem;
+          }
+          .grid-cols-1.md\\:grid-cols-2 {
+            grid-template-columns: 1fr !important;
+          }
+        }
+        
+        @media (max-width: 580px) {
+          .ml-64 {
+            margin-left: 200px !important;
+          }
+          .w-20.h-20 {
+            width: 60px;
+            height: 60px;
+          }
+          .text-2xl.font-bold {
+            font-size: 1.2rem;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .ml-64 {
+            margin-left: 180px !important;
+          }
+          .px-6 {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+          }
+          .gap-2 {
+            gap: 0.5rem;
+          }
+          .px-4.py-2 {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.7rem;
+          }
+          .text-sm {
+            font-size: 0.7rem;
+          }
+        }
+        
+        /* ===== LIGHT MODE STYLES ===== */
+        body.light-mode .bg-white\\/10 {
+          background: rgba(255, 255, 255, 0.9) !important;
+          border-color: rgba(141, 35, 212, 0.25) !important;
+        }
+        body.light-mode .text-white,
+        body.light-mode .text-white\\/70,
+        body.light-mode .text-white\\/80,
+        body.light-mode .text-white\\/90 {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .text-white\\/50,
+        body.light-mode .text-white\\/60 {
+          color: #666 !important;
+        }
+        body.light-mode .text-purple-400 {
+          color: #8D23D4 !important;
+        }
+        body.light-mode .bg-purple-500\\/20 {
+          background: rgba(141, 35, 212, 0.1) !important;
+        }
+        body.light-mode .border-white\\/20 {
+          border-color: rgba(141, 35, 212, 0.2) !important;
+        }
+        body.light-mode .bg-white\\/5 {
+          background: rgba(0, 0, 0, 0.03) !important;
+        }
+        body.light-mode .bg-purple-600 {
+          background: #8D23D4 !important;
+        }
+        body.light-mode .bg-purple-600:hover {
+          background: #6B21A5 !important;
+        }
+        body.light-mode .bg-green-600 {
+          background: #059669 !important;
+        }
+        body.light-mode .bg-green-600:hover {
+          background: #047857 !important;
+        }
+        body.light-mode .bg-red-600\\/20 {
+          background: rgba(220, 38, 38, 0.1) !important;
+        }
+        body.light-mode .text-red-300 {
+          color: #dc2626 !important;
+        }
+        body.light-mode .text-green-300 {
+          color: #059669 !important;
+        }
+        body.light-mode .text-yellow-300 {
+          color: #d97706 !important;
+        }
+        body.light-mode input,
+        body.light-mode textarea {
+          color: #1a1a2e !important;
+        }
+        body.light-mode input::placeholder,
+        body.light-mode textarea::placeholder {
+          color: #999 !important;
+        }
+        body.light-mode .bg-black\\/50 {
+          background: rgba(0, 0, 0, 0.6) !important;
+        }
+        body.light-mode .profile-modal {
+          background: white !important;
+        }
+        body.light-mode .profile-modal .text-white,
+        body.light-mode .profile-modal .text-white\\/60,
+        body.light-mode .profile-modal .text-white\\/50 {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .profile-modal .bg-white\\/10 {
+          background: rgba(141, 35, 212, 0.05) !important;
+        }
+      `}</style>
     </div>
   );
 }

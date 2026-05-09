@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle, XCircle, Clock, Bell, CheckCheck, X, FileText,
-  Briefcase, MapPin, Users, ChevronLeft, ChevronRight
+  Briefcase, MapPin, Users, ChevronLeft, ChevronRight, Moon, Sun
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CompanySidebar from '../components/CompanySidebar';
@@ -57,7 +57,7 @@ const NotificationItem = ({ notification, onMarkRead, onNavigate }) => {
         <IconComponent size={14} className={config.color} />
       </div>
       <div className="sd-notif-body">
-        <p className="text-white/90">{notification.message}</p>
+        <p className="notification-message">{notification.message}</p>
         <span className="sd-notif-time">{notification.created_at}</span>
       </div>
       {!notification.is_read && <div className="sd-notif-unread-dot" />}
@@ -88,15 +88,15 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
           )}
         </div>
         {unreadCount > 0 && (
-          <button className="sd-notif-clear" onClick={onMarkAllRead}>Tout marquer comme lu</button>
+          <button className="sd-notif-clear" onClick={onMarkAllRead}>Mark all as read</button>
         )}
       </div>
       <div className="sd-notif-list">
         {notifications.length === 0 ? (
           <div className="sd-notif-empty">
             <Bell size={32} className="mx-auto mb-2 opacity-30" />
-            <p>Aucune notification</p>
-            <span className="text-xs">Les notifications apparaîtront ici</span>
+            <p>No notifications</p>
+            <span className="text-xs">Notifications will appear here</span>
           </div>
         ) : (
           notifications.slice(0, 15).map(notif => (
@@ -105,7 +105,7 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
         )}
       </div>
       {notifications.length > 0 && (
-        <div className="sd-notif-footer"><button onClick={onClose}>Fermer</button></div>
+        <div className="sd-notif-footer"><button onClick={onClose}>Close</button></div>
       )}
     </div>
   );
@@ -132,37 +132,58 @@ const MailIcon = () => (
   </svg>
 );
 
+// Moon and Sun icons for theme toggle
+const MoonIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
+
+const SunIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <circle cx="12" cy="12" r="5" />
+    <line x1="12" y1="1" x2="12" y2="3" />
+    <line x1="12" y1="21" x2="12" y2="23" />
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+    <line x1="1" y1="12" x2="3" y2="12" />
+    <line x1="21" y1="12" x2="23" y2="12" />
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+  </svg>
+);
+
 /* ========== OFFER DETAIL MODAL ========== */
 const OfferDetailModal = ({ offer, onClose }) => {
   if (!offer) return null;
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
-      <div className="bg-[#1e293b] border border-slate-700 rounded-2xl w-full max-w-lg p-8 relative shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white transition"><X size={20} /></button>
+      <div className="offer-modal" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} className="offer-modal-close"><X size={20} /></button>
         {imgUrl(offer.image_url) && (
-          <div className="h-80 w-full overflow-hidden rounded-lg mb-4">
-            <img src={imgUrl(offer.image_url)} alt={offer.title} className="w-full h-full object-cover" />
+          <div className="offer-modal-img">
+            <img src={imgUrl(offer.image_url)} alt={offer.title} />
           </div>
         )}
-        <h2 className="text-xl font-bold text-white mb-1">{offer.title}</h2>
-        <p className="text-slate-500 text-sm mb-5">{offer.company_name}</p>
-        <div className="grid grid-cols-2 gap-3 mb-5">
+        <h2 className="offer-modal-title">{offer.title}</h2>
+        <p className="offer-modal-company">{offer.company_name}</p>
+        <div className="offer-modal-grid">
           {[['Type', offer.internship_type], ['Wilaya', offer.wilaya], ['Duration', offer.duration], ['Start', offer.start_date], ['Status', offer.is_active ? 'Active' : 'Inactive'], ['Created', offer.created_at]].map(([label, value]) => (
-            <div key={label} className="bg-slate-800 rounded-lg p-3">
-              <span className="block text-xs text-slate-500 mb-1">{label}</span>
-              <span className="text-sm text-white font-medium">{value}</span>
+            <div key={label} className="offer-modal-info">
+              <span className="offer-modal-label">{label}</span>
+              <span className="offer-modal-value">{value}</span>
             </div>
           ))}
         </div>
-        <div className="mb-5">
-          <p className="text-xs text-slate-500 mb-2">Description</p>
-          <p className="text-sm text-slate-300 leading-relaxed">{offer.description}</p>
+        <div className="offer-modal-desc">
+          <p className="offer-modal-label">Description</p>
+          <p className="offer-modal-text">{offer.description}</p>
         </div>
         {offer.required_skills?.length > 0 && (
-          <div className="mb-6">
-            <p className="text-xs text-slate-500 mb-2">Required Skills</p>
-            <div className="flex flex-wrap gap-2">
-              {offer.required_skills.map(s => <span key={s} className="bg-indigo-900/60 text-indigo-300 text-xs px-2.5 py-1 rounded-full">{s}</span>)}
+          <div className="offer-modal-skills">
+            <p className="offer-modal-label">Required Skills</p>
+            <div className="offer-modal-skills-list">
+              {offer.required_skills.map(s => <span key={s} className="offer-modal-skill">{s}</span>)}
             </div>
           </div>
         )}
@@ -196,67 +217,59 @@ const TopOffersCarousel = ({ offers, onOfferClick }) => {
 
   if (offers.length === 0) {
     return (
-      <div className="text-center py-10">
-        <Briefcase size={40} className="mx-auto mb-3 opacity-30 text-white/30" />
-        <p className="text-white/50">No offers yet.</p>
+      <div className="carousel-empty">
+        <Briefcase size={40} className="carousel-empty-icon" />
+        <p className="carousel-empty-text">No offers yet.</p>
       </div>
     );
   }
 
   const visibleOffers = offers.slice(currentIndex, currentIndex + visibleCount);
   const slideClass = animating
-    ? direction === 'right' ? 'translate-x-[-30px] opacity-0' : 'translate-x-[30px] opacity-0'
-    : 'translate-x-0 opacity-100';
+    ? direction === 'right' ? 'carousel-track-slide-right' : 'carousel-track-slide-left'
+    : 'carousel-track-visible';
 
   return (
-    <div className="relative">
-      <style>{`
-        .carousel-track { transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease; }
-        .offer-card { transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease; }
-        .offer-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(139,92,246,0.25); }
-        .offer-card img { transition: transform 0.4s ease; }
-        .offer-card:hover img { transform: scale(1.05); }
-      `}</style>
-      <div className="flex items-center">
+    <div className="carousel-wrapper">
+      <div className="carousel-container">
         <button
           onClick={() => slide('left')}
           disabled={currentIndex === 0 || animating}
-          className="p-2 text-white/50 hover:text-white disabled:opacity-30 transition-all duration-200 hover:scale-110 mr-2 flex-shrink-0"
+          className="carousel-nav-btn carousel-nav-left"
         >
           <ChevronLeft size={28} />
         </button>
 
-        <div className={`flex-1 grid grid-cols-3 gap-4 carousel-track ${slideClass}`}>
+        <div className={`carousel-track ${slideClass}`}>
           {visibleOffers.map((offer) => (
             <div
               key={offer.id}
-              className="offer-card bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 overflow-hidden hover:border-purple-500/50 cursor-pointer flex flex-col"
+              className="carousel-offer-card"
               onClick={() => onOfferClick(offer)}
             >
-              <div className="h-64 w-full overflow-hidden">
+              <div className="carousel-offer-img">
                 {imgUrl(offer.image_url) ? (
                   <img
                     src={imgUrl(offer.image_url)}
                     alt={offer.title}
-                    className="w-full h-full object-cover"
                     onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                   />
                 ) : null}
                 <div
-                  className="w-full h-full bg-gradient-to-br from-purple-900/40 to-indigo-900/40 items-center justify-center"
+                  className="carousel-offer-placeholder"
                   style={{ display: imgUrl(offer.image_url) ? 'none' : 'flex' }}
                 >
-                  <Briefcase size={48} className="text-white/20" />
+                  <Briefcase size={48} />
                 </div>
               </div>
-              <div className="p-4 pt-3 flex-1 flex flex-col justify-between">
-                <h3 className="text-white font-semibold text-sm mb-2 line-clamp-1">{offer.title}</h3>
-                <div className="flex items-center gap-2 text-white/60 text-xs mb-2">
+              <div className="carousel-offer-content">
+                <h3 className="carousel-offer-title">{offer.title}</h3>
+                <div className="carousel-offer-location">
                   <MapPin size={12} />
                   <span>{offer.wilaya}</span>
                 </div>
                 {offer.applicants_count !== undefined && (
-                  <div className="flex items-center gap-2 text-white/50 text-xs mt-auto">
+                  <div className="carousel-offer-applicants">
                     <Users size={12} />
                     <span>{offer.applicants_count ?? 0} applicants</span>
                   </div>
@@ -269,19 +282,19 @@ const TopOffersCarousel = ({ offers, onOfferClick }) => {
         <button
           onClick={() => slide('right')}
           disabled={currentIndex >= maxStart || animating}
-          className="p-2 text-white/50 hover:text-white disabled:opacity-30 transition-all duration-200 hover:scale-110 ml-2 flex-shrink-0"
+          className="carousel-nav-btn carousel-nav-right"
         >
           <ChevronRight size={28} />
         </button>
       </div>
 
       {offers.length > visibleCount && (
-        <div className="flex justify-center gap-2 mt-5">
+        <div className="carousel-dots">
           {Array.from({ length: maxStart + 1 }).map((_, i) => (
             <button
               key={i}
               onClick={() => { if (!animating) { setDirection(i > currentIndex ? 'right' : 'left'); setAnimating(true); setTimeout(() => { setCurrentIndex(i); setAnimating(false); setDirection(null); }, 350); } }}
-              className={`rounded-full transition-all duration-300 ${i === currentIndex ? 'w-6 h-2 bg-purple-400' : 'w-2 h-2 bg-white/20 hover:bg-white/40'}`}
+              className={`carousel-dot ${i === currentIndex ? 'active' : ''}`}
             />
           ))}
         </div>
@@ -304,16 +317,42 @@ const CompanyManagerDashboard = () => {
   const [sectionVisible, setSectionVisible] = useState({ home: true, internships: false });
   const homeRef = useRef(null);
   const internshipsRef = useRef(null);
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
   const [companyProfile, setCompanyProfile] = useState(null);
   const [selectedOffer, setSelectedOffer] = useState(null);
+
+  // Load theme from localStorage
+  useEffect(() => {
+    const savedMode = localStorage.getItem('darkMode');
+    if (savedMode === 'false') {
+      setIsDarkMode(false);
+      document.body.classList.add('light-mode');
+    } else {
+      setIsDarkMode(true);
+      document.body.classList.remove('light-mode');
+    }
+  }, []);
+
+  // Toggle theme function
+  const toggleTheme = () => {
+    if (isDarkMode) {
+      document.body.classList.add('light-mode');
+      localStorage.setItem('darkMode', 'false');
+      setIsDarkMode(false);
+    } else {
+      document.body.classList.remove('light-mode');
+      localStorage.setItem('darkMode', 'true');
+      setIsDarkMode(true);
+    }
+  };
 
   const fetchCompanyProfile = useCallback(async () => {
     try {
       const res = await fetch(`${API}/company/profile/`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) setCompanyProfile(data.profile);
-    } catch (err) { console.error("Erreur chargement profil entreprise:", err); }
+    } catch (err) { console.error("Error loading company profile:", err); }
   }, []);
 
   const fetchTopOffers = useCallback(async () => {
@@ -338,22 +377,22 @@ const CompanyManagerDashboard = () => {
       const res = await fetch(`${API}/company/notifications/`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) setNotifications(data.notifications || []);
-    } catch (err) { console.error("Erreur chargement notifications:", err); }
+    } catch (err) { console.error("Error loading notifications:", err); }
   }, []);
 
   const markNotificationRead = async (id) => {
     try {
       await fetch(`${API}/company/notifications/${id}/read/`, { method: 'PATCH', headers: { Authorization: `Bearer ${token()}` } });
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-    } catch (err) { console.error("Erreur:", err); }
+    } catch (err) { console.error("Error:", err); }
   };
 
   const markAllNotificationsRead = async () => {
     try {
       await fetch(`${API}/company/notifications/read-all/`, { method: 'POST', headers: authHeaders() });
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      toast.success('Toutes les notifications ont été marquées comme lues');
-    } catch (err) { console.error("Erreur:", err); }
+      toast.success('All notifications marked as read');
+    } catch (err) { console.error("Error:", err); }
   };
 
   const navigateToApplication = (applicationId) => {
@@ -420,6 +459,322 @@ const CompanyManagerDashboard = () => {
         }
         .section-animated { opacity: 0; transform: translateY(40px); }
         .section-animated.is-visible { animation: sectionFadeUp 0.65s cubic-bezier(0.4,0,0.2,1) forwards; }
+
+        /* ===== CAROUSEL STYLES - 3 cards on all screens ===== */
+        .carousel-wrapper { width: 100%; }
+        .carousel-container { display: flex; align-items: center; gap: 1rem; }
+        .carousel-track { 
+          flex: 1; 
+          display: grid; 
+          grid-template-columns: repeat(3, 1fr); 
+          gap: 1.5rem; 
+          transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease;
+        }
+        .carousel-track-slide-right { transform: translateX(-30px); opacity: 0; }
+        .carousel-track-slide-left { transform: translateX(30px); opacity: 0; }
+        .carousel-track-visible { transform: translateX(0); opacity: 1; }
+        
+        .carousel-nav-btn {
+          background: rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.2);
+          border-radius: 50%;
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          color: rgba(255,255,255,0.7);
+          transition: all 0.2s ease;
+          flex-shrink: 0;
+        }
+        .carousel-nav-btn:hover:not(:disabled) {
+          background: rgba(139,92,246,0.3);
+          border-color: rgba(139,92,246,0.6);
+          color: white;
+          transform: scale(1.05);
+        }
+        .carousel-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        
+        .carousel-offer-card {
+          background: rgba(255,255,255,0.08);
+          backdrop-filter: blur(12px);
+          border: 1px solid rgba(255,255,255,0.15);
+          border-radius: 20px;
+          overflow: hidden;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+        .carousel-offer-card:hover {
+          transform: translateY(-6px);
+          border-color: rgba(139,92,246,0.6);
+          box-shadow: 0 20px 40px rgba(139,92,246,0.2);
+        }
+        .carousel-offer-img {
+          height: 200px;
+          width: 100%;
+          overflow: hidden;
+          position: relative;
+        }
+        .carousel-offer-img img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform 0.4s ease;
+        }
+        .carousel-offer-card:hover .carousel-offer-img img { transform: scale(1.05); }
+        .carousel-offer-placeholder {
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(99,102,241,0.2));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: rgba(255,255,255,0.3);
+        }
+        .carousel-offer-content { padding: 1rem; }
+        .carousel-offer-title {
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: white;
+          margin-bottom: 0.5rem;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .carousel-offer-location {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          font-size: 0.7rem;
+          color: rgba(255,255,255,0.6);
+          margin-bottom: 0.5rem;
+        }
+        .carousel-offer-applicants {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          font-size: 0.7rem;
+          color: rgba(255,255,255,0.5);
+        }
+        .carousel-dots {
+          display: flex;
+          justify-content: center;
+          gap: 0.5rem;
+          margin-top: 1.5rem;
+        }
+        .carousel-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.3);
+          transition: all 0.3s ease;
+          cursor: pointer;
+        }
+        .carousel-dot.active {
+          width: 24px;
+          border-radius: 4px;
+          background: linear-gradient(90deg, #F75AFA, #8D23D4);
+        }
+        .carousel-empty {
+          text-align: center;
+          padding: 3rem;
+        }
+        .carousel-empty-icon {
+          margin: 0 auto 1rem;
+          opacity: 0.3;
+          color: white;
+        }
+        .carousel-empty-text { color: rgba(255,255,255,0.5); }
+
+        /* ===== MODAL STYLES ===== */
+        .offer-modal {
+          background: #1e293b;
+          border: 1px solid rgba(139,92,246,0.3);
+          border-radius: 24px;
+          width: 100%;
+          max-width: 500px;
+          max-height: 90vh;
+          overflow-y: auto;
+          padding: 1.5rem;
+          position: relative;
+        }
+        .offer-modal-close {
+          position: absolute;
+          top: 1rem;
+          right: 1rem;
+          background: rgba(255,255,255,0.1);
+          border: none;
+          border-radius: 50%;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          color: rgba(255,255,255,0.6);
+          transition: all 0.2s;
+        }
+        .offer-modal-close:hover { background: rgba(239,68,68,0.3); color: #f87171; }
+        .offer-modal-img {
+          height: 200px;
+          width: 100%;
+          overflow: hidden;
+          border-radius: 12px;
+          margin-bottom: 1rem;
+        }
+        .offer-modal-img img { width: 100%; height: 100%; object-fit: cover; }
+        .offer-modal-title {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: white;
+          margin-bottom: 0.25rem;
+        }
+        .offer-modal-company {
+          font-size: 0.8rem;
+          color: #9ca3af;
+          margin-bottom: 1rem;
+        }
+        .offer-modal-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.75rem;
+          margin-bottom: 1rem;
+        }
+        .offer-modal-info {
+          background: rgba(255,255,255,0.05);
+          border-radius: 12px;
+          padding: 0.75rem;
+        }
+        .offer-modal-label {
+          display: block;
+          font-size: 0.65rem;
+          color: #9ca3af;
+          margin-bottom: 0.25rem;
+        }
+        .offer-modal-value {
+          font-size: 0.85rem;
+          color: white;
+          font-weight: 500;
+        }
+        .offer-modal-desc { margin-bottom: 1rem; }
+        .offer-modal-text {
+          font-size: 0.8rem;
+          color: rgba(255,255,255,0.7);
+          line-height: 1.5;
+        }
+        .offer-modal-skills-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          margin-top: 0.5rem;
+        }
+        .offer-modal-skill {
+          background: rgba(139,92,246,0.2);
+          color: #a78bfa;
+          font-size: 0.7rem;
+          padding: 0.25rem 0.75rem;
+          border-radius: 20px;
+        }
+
+        /* ===== LIGHT MODE OVERRIDES ===== */
+        body.light-mode .carousel-nav-btn {
+          background: rgba(0,0,0,0.05);
+          border-color: rgba(0,0,0,0.1);
+          color: #333;
+        }
+        body.light-mode .carousel-nav-btn:hover:not(:disabled) {
+          background: rgba(139,92,246,0.15);
+          border-color: rgba(139,92,246,0.4);
+          color: #8D23D4;
+        }
+        body.light-mode .carousel-offer-card {
+          background: white;
+          border-color: rgba(0,0,0,0.1);
+          box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        body.light-mode .carousel-offer-card:hover {
+          box-shadow: 0 20px 40px rgba(139,92,246,0.15);
+          border-color: rgba(139,92,246,0.4);
+        }
+        body.light-mode .carousel-offer-title { color: #1a1a2e; }
+        body.light-mode .carousel-offer-location { color: #555; }
+        body.light-mode .carousel-offer-applicants { color: #777; }
+        body.light-mode .carousel-dot { background: rgba(0,0,0,0.2); }
+        body.light-mode .carousel-empty-icon { color: #666; }
+        body.light-mode .carousel-empty-text { color: #666; }
+        
+        body.light-mode .offer-modal {
+          background: white;
+          border-color: rgba(139,92,246,0.3);
+        }
+        body.light-mode .offer-modal-title { color: #1a1a2e; }
+        body.light-mode .offer-modal-company { color: #666; }
+        body.light-mode .offer-modal-info { background: rgba(0,0,0,0.03); }
+        body.light-mode .offer-modal-value { color: #1a1a2e; }
+        body.light-mode .offer-modal-text { color: #555; }
+        body.light-mode .offer-modal-label { color: #888; }
+        body.light-mode .offer-modal-skill {
+          background: rgba(139,92,246,0.1);
+          color: #8D23D4;
+        }
+        body.light-mode .offer-modal-close {
+          background: rgba(0,0,0,0.05);
+          color: #666;
+        }
+        body.light-mode .offer-modal-close:hover {
+          background: rgba(239,68,68,0.1);
+          color: #dc2626;
+        }
+
+        /* Light mode for notifications */
+        body.light-mode .notification-message { color: #1a1a2e !important; }
+        body.light-mode .sd-notif-time { color: #999 !important; }
+        body.light-mode .sd-notif-header span { color: #1a1a2e !important; }
+        body.light-mode .sd-notif-empty p { color: #666 !important; }
+        body.light-mode .sd-notif-empty span { color: #999 !important; }
+        body.light-mode .sd-notif-dropdown { background: white !important; border-color: rgba(0,0,0,0.1) !important; }
+        body.light-mode .sd-notif-header { border-bottom-color: rgba(0,0,0,0.08) !important; }
+        body.light-mode .sd-notif-item { border-bottom-color: rgba(0,0,0,0.05) !important; }
+        body.light-mode .sd-notif-item:hover { background: rgba(139,92,246,0.05) !important; }
+
+        /* Light mode for hero section */
+        body.light-mode .sd-hero-content h1 { color: #1a1a2e !important; }
+        body.light-mode .sd-hero-content p { color: #555 !important; }
+
+        /* ===== RESPONSIVE - Keep 3 cards but smaller on mobile ===== */
+        @media (max-width: 900px) {
+          .carousel-track { gap: 1rem; }
+          .carousel-offer-img { height: 160px; }
+          .carousel-offer-title { font-size: 0.8rem; }
+        }
+        
+        @media (max-width: 768px) {
+          .carousel-container { gap: 0.5rem; }
+          .carousel-nav-btn { width: 32px; height: 32px; }
+          .carousel-nav-btn svg { width: 20px; height: 20px; }
+          .carousel-offer-img { height: 140px; }
+          .carousel-offer-title { font-size: 0.75rem; white-space: normal; line-height: 1.3; }
+          .carousel-offer-location { font-size: 0.65rem; }
+          .carousel-offer-applicants { font-size: 0.65rem; }
+          .offer-modal-grid { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 640px) {
+          .carousel-track { gap: 0.75rem; }
+          .carousel-offer-img { height: 120px; }
+          .carousel-offer-content { padding: 0.75rem; }
+          .carousel-offer-title { font-size: 0.7rem; }
+        }
+        
+        @media (max-width: 480px) {
+          .carousel-track { gap: 0.5rem; }
+          .carousel-offer-img { height: 100px; }
+          .carousel-offer-content { padding: 0.5rem; }
+          .carousel-offer-title { font-size: 0.65rem; }
+          .carousel-offer-location { font-size: 0.6rem; }
+          .carousel-offer-applicants { font-size: 0.6rem; }
+        }
       `}</style>
       {sidebarOpen && <CompanySidebar user={user} onLogout={handleLogout} onClose={() => setSidebarOpen(false)} />}
 
@@ -428,11 +783,14 @@ const CompanyManagerDashboard = () => {
       <nav className="sd-navbar" style={{ borderBottom: 'none' }}>
         <div className="sd-navbar-left">
           <button className="sd-hamburger" onClick={() => setSidebarOpen(true)}><span /><span /><span /></button>
-          <a className="sd-logo" href="/">UnivStage</a>
+          <div className="sd-logo-container" style={{ cursor: 'default' }}>
+            <img src="/images/logo.png" alt="UnivStage Logo" className="sd-logo-img" />
+            <span className="sd-site-name">UnivStage</span>
+          </div>
         </div>
         <ul className="sd-nav-links">
-          <li><a href="#home" className={activeSection === 'home' ? 'active' : ''} onClick={e => { e.preventDefault(); scrollTo('home', homeRef); }}>Home</a></li>
-          <li><a href="#internships" className={activeSection === 'internships' ? 'active' : ''} onClick={e => { e.preventDefault(); scrollTo('internships', internshipsRef); }}>Top Internships</a></li>
+          <li><a href="#home" className={`sd-nav-link ${activeSection === 'home' ? 'active' : ''}`} onClick={e => { e.preventDefault(); scrollTo('home', homeRef); }}>Home</a></li>
+          <li><a href="#internships" className={`sd-nav-link ${activeSection === 'internships' ? 'active' : ''}`} onClick={e => { e.preventDefault(); scrollTo('internships', internshipsRef); }}>Top Internships</a></li>
         </ul>
         <div className="sd-navbar-right">
           <div className="sd-notif-wrapper" ref={notifRef}>
@@ -442,17 +800,19 @@ const CompanyManagerDashboard = () => {
             </button>
             {notifOpen && <NotificationsDropdown notifications={notifications} onClose={() => setNotifOpen(false)} onMarkRead={markNotificationRead} onMarkAllRead={markAllNotificationsRead} onNavigate={navigateToApplication} />}
           </div>
-          <button className="sd-icon-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg></button>
+          <button className="sd-icon-btn" onClick={toggleTheme}>
+            {isDarkMode ? <MoonIcon /> : <SunIcon />}
+          </button>
         </div>
       </nav>
 
       <main className="sd-main">
-        {/* HOME SECTION – matches Home.jsx hero */}
+        {/* HOME SECTION */}
         <section className={`sd-hero section-animated ${sectionVisible.home ? 'is-visible' : ''}`} id="home" ref={homeRef} data-section="home" style={{ minHeight: 'auto', padding: '60px 5% 40px' }}>
           <div className="sd-hero-container">
             <div className="sd-hero-content">
               <h1 style={{
-                fontSize: 'clamp(3rem, 6vw, 5rem)',
+                fontSize: 'clamp(2rem, 6vw, 5rem)',
                 fontWeight: 800,
                 lineHeight: 1.08,
                 color: '#fff',
@@ -469,7 +829,7 @@ const CompanyManagerDashboard = () => {
                 </span>
               </h1>
               <p style={{
-                fontSize: '1.2rem',
+                fontSize: 'clamp(1rem, 4vw, 1.2rem)',
                 fontWeight: 600,
                 color: '#ffffff',
                 margin: '0.5rem 0 1rem'
@@ -477,7 +837,7 @@ const CompanyManagerDashboard = () => {
                 from {companyProfile?.name || user?.company_name || ''}
               </p>
               <p style={{
-                fontSize: '0.92rem',
+                fontSize: 'clamp(0.8rem, 3vw, 0.92rem)',
                 color: 'rgba(255,255,255,0.62)',
                 lineHeight: 1.75,
                 maxWidth: '420px',
@@ -490,7 +850,7 @@ const CompanyManagerDashboard = () => {
             <div className="sd-hero-image" style={{
               flex: '1.1',
               maxWidth: '550px',
-              minHeight: '500px',
+              minHeight: '300px',
               border: 'none',
               borderRadius: '20px',
               overflow: 'hidden',
@@ -513,7 +873,7 @@ const CompanyManagerDashboard = () => {
           </div>
         </section>
 
-        {/* TOP INTERNSHIPS SECTION unchanged */}
+        {/* TOP INTERNSHIPS SECTION */}
         <section className={`sd-section section-animated ${sectionVisible.internships ? 'is-visible' : ''}`} id="internships" ref={internshipsRef} data-section="internships" style={{ paddingBottom: '50px' }}>
           <div className="text-center mb-8">
             <h2 className="sd-section-title">
@@ -544,10 +904,10 @@ const CompanyManagerDashboard = () => {
 
       <footer className="footer">
         <div className="footer-grid">
-          <div className="footer-brand"><div className="footer-brand-logo">🎓 UnivStage</div><p>Connecting students with professional opportunities and empowering the next generation of innovators.</p></div>
-          <div className="footer-contact"><h4>Contact Us</h4><ul><li><MapPinIcon />123 University Ave, Campus Center, CA 94000</li><li><PhoneIcon />+1 (555) 123-4567</li><li><MailIcon />internships@university.edu</li></ul></div>
+          <div className="footer-brand"><div className="footer-brand-logo"> UnivStage</div><p>Connecting students with professional opportunities and empowering the next generation of innovators.</p><p>By:</p><p>Nouha Labdi</p><p>Safa Oughidni</p><p>Douaa Benkhalef</p></div>
+          <div className="footer-contact"><h4>Contact Us</h4><ul><li><MapPinIcon /> University constantine2, Algeria</li><li><PhoneIcon />+213 (0) 798864489</li><li><PhoneIcon />+213 (0) 799003478</li><li><PhoneIcon />+213 (0) 557217736</li><li><MailIcon />stageuniversity18@gmail.com</li></ul></div>
         </div>
-        <div className="footer-bottom"><p>© 2026 UnivStage. All rights reserved.</p><div className="footer-socials"><a href="#!">f</a><a href="#!">𝕏</a><a href="#!">in</a><a href="#!">◎</a></div><div className="footer-bottom-links"><a href="#!">Privacy Policy</a><span>|</span><a href="#!">Terms of Service</a></div></div>
+        <div className="footer-bottom"><p>© 2026 UnivStage. All rights reserved.</p><div className="footer-socials"><a href="https://www.facebook.com/univstage" target="_blank" rel="noopener noreferrer">f</a><a href="https://www.instagram.com/univstage" target="_blank" rel="noopener noreferrer">𝕏</a><a href="https://www.linkedin.com/company/univstage" target="_blank" rel="noopener noreferrer">in</a></div><div className="footer-bottom-links"><a href="/privacy-policy">Privacy Policy</a><span>|</span><a href="/terms-of-service">Terms of Service</a><span>|</span><a href="/faq">FAQ</a></div></div>
       </footer>
     </div>
   );

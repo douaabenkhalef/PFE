@@ -28,10 +28,10 @@ function StatusBadge({ isActive }) {
       {isActive ? (
         <>
           <span className="pulse-dot"></span>
-          Actif
+          Active
         </>
       ) : (
-        'Inactif'
+        'Inactive'
       )}
     </span>
   );
@@ -56,7 +56,7 @@ function OfferCard({ offer, onApply, index }) {
     >
       {isExpired && (
         <div className="offer-expired-badge">
-          <Clock size={14} /> Expiré
+          <Clock size={14} /> Expired
         </div>
       )}
       
@@ -71,12 +71,12 @@ function OfferCard({ offer, onApply, index }) {
           ) : (
             <div className="offer-image-placeholder">
               <Briefcase size={48} strokeWidth={1.5} />
-              <span>Image non disponible</span>
+              <span>Image not available</span>
             </div>
           )}
         </div>
         <div className="offer-image-overlay">
-          <div className="offer-type-badge">{offer.internship_type || 'Stage'}</div>
+          <div className="offer-type-badge">{offer.internship_type || 'Internship'}</div>
           <div className="offer-applicants-badge">
             <Users size={12} />
             <span>{applicantsCount}</span>
@@ -106,7 +106,7 @@ function OfferCard({ offer, onApply, index }) {
           </div>
           <div className="offer-detail">
             <Calendar size={14} />
-            <span>{offer.deadline ? new Date(offer.deadline).toLocaleDateString('fr-FR') : '—'}</span>
+            <span>{offer.deadline ? new Date(offer.deadline).toLocaleDateString('en-GB') : '—'}</span>
           </div>
         </div>
         
@@ -129,7 +129,7 @@ function OfferCard({ offer, onApply, index }) {
             if (!isExpired) onApply(offer);
           }}
         >
-          {isExpired ? 'Offre expirée' : 'Postuler maintenant'}
+          {isExpired ? 'Offer expired' : 'Apply now'}
           {!isExpired && <ArrowRight size={16} className="btn-arrow" />}
         </button>
       </div>
@@ -159,8 +159,8 @@ function CompanyStats({ offers, loading }) {
   const totalApplicants = offers.reduce((sum, o) => sum + (o.applicants_count || 0), 0);
   
   const statsItems = [
-    { icon: Briefcase, label: 'Offres actives', value: activeOffers, color: '#8b5cf6' },
-    { icon: Users, label: 'Candidats', value: totalApplicants, color: '#ec4899' },
+    { icon: Briefcase, label: 'Active offers', value: activeOffers, color: '#8b5cf6' },
+    { icon: Users, label: 'Applicants', value: totalApplicants, color: '#ec4899' },
   ];
   
   return (
@@ -188,11 +188,11 @@ function CompanyContactCard({ company, companyManagerEmail }) {
   const [showAll, setShowAll] = useState(false);
   
   const contactItems = [
-    { icon: Mail, label: 'Email contact', value: company.contact_email, link: `mailto:${company.contact_email}` },
-    { icon: Mail, label: '📧 Email Manager', value: companyManagerEmail, link: `mailto:${companyManagerEmail}` },
-    { icon: Phone, label: 'Téléphone', value: company.phone, link: `tel:${company.phone}` },
-    { icon: Globe, label: 'Site web', value: company.website, link: company.website },
-    { icon: MapPin, label: 'Adresse', value: company.location || 'Algérie', link: null },
+    { icon: Mail, label: 'Contact email', value: company.contact_email, link: `mailto:${company.contact_email}` },
+    { icon: Mail, label: '📧 Manager Email', value: companyManagerEmail, link: `mailto:${companyManagerEmail}` },
+    { icon: Phone, label: 'Phone', value: company.phone, link: `tel:${company.phone}` },
+    { icon: Globe, label: 'Website', value: company.website, link: company.website },
+    { icon: MapPin, label: 'Address', value: company.location || 'Algeria', link: null },
   ].filter(item => item.value);
   
   const socialItems = [
@@ -206,13 +206,13 @@ function CompanyContactCard({ company, companyManagerEmail }) {
         <div className="card-icon-badge">
           <Mail size={18} />
         </div>
-        <h3>Contact & Réseaux</h3>
+        <h3>Contact & Social</h3>
       </div>
       
       <div className="contact-list">
         {contactItems.slice(0, showAll ? undefined : 5).map((item, idx) => {
           const Icon = item.icon;
-          const isManager = item.label === '📧 Email Manager';
+          const isManager = item.label === '📧 Manager Email';
           return (
             <div key={idx} className="contact-item">
               <Icon size={16} className="contact-icon" />
@@ -230,7 +230,7 @@ function CompanyContactCard({ company, companyManagerEmail }) {
       
       {socialItems.length > 0 && (
         <div className="social-links">
-          <p className="social-label">Réseaux sociaux</p>
+          <p className="social-label">Social networks</p>
           <div className="social-icons">
             {socialItems.map((item, idx) => {
               const Icon = item.icon;
@@ -253,7 +253,7 @@ function CompanyContactCard({ company, companyManagerEmail }) {
       
       {contactItems.length > 5 && !showAll && (
         <button className="show-more-btn" onClick={() => setShowAll(true)}>
-          Voir plus <ChevronDown size={14} />
+          View more <ChevronDown size={14} />
         </button>
       )}
     </div>
@@ -268,21 +268,21 @@ function CompanyAboutCard({ company }) {
         <div className="card-icon-badge">
           <Building2 size={18} />
         </div>
-        <h3>À propos</h3>
+        <h3>About</h3>
       </div>
       
       <p className="about-text">
-        {company.description || 'Aucune description disponible pour le moment.'}
+        {company.description || 'No description available at the moment.'}
       </p>
       
       <div className="company-meta">
         <div className="meta-item">
           <Briefcase size={14} />
-          <span>Secteur: <strong>{company.industry || 'Non spécifié'}</strong></span>
+          <span>Industry: <strong>{company.industry || 'Not specified'}</strong></span>
         </div>
         <div className="meta-item">
           <MapPin size={14} />
-          <span>Localisation: <strong>{company.location || 'Algérie'}</strong></span>
+          <span>Location: <strong>{company.location || 'Algeria'}</strong></span>
         </div>
       </div>
     </div>
@@ -310,25 +310,25 @@ export default function CompanyPublicView() {
       setLoading(true);
       setError(null);
       try {
-        // 1. جلب جميع الشركات أولاً (نقطة نهاية موجودة)
+        // 1. Fetch all companies first (existing endpoint)
         const companiesRes = await fetch(`${API}/companies/list/`);
         const companies = await companiesRes.json();
         
-        // البحث عن الشركة بالـ ID
+        // Find the company by ID
         const foundCompany = companies.find(c => c.id === companyId);
         
         if (!foundCompany) {
-          setError('Entreprise non trouvée');
+          setError('Company not found');
           setLoading(false);
           return;
         }
         
         setCompany(foundCompany);
         
-        // 2. جلب البريد الإلكتروني لـ Company Manager - محاولة طرق متعددة
+        // 2. Fetch Company Manager email - multiple methods
         let managerEmail = null;
         
-        // الطريقة الأولى: استخدام endpoint موجود
+        // Method 1: Use existing endpoint
         try {
           const managerRes = await fetch(`${API}/company/company-manager/?company=${encodeURIComponent(foundCompany.company_name)}`);
           const managerData = await managerRes.json();
@@ -339,20 +339,20 @@ export default function CompanyPublicView() {
           console.error('Error fetching company manager (method 1):', err);
         }
         
-        // الطريقة الثانية: البحث عن Company Manager من خلال البيانات المتاحة
+        // Method 2: Search for Company Manager through available data
         if (!managerEmail && foundCompany.email) {
-          // إذا كان البريد موجوداً في بيانات الشركة، استخدمه
+          // If email exists in company data, use it
           managerEmail = foundCompany.email;
         }
         
-        // الطريقة الثالثة: استخدام البريد من CompanyProfile إذا وجد
+        // Method 3: Use email from CompanyProfile if found
         if (!managerEmail && foundCompany.contact_email) {
           managerEmail = foundCompany.contact_email;
         }
         
         setCompanyManagerEmail(managerEmail);
         
-        // 3. جلب العروض باستخدام اسم الشركة
+        // 3. Fetch offers using company name
         setLoadingOffers(true);
         try {
           const searchRes = await fetch(`${API}/public/offers/search/?company_name=${encodeURIComponent(foundCompany.company_name)}`);
@@ -379,7 +379,7 @@ export default function CompanyPublicView() {
         
       } catch (err) {
         console.error('Error fetching company data:', err);
-        setError('Erreur de chargement des données');
+        setError('Error loading data');
       } finally {
         setLoading(false);
       }
@@ -425,7 +425,7 @@ export default function CompanyPublicView() {
     return (
       <div className="loading-screen">
         <div className="spinner"></div>
-        <p>Chargement...</p>
+        <p>Loading...</p>
       </div>
     );
   }
@@ -436,10 +436,10 @@ export default function CompanyPublicView() {
         <div className="error-icon">
           <Building2 size={64} strokeWidth={1} />
         </div>
-        <h2>{error || 'Entreprise non trouvée'}</h2>
-        <p>L'entreprise que vous recherchez n'existe pas ou a été supprimée.</p>
+        <h2>{error || 'Company not found'}</h2>
+        <p>The company you are looking for does not exist or has been deleted.</p>
         <button onClick={handleBack} className="back-btn">
-          <ArrowLeft size={18} /> Retour à l'accueil
+          <ArrowLeft size={18} /> Back to home
         </button>
       </div>
     );
@@ -449,7 +449,7 @@ export default function CompanyPublicView() {
 
   return (
     <div className="company-page">
-      {/* Hero Section - بدون margin-top */}
+      {/* Hero Section */}
       <div className="company-hero-section" style={{ marginTop: 0 }}>
         <div className="hero-cover">
           {company.cover_picture ? (
@@ -477,7 +477,7 @@ export default function CompanyPublicView() {
             <h1 className="company-name">{company.company_name}</h1>
             <div className="company-location">
               <MapPin size={16} />
-              <span>{company.location || 'Algérie'}</span>
+              <span>{company.location || 'Algeria'}</span>
             </div>
           </div>
         </div>
@@ -503,7 +503,7 @@ export default function CompanyPublicView() {
                   <Briefcase size={22} />
                 </div>
                 <h2>
-                  Offres de stage
+                  Internship offers
                   <span className="offers-count">{filteredOffers.length}</span>
                 </h2>
               </div>
@@ -515,7 +515,7 @@ export default function CompanyPublicView() {
                     onClick={() => setShowFilters(!showFilters)}
                   >
                     <Filter size={16} />
-                    <span>Filtrer</span>
+                    <span>Filter</span>
                     {showFilters ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                   </button>
                 </div>
@@ -529,7 +529,7 @@ export default function CompanyPublicView() {
                   <Search size={16} />
                   <input
                     type="text"
-                    placeholder="Rechercher une offre..."
+                    placeholder="Search for an offer..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -545,7 +545,7 @@ export default function CompanyPublicView() {
                   value={selectedType}
                   onChange={(e) => setSelectedType(e.target.value)}
                 >
-                  <option value="">Tous les types</option>
+                  <option value="">All types</option>
                   {offerTypes.map(type => (
                     <option key={type} value={type}>{type}</option>
                   ))}
@@ -559,7 +559,7 @@ export default function CompanyPublicView() {
                       setSelectedType('');
                     }}
                   >
-                    Effacer
+                    Clear
                   </button>
                 )}
               </div>
@@ -569,18 +569,18 @@ export default function CompanyPublicView() {
             {loadingOffers ? (
               <div className="loading-offers">
                 <div className="spinner-small"></div>
-                <p>Chargement des offres...</p>
+                <p>Loading offers...</p>
               </div>
             ) : filteredOffers.length === 0 ? (
               <div className="no-offers">
                 <div className="no-offers-icon">
                   <Briefcase size={64} strokeWidth={1} />
                 </div>
-                <h3>Aucune offre trouvée</h3>
+                <h3>No offers found</h3>
                 <p>
                   {offers.length === 0 
-                    ? "Cette entreprise n'a pas encore publié d'offres de stage actives."
-                    : "Aucune offre ne correspond à vos critères de recherche."}
+                    ? "This company hasn't published any active internship offers yet."
+                    : "No offers match your search criteria."}
                 </p>
                 {(searchTerm || selectedType) && (
                   <button 
@@ -590,7 +590,7 @@ export default function CompanyPublicView() {
                       setSelectedType('');
                     }}
                   >
-                    Effacer les filtres
+                    Clear filters
                   </button>
                 )}
               </div>
@@ -613,10 +613,10 @@ export default function CompanyPublicView() {
                 <div className="no-offers-icon">
                   <AlertCircle size={64} strokeWidth={1} />
                 </div>
-                <h3>Aucune offre active</h3>
-                <p>Cette entreprise n'a pas d'offres de stage disponibles actuellement.</p>
+                <h3>No active offers</h3>
+                <p>This company doesn't have any internship offers available at the moment.</p>
                 <button onClick={handleBack} className="clear-filters-btn">
-                  Retour à l'accueil
+                  Back to home
                 </button>
               </div>
             )}
@@ -629,7 +629,7 @@ export default function CompanyPublicView() {
         <div className="container">
           <div className="footer-content">
             <button onClick={handleBack} className="back-btn-footer">
-              <ArrowLeft size={18} /> Retour à l'accueil
+              <ArrowLeft size={18} /> Back to home
             </button>
           </div>
         </div>

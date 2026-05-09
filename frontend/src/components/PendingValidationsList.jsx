@@ -42,15 +42,15 @@ function StatusBadge({ status }) {
   const getStatusConfig = () => {
     switch (status) {
       case "accepted_by_company":
-        return { label: "En attente de validation", color: "bg-blue-500/20 text-blue-300 border-blue-500/30" };
+        return { label: "Pending validation", color: "bg-blue-500/20 text-blue-300 border-blue-500/30" };
       case "validated_by_co_dept":
-        return { label: "Validée - Prête à signer", color: "bg-purple-500/20 text-purple-300 border-purple-500/30" };
+        return { label: "Validated - Ready to sign", color: "bg-purple-500/20 text-purple-300 border-purple-500/30" };
       case "rejected_by_co_dept":
-        return { label: "Refusée", color: "bg-red-500/20 text-red-300 border-red-500/30" };
+        return { label: "Rejected", color: "bg-red-500/20 text-red-300 border-red-500/30" };
       case "fully_signed":
-        return { label: "Complètement signée", color: "bg-green-500/20 text-green-300 border-green-500/30" };
+        return { label: "Fully signed", color: "bg-green-500/20 text-green-300 border-green-500/30" };
       default:
-        return { label: status || "En attente", color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30" };
+        return { label: status || "Pending", color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30" };
     }
   };
   
@@ -95,9 +95,8 @@ const StatsCards = ({ stats, loading }) => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20 animate-pulse">
-            <div className="h-12 bg-white/20 rounded w-20 mb-2"></div>
-            <div className="h-6 bg-white/20 rounded w-32"></div>
+          <div key={i} className="stats-card-skeleton">
+            <div className="stats-card-skeleton-content"></div>
           </div>
         ))}
       </div>
@@ -116,7 +115,7 @@ const StatsCards = ({ stats, loading }) => {
       bgColor: "bg-purple-500/20",
     },
     {
-      title: "En attente",
+      title: "Pending",
       value: stats.pending,
       percentage: stats.total > 0 ? Math.round((stats.pending / stats.total) * 100) : 0,
       color: "#fbbf24",
@@ -126,7 +125,7 @@ const StatsCards = ({ stats, loading }) => {
       bgColor: "bg-yellow-500/20",
     },
     {
-      title: "Validées",
+      title: "Validated",
       value: stats.validated,
       percentage: stats.total > 0 ? Math.round((stats.validated / stats.total) * 100) : 0,
       color: "#34d399",
@@ -136,7 +135,7 @@ const StatsCards = ({ stats, loading }) => {
       bgColor: "bg-green-500/20",
     },
     {
-      title: "Refusées",
+      title: "Rejected",
       value: stats.rejected,
       percentage: stats.total > 0 ? Math.round((stats.rejected / stats.total) * 100) : 0,
       color: "#f97316",
@@ -148,30 +147,20 @@ const StatsCards = ({ stats, loading }) => {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div className="stats-cards-grid">
       {donutConfigs.map((config, idx) => {
         const IconComponent = config.icon;
         return (
-          <div
-            key={idx}
-            className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-5 hover:border-purple-500/50 transition-all duration-300"
-            style={{
-              background: "rgba(255,255,255,0.07)",
-              border: "1px solid rgba(255,255,255,0.13)",
-              backdropFilter: "blur(14px)",
-            }}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-xs font-bold text-white/60 uppercase tracking-wider">
-                {config.title}
-              </span>
-              <div className={`w-8 h-8 ${config.bgColor} rounded-full flex items-center justify-center`}>
+          <div key={idx} className="stats-card">
+            <div className="stats-card-header">
+              <span className="stats-card-title">{config.title}</span>
+              <div className={`stats-card-icon ${config.bgColor}`}>
                 <IconComponent size={16} className={config.iconColor} />
               </div>
             </div>
 
-            <div className="flex items-center justify-center mb-4">
-              <div className="relative">
+            <div className="stats-card-chart">
+              <div className="stats-card-chart-container">
                 <DonutChart
                   percentage={config.percentage}
                   color={config.color}
@@ -179,20 +168,20 @@ const StatsCards = ({ stats, loading }) => {
                   size={100}
                   stroke={10}
                 />
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-bold text-white">{config.value}</span>
+                <div className="stats-card-chart-value">
+                  <span className="stats-card-chart-number">{config.value}</span>
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-center gap-4 text-center">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full" style={{ background: config.color }} />
-                <span className="text-xs text-white/50">{config.title}</span>
+            <div className="stats-card-legend">
+              <div className="stats-card-legend-item">
+                <span className="stats-card-legend-dot" style={{ background: config.color }} />
+                <span className="stats-card-legend-label">{config.title}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full" style={{ background: config.trackColor }} />
-                <span className="text-xs text-white/50">Restant</span>
+              <div className="stats-card-legend-item">
+                <span className="stats-card-legend-dot" style={{ background: config.trackColor }} />
+                <span className="stats-card-legend-label">Remaining</span>
               </div>
             </div>
           </div>
@@ -228,7 +217,7 @@ const DetailsModal = ({ application, onClose, onValidate, onReject, onAddSignatu
       const url = URL.createObjectURL(blob);
       setCvUrl(url);
     } catch (err) {
-      toast.error("Erreur lors du chargement du CV");
+      toast.error("Error loading CV");
     } finally {
       setLoadingCv(false);
     }
@@ -246,7 +235,7 @@ const DetailsModal = ({ application, onClose, onValidate, onReject, onAddSignatu
       const url = URL.createObjectURL(blob);
       setConventionUrl(url);
     } catch (err) {
-      console.error("Erreur chargement convention:", err);
+      console.error("Error loading convention:", err);
     } finally {
       setLoadingConvention(false);
     }
@@ -266,7 +255,7 @@ const DetailsModal = ({ application, onClose, onValidate, onReject, onAddSignatu
 
   const handleRejectSubmit = async () => {
     if (!rejectReason.trim()) {
-      toast.error("Veuillez entrer une raison de refus");
+      toast.error("Please enter a rejection reason");
       return;
     }
     setSubmitting(true);
@@ -293,22 +282,22 @@ const DetailsModal = ({ application, onClose, onValidate, onReject, onAddSignatu
       const data = await res.json();
 
       if (res.status === 403) {
-        const errorMsg = "Vous n'avez pas les permissions pour signer cette convention.";
+        const errorMsg = "You don't have permission to sign this convention.";
         if (onPermissionError) onPermissionError(errorMsg);
         toast.error(errorMsg);
         return;
       }
 
       if (data.success) {
-        toast.success("Signature ajoutée avec succès !");
+        toast.success("Signature added successfully!");
         setSignatureInfo({ university_signed: true });
         if (onAddSignature) onAddSignature();
         setTimeout(() => loadConvention(), 500);
       } else {
-        toast.error(data.error || "Erreur lors de l'ajout de la signature");
+        toast.error(data.error || "Error adding signature");
       }
     } catch (err) {
-      toast.error("Erreur de connexion");
+      toast.error("Connection error");
     } finally {
       setSubmitting(false);
       setShowSignatureModal(false);
@@ -326,22 +315,22 @@ const DetailsModal = ({ application, onClose, onValidate, onReject, onAddSignatu
       const data = await res.json();
 
       if (res.status === 403) {
-        const errorMsg = "Vous n'avez pas les permissions pour ajouter le cachet.";
+        const errorMsg = "You don't have permission to add the stamp.";
         if (onPermissionError) onPermissionError(errorMsg);
         toast.error(errorMsg);
         return;
       }
 
       if (data.success) {
-        toast.success("Cachet ajouté avec succès !");
+        toast.success("Stamp added successfully!");
         setStampInfo({ has_stamp: true });
         if (onAddSignature) onAddSignature();
         setTimeout(() => loadConvention(), 500);
       } else {
-        toast.error(data.error || "Erreur lors de l'ajout du cachet");
+        toast.error(data.error || "Error adding stamp");
       }
     } catch (err) {
-      toast.error("Erreur de connexion");
+      toast.error("Connection error");
     } finally {
       setSubmitting(false);
       setShowStampModal(false);
@@ -359,14 +348,14 @@ const DetailsModal = ({ application, onClose, onValidate, onReject, onAddSignatu
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `convention_${application.student?.full_name || "stage"}.pdf`;
+      a.download = `convention_${application.student?.full_name || "internship"}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success("Convention téléchargée avec succès");
+      toast.success("Convention downloaded successfully");
     } catch (error) {
-      toast.error("Erreur lors du téléchargement");
+      toast.error("Error downloading convention");
     }
   };
 
@@ -385,64 +374,64 @@ const DetailsModal = ({ application, onClose, onValidate, onReject, onAddSignatu
   return (
     <>
       {showSignatureModal && (
-        <SignaturePad onSave={handleSignatureSave} onClose={() => setShowSignatureModal(false)} title="Signature de l'université" />
+        <SignaturePad onSave={handleSignatureSave} onClose={() => setShowSignatureModal(false)} title="University Signature" />
       )}
       {showStampModal && (
-        <StampPad onSave={handleStampSave} onClose={() => setShowStampModal(false)} title="Cachet officiel de l'université" />
+        <StampPad onSave={handleStampSave} onClose={() => setShowStampModal(false)} title="Official University Stamp" />
       )}
 
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
-        <div className="bg-[#1e293b] border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-          <div className="sticky top-0 bg-[#1e293b] border-b border-slate-700 p-5 flex justify-between items-center">
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
             <div>
-              <h2 className="text-xl font-bold text-white">{application.offer?.title || "N/A"}</h2>
-              <p className="text-slate-400 text-sm mt-1">
-                Candidature de <span className="text-white font-medium">{application.student?.full_name || "N/A"}</span>
+              <h2 className="modal-title">{application.offer?.title || "N/A"}</h2>
+              <p className="modal-subtitle">
+                Application by <span className="modal-subtitle-name">{application.student?.full_name || "N/A"}</span>
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="modal-header-right">
               <StatusBadge status={application.status} />
-              <button onClick={onClose} className="text-slate-500 hover:text-white">
+              <button onClick={onClose} className="modal-close">
                 <X size={20} />
               </button>
             </div>
           </div>
 
-          <div className="p-6 space-y-6">
+          <div className="modal-body">
             {/* Offer Info */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-slate-800 rounded-lg p-3">
-                <p className="text-xs text-slate-500 mb-1">Type</p>
-                <p className="text-sm text-white">{application.offer?.internship_type || "—"}</p>
+            <div className="offer-info-grid">
+              <div className="offer-info-card">
+                <p className="offer-info-label">Type</p>
+                <p className="offer-info-value">{application.offer?.internship_type || "—"}</p>
               </div>
-              <div className="bg-slate-800 rounded-lg p-3">
-                <p className="text-xs text-slate-500 mb-1">Wilaya</p>
-                <p className="text-sm text-white">{application.offer?.wilaya || "—"}</p>
+              <div className="offer-info-card">
+                <p className="offer-info-label">Wilaya</p>
+                <p className="offer-info-value">{application.offer?.wilaya || "—"}</p>
               </div>
-              <div className="bg-slate-800 rounded-lg p-3">
-                <p className="text-xs text-slate-500 mb-1">Durée</p>
-                <p className="text-sm text-white">{application.offer?.duration || "—"}</p>
+              <div className="offer-info-card">
+                <p className="offer-info-label">Duration</p>
+                <p className="offer-info-value">{application.offer?.duration || "—"}</p>
               </div>
             </div>
 
             {/* Student Profile */}
-            <div className="bg-slate-800/60 rounded-xl p-5">
-              <h3 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-                <User size={15} /> Profil étudiant
+            <div className="student-profile-card">
+              <h3 className="student-profile-title">
+                <User size={15} /> Student Profile
               </h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2"><Mail size={14} className="text-slate-500" />{application.student?.email || "—"}</div>
-                <div className="flex items-center gap-2"><MapPin size={14} className="text-slate-500" />{application.student?.wilaya || "—"}</div>
-                <div className="flex items-center gap-2"><BookOpen size={14} className="text-slate-500" />{application.student?.university || "—"}</div>
-                <div className="flex items-center gap-2"><Award size={14} className="text-slate-500" />{application.student?.major || "—"} · {application.student?.education_level || "—"}</div>
-                <div className="flex items-center gap-2"><Calendar size={14} className="text-slate-500" />Promotion: {application.student?.graduation_year || "—"}</div>
+              <div className="student-profile-info">
+                <div className="student-profile-row"><Mail size={14} />{application.student?.email || "—"}</div>
+                <div className="student-profile-row"><MapPin size={14} />{application.student?.wilaya || "—"}</div>
+                <div className="student-profile-row"><BookOpen size={14} />{application.student?.university || "—"}</div>
+                <div className="student-profile-row"><Award size={14} />{application.student?.major || "—"} · {application.student?.education_level || "—"}</div>
+                <div className="student-profile-row"><Calendar size={14} />Graduation: {application.student?.graduation_year || "—"}</div>
               </div>
               {application.student?.skills?.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-xs text-slate-500 mb-2">Compétences</p>
-                  <div className="flex flex-wrap gap-2">
+                <div className="student-skills">
+                  <p className="student-skills-label">Skills</p>
+                  <div className="student-skills-list">
                     {application.student.skills.map((s) => (
-                      <span key={s} className="bg-indigo-900/60 text-indigo-300 text-xs px-2.5 py-1 rounded-full">{s}</span>
+                      <span key={s} className="student-skill-tag">{s}</span>
                     ))}
                   </div>
                 </div>
@@ -451,37 +440,33 @@ const DetailsModal = ({ application, onClose, onValidate, onReject, onAddSignatu
 
             {/* CV */}
             {application.cv_file_url && (
-              <div className="bg-slate-800/60 rounded-xl p-5">
-                <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+              <div className="cv-card">
+                <h3 className="cv-title">
                   <FileText size={15} /> CV
                 </h3>
                 {!cvUrl && !loadingCv && (
-                  <button onClick={loadCv} className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm">
-                    Charger le CV
-                  </button>
+                  <button onClick={loadCv} className="cv-load-btn">Load CV</button>
                 )}
-                {loadingCv && <p className="text-slate-300 text-sm">Chargement...</p>}
-                {cvUrl && <iframe src={cvUrl} title="CV" className="w-full h-96 rounded-lg border border-slate-600 mt-3" />}
+                {loadingCv && <p className="cv-loading">Loading...</p>}
+                {cvUrl && <iframe src={cvUrl} title="CV" className="cv-iframe" />}
               </div>
             )}
 
             {/* Convention PDF */}
             {application.status === "validated_by_co_dept" && application.convention_url && (
-              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-5">
-                <h3 className="text-sm font-semibold text-green-300 mb-3 flex items-center gap-2">
-                  <FileText size={15} /> Convention de stage
+              <div className="convention-card">
+                <h3 className="convention-title">
+                  <FileText size={15} /> Internship Agreement
                 </h3>
                 {!conventionUrl && !loadingConvention && (
-                  <button onClick={loadConvention} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm">
-                    Charger la convention
-                  </button>
+                  <button onClick={loadConvention} className="convention-load-btn">Load agreement</button>
                 )}
-                {loadingConvention && <p className="text-green-300 text-sm">Chargement...</p>}
+                {loadingConvention && <p className="convention-loading">Loading...</p>}
                 {conventionUrl && (
                   <>
-                    <iframe src={conventionUrl} title="Convention" className="w-full h-96 rounded-lg border border-green-500/30 mt-3" />
-                    <button onClick={handleDownloadConvention} className="mt-3 flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm">
-                      <Download size={14} /> Télécharger la convention
+                    <iframe src={conventionUrl} title="Convention" className="convention-iframe" />
+                    <button onClick={handleDownloadConvention} className="convention-download-btn">
+                      <Download size={14} /> Download agreement
                     </button>
                   </>
                 )}
@@ -490,42 +475,42 @@ const DetailsModal = ({ application, onClose, onValidate, onReject, onAddSignatu
 
             {/* Rejection reason */}
             {application.status === "rejected_by_co_dept" && application.co_dept_notes && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-                <p className="text-xs text-red-400 font-semibold mb-1">Motif du refus</p>
-                <p className="text-sm text-red-300">{application.co_dept_notes}</p>
+              <div className="rejection-card">
+                <p className="rejection-label">Rejection reason</p>
+                <p className="rejection-text">{application.co_dept_notes}</p>
               </div>
             )}
 
             {/* Validation/Rejection Actions */}
             {application.status === "accepted_by_company" && (
-              <div className="border-t border-slate-700 pt-5">
+              <div className="actions-section">
                 {showRejectForm ? (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-                    <p className="text-red-300 text-sm font-medium mb-3">Motif du refus <span className="text-red-400">*</span></p>
+                  <div className="reject-form">
+                    <p className="reject-form-title">Rejection reason <span className="reject-form-required">*</span></p>
                     <textarea
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white resize-none min-h-[80px] mb-3"
-                      placeholder="Expliquez pourquoi cette demande est refusée..."
+                      className="reject-form-textarea"
+                      placeholder="Explain why this request is being rejected..."
                       value={rejectReason}
                       onChange={(e) => setRejectReason(e.target.value)}
                     />
-                    <div className="flex gap-3">
-                      <button onClick={handleRejectSubmit} disabled={submitting} className="bg-red-600 hover:bg-red-500 text-white px-5 py-2 rounded-lg text-sm font-semibold">
+                    <div className="reject-form-actions">
+                      <button onClick={handleRejectSubmit} disabled={submitting} className="reject-confirm-btn">
                         {submitting ? <Loader2 size={15} className="animate-spin" /> : <XCircle size={15} />}
-                        Confirmer le refus
+                        Confirm rejection
                       </button>
-                      <button onClick={() => { setShowRejectForm(false); setRejectReason(""); }} className="px-5 py-2 rounded-lg text-sm text-slate-400 hover:text-white">
-                        Annuler
+                      <button onClick={() => { setShowRejectForm(false); setRejectReason(""); }} className="reject-cancel-btn">
+                        Cancel
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex gap-3">
-                    <button onClick={handleValidate} disabled={submitting} className="bg-green-600 hover:bg-green-500 text-white px-5 py-2.5 rounded-lg text-sm font-semibold">
+                  <div className="action-buttons">
+                    <button onClick={handleValidate} disabled={submitting} className="validate-btn">
                       {submitting ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={16} />}
-                      Valider et générer la convention
+                      Validate and generate agreement
                     </button>
-                    <button onClick={() => setShowRejectForm(true)} className="bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-600/30 px-5 py-2.5 rounded-lg text-sm font-semibold">
-                      <XCircle size={16} /> Refuser
+                    <button onClick={() => setShowRejectForm(true)} className="reject-btn">
+                      <XCircle size={16} /> Reject
                     </button>
                   </div>
                 )}
@@ -534,28 +519,28 @@ const DetailsModal = ({ application, onClose, onValidate, onReject, onAddSignatu
 
             {/* Signature & Stamp Actions */}
             {application.status === "validated_by_co_dept" && (
-              <div className="border-t border-slate-700 pt-5 space-y-4">
-                <h3 className="text-sm font-semibold text-white">Signature et Cachet</h3>
-                <div className="flex flex-wrap gap-3">
+              <div className="signature-section">
+                <h3 className="signature-title">Signature and Stamp</h3>
+                <div className="signature-buttons">
                   {!isSigned && (
-                    <button onClick={() => setShowSignatureModal(true)} disabled={submitting} className="bg-purple-600 hover:bg-purple-500 text-white px-5 py-2 rounded-lg text-sm font-semibold">
-                      <PenTool size={16} /> Signer la convention
+                    <button onClick={() => setShowSignatureModal(true)} disabled={submitting} className="signature-btn">
+                      <PenTool size={16} /> Sign agreement
                     </button>
                   )}
                   {!hasStamp && (
-                    <button onClick={() => setShowStampModal(true)} disabled={submitting} className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg text-sm font-semibold">
-                      <Stamp size={16} /> Ajouter le cachet
+                    <button onClick={() => setShowStampModal(true)} disabled={submitting} className="stamp-btn">
+                      <Stamp size={16} /> Add stamp
                     </button>
                   )}
                 </div>
                 {isSigned && (
-                  <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
-                    <p className="text-green-400 text-sm font-medium">✅ Signature apposée</p>
+                  <div className="signature-success">
+                    <p className="signature-success-text">✅ Signature added</p>
                   </div>
                 )}
                 {hasStamp && (
-                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-                    <p className="text-blue-400 text-sm font-medium">🏛️ Cachet apposé</p>
+                  <div className="stamp-success">
+                    <p className="stamp-success-text">🏛️ Stamp added</p>
                   </div>
                 )}
               </div>
@@ -563,6 +548,544 @@ const DetailsModal = ({ application, onClose, onValidate, onReject, onAddSignatu
           </div>
         </div>
       </div>
+
+      <style>{`
+        /* Modal Styles */
+        .modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.8);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+          z-index: 50;
+        }
+        .modal-container {
+          background: #1e293b;
+          border: 1px solid #475569;
+          border-radius: 16px;
+          width: 100%;
+          max-width: 672px;
+          max-height: 90vh;
+          overflow-y: auto;
+        }
+        .modal-header {
+          position: sticky;
+          top: 0;
+          background: #1e293b;
+          border-bottom: 1px solid #475569;
+          padding: 20px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+        .modal-title {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: white;
+          margin: 0;
+        }
+        .modal-subtitle {
+          color: #94a3b8;
+          font-size: 0.875rem;
+          margin-top: 4px;
+        }
+        .modal-subtitle-name {
+          color: white;
+          font-weight: 500;
+        }
+        .modal-header-right {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .modal-close {
+          background: transparent;
+          border: none;
+          color: #64748b;
+          cursor: pointer;
+          transition: color 0.2s;
+        }
+        .modal-close:hover {
+          color: white;
+        }
+        .modal-body {
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+        
+        /* Offer Info */
+        .offer-info-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px;
+        }
+        .offer-info-card {
+          background: #1e293b;
+          border-radius: 8px;
+          padding: 12px;
+        }
+        .offer-info-label {
+          font-size: 0.7rem;
+          color: #64748b;
+          margin-bottom: 4px;
+        }
+        .offer-info-value {
+          font-size: 0.875rem;
+          color: white;
+          font-weight: 500;
+        }
+        
+        /* Student Profile */
+        .student-profile-card {
+          background: rgba(51, 65, 85, 0.6);
+          border-radius: 12px;
+          padding: 20px;
+        }
+        .student-profile-title {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #cbd5e1;
+          margin-bottom: 16px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .student-profile-info {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          font-size: 0.875rem;
+        }
+        .student-profile-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #cbd5e1;
+        }
+        .student-profile-row svg {
+          color: #64748b;
+        }
+        .student-skills {
+          margin-top: 16px;
+        }
+        .student-skills-label {
+          font-size: 0.7rem;
+          color: #64748b;
+          margin-bottom: 8px;
+        }
+        .student-skills-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .student-skill-tag {
+          background: rgba(99, 102, 241, 0.6);
+          color: #c7d2fe;
+          font-size: 0.7rem;
+          padding: 4px 10px;
+          border-radius: 20px;
+        }
+        
+        /* CV Section */
+        .cv-card {
+          background: rgba(51, 65, 85, 0.6);
+          border-radius: 12px;
+          padding: 20px;
+        }
+        .cv-title {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #cbd5e1;
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .cv-load-btn {
+          background: #4f46e5;
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          color: white;
+          border: none;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .cv-load-btn:hover {
+          background: #6366f1;
+        }
+        .cv-loading {
+          color: #94a3b8;
+          font-size: 0.875rem;
+        }
+        .cv-iframe {
+          width: 100%;
+          height: 384px;
+          border-radius: 8px;
+          border: 1px solid #475569;
+          margin-top: 12px;
+        }
+        
+        /* Convention Section */
+        .convention-card {
+          background: rgba(51, 65, 85, 0.6);
+          border-radius: 12px;
+          padding: 20px;
+        }
+        .convention-title {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #86efac;
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .convention-load-btn {
+          background: #16a34a;
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          color: white;
+          border: none;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .convention-load-btn:hover {
+          background: #22c55e;
+        }
+        .convention-loading {
+          color: #86efac;
+          font-size: 0.875rem;
+        }
+        .convention-iframe {
+          width: 100%;
+          height: 384px;
+          border-radius: 8px;
+          border: 1px solid #22c55e;
+          margin-top: 12px;
+        }
+        .convention-download-btn {
+          margin-top: 12px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: #16a34a;
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          color: white;
+          border: none;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .convention-download-btn:hover {
+          background: #22c55e;
+        }
+        
+        /* Rejection Card */
+        .rejection-card {
+          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          border-radius: 12px;
+          padding: 16px;
+        }
+        .rejection-label {
+          font-size: 0.7rem;
+          color: #f87171;
+          font-weight: 600;
+          margin-bottom: 4px;
+        }
+        .rejection-text {
+          font-size: 0.875rem;
+          color: #fca5a5;
+        }
+        
+        /* Action Buttons */
+        .actions-section {
+          border-top: 1px solid #475569;
+          padding-top: 20px;
+        }
+        .reject-form {
+          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          border-radius: 12px;
+          padding: 16px;
+        }
+        .reject-form-title {
+          color: #fca5a5;
+          font-size: 0.875rem;
+          font-weight: 500;
+          margin-bottom: 12px;
+        }
+        .reject-form-required {
+          color: #f87171;
+        }
+        .reject-form-textarea {
+          width: 100%;
+          background: #1e293b;
+          border: 1px solid #475569;
+          border-radius: 8px;
+          padding: 8px 12px;
+          font-size: 0.875rem;
+          color: white;
+          resize: none;
+          min-height: 80px;
+          margin-bottom: 12px;
+          outline: none;
+        }
+        .reject-form-textarea:focus {
+          border-color: #f87171;
+        }
+        .reject-form-actions {
+          display: flex;
+          gap: 12px;
+        }
+        .reject-confirm-btn {
+          background: #dc2626;
+          padding: 8px 20px;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: white;
+          border: none;
+          cursor: pointer;
+          transition: background 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .reject-confirm-btn:hover:not(:disabled) {
+          background: #ef4444;
+        }
+        .reject-confirm-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .reject-cancel-btn {
+          background: transparent;
+          padding: 8px 20px;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          color: #94a3b8;
+          border: none;
+          cursor: pointer;
+          transition: color 0.2s;
+        }
+        .reject-cancel-btn:hover {
+          color: white;
+        }
+        .action-buttons {
+          display: flex;
+          gap: 12px;
+        }
+        .validate-btn {
+          background: #16a34a;
+          padding: 10px 20px;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: white;
+          border: none;
+          cursor: pointer;
+          transition: background 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .validate-btn:hover:not(:disabled) {
+          background: #22c55e;
+        }
+        .validate-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .reject-btn {
+          background: rgba(220, 38, 38, 0.2);
+          padding: 10px 20px;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #fca5a5;
+          border: 1px solid rgba(220, 38, 38, 0.3);
+          cursor: pointer;
+          transition: background 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .reject-btn:hover {
+          background: rgba(220, 38, 38, 0.3);
+        }
+        
+        /* Signature Section */
+        .signature-section {
+          border-top: 1px solid #475569;
+          padding-top: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .signature-title {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: white;
+        }
+        .signature-buttons {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+        .signature-btn {
+          background: #9333ea;
+          padding: 8px 20px;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: white;
+          border: none;
+          cursor: pointer;
+          transition: background 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .signature-btn:hover:not(:disabled) {
+          background: #a855f7;
+        }
+        .stamp-btn {
+          background: #2563eb;
+          padding: 8px 20px;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: white;
+          border: none;
+          cursor: pointer;
+          transition: background 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .stamp-btn:hover:not(:disabled) {
+          background: #3b82f6;
+        }
+        .signature-success {
+          background: rgba(34, 197, 94, 0.1);
+          border: 1px solid rgba(34, 197, 94, 0.3);
+          border-radius: 12px;
+          padding: 16px;
+        }
+        .signature-success-text {
+          color: #4ade80;
+          font-size: 0.875rem;
+          font-weight: 500;
+        }
+        .stamp-success {
+          background: rgba(37, 99, 235, 0.1);
+          border: 1px solid rgba(37, 99, 235, 0.3);
+          border-radius: 12px;
+          padding: 16px;
+        }
+        .stamp-success-text {
+          color: #60a5fa;
+          font-size: 0.875rem;
+          font-weight: 500;
+        }
+        
+        /* ===== RESPONSIVE STYLES ===== */
+        @media (max-width: 768px) {
+          .offer-info-grid {
+            grid-template-columns: 1fr;
+          }
+          .action-buttons {
+            flex-direction: column;
+          }
+          .signature-buttons {
+            flex-direction: column;
+          }
+          .reject-form-actions {
+            flex-direction: column;
+          }
+        }
+        
+        /* ===== LIGHT MODE STYLES ===== */
+        body.light-mode .modal-container {
+          background: white;
+          border-color: #e2e8f0;
+        }
+        body.light-mode .modal-header {
+          background: white;
+          border-color: #e2e8f0;
+        }
+        body.light-mode .modal-title {
+          color: #1a1a2e;
+        }
+        body.light-mode .modal-subtitle {
+          color: #64748b;
+        }
+        body.light-mode .modal-subtitle-name {
+          color: #1a1a2e;
+        }
+        body.light-mode .modal-close {
+          color: #94a3b8;
+        }
+        body.light-mode .modal-close:hover {
+          color: #1a1a2e;
+        }
+        body.light-mode .offer-info-card {
+          background: #f8fafc;
+        }
+        body.light-mode .offer-info-value {
+          color: #1a1a2e;
+        }
+        body.light-mode .student-profile-card {
+          background: #f8fafc;
+        }
+        body.light-mode .student-profile-title {
+          color: #334155;
+        }
+        body.light-mode .student-profile-row {
+          color: #334155;
+        }
+        body.light-mode .student-skill-tag {
+          background: rgba(99, 102, 241, 0.1);
+          color: #4f46e5;
+        }
+        body.light-mode .cv-card {
+          background: #f8fafc;
+        }
+        body.light-mode .cv-title {
+          color: #334155;
+        }
+        body.light-mode .convention-card {
+          background: #f8fafc;
+        }
+        body.light-mode .convention-title {
+          color: #059669;
+        }
+        body.light-mode .reject-form-textarea {
+          background: #f8fafc;
+          color: #1a1a2e;
+          border-color: #cbd5e1;
+        }
+        body.light-mode .reject-cancel-btn {
+          color: #64748b;
+        }
+        body.light-mode .reject-cancel-btn:hover {
+          color: #1a1a2e;
+        }
+        body.light-mode .modal-close {
+          color: #94a3b8;
+        }
+      `}</style>
     </>
   );
 };
@@ -573,8 +1096,8 @@ export default function PendingValidationsList({
   validateEndpoint,
   rejectEndpoint,
   downloadConventionEndpoint = "co-dept",
-  title = "Validations des conventions",
-  emptyMessage = "Aucune convention en attente",
+  title = "Convention Validations",
+  emptyMessage = "No pending conventions",
   onPermissionError,
 }) {
   const [applications, setApplications] = useState([]);
@@ -604,11 +1127,11 @@ export default function PendingValidationsList({
         }));
         setApplications(appsWithUrl);
       } else {
-        toast.error(data.error || "Erreur de chargement");
+        toast.error(data.error || "Error loading applications");
       }
     } catch (err) {
-      console.error("Erreur:", err);
-      toast.error("Erreur de connexion");
+      console.error("Error:", err);
+      toast.error("Connection error");
     } finally {
       setLoading(false);
     }
@@ -627,22 +1150,22 @@ export default function PendingValidationsList({
       const data = await response.json();
 
       if (response.status === 403) {
-        const errorMsg = "Vous n'avez pas les permissions pour valider cette convention.";
+        const errorMsg = "You don't have permission to validate this convention.";
         if (onPermissionError) onPermissionError(errorMsg);
         toast.error(errorMsg);
         return;
       }
 
       if (data.success) {
-        toast.success("Convention validée et générée avec succès !");
+        toast.success("Convention validated and generated successfully!");
         await fetchPendingValidations();
         setSelectedApp(null);
       } else {
-        toast.error(data.error || "Erreur lors de la validation");
+        toast.error(data.error || "Error during validation");
       }
     } catch (err) {
-      console.error("Erreur validation:", err);
-      toast.error("Erreur de connexion");
+      console.error("Validation error:", err);
+      toast.error("Connection error");
     }
   };
 
@@ -656,22 +1179,22 @@ export default function PendingValidationsList({
       const data = await response.json();
 
       if (response.status === 403) {
-        const errorMsg = "Vous n'avez pas les permissions pour refuser cette convention.";
+        const errorMsg = "You don't have permission to reject this convention.";
         if (onPermissionError) onPermissionError(errorMsg);
         toast.error(errorMsg);
         return;
       }
 
       if (data.success) {
-        toast.success("Candidature refusée");
+        toast.success("Application rejected");
         await fetchPendingValidations();
         setSelectedApp(null);
       } else {
-        toast.error(data.error || "Erreur lors du refus");
+        toast.error(data.error || "Error during rejection");
       }
     } catch (err) {
-      console.error("Erreur refus:", err);
-      toast.error("Erreur de connexion");
+      console.error("Rejection error:", err);
+      toast.error("Connection error");
     }
   };
 
@@ -683,96 +1206,87 @@ export default function PendingValidationsList({
       <StatsCards stats={stats} loading={loading} />
 
       {/* Filter buttons */}
-      <div className="flex gap-2 mb-6 flex-wrap p-4 pb-0 bg-white/5 rounded-t-xl">
+      <div className="filter-container">
         <button
           onClick={() => setFilter("all")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-            filter === "all" ? "bg-white/20 text-white" : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
-          }`}
+          className={`filter-btn ${filter === "all" ? "active" : ""}`}
         >
-          Toutes ({stats.total})
+          All ({stats.total})
         </button>
         <button
           onClick={() => setFilter("accepted_by_company")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-            filter === "accepted_by_company" ? "bg-yellow-600 text-white" : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
-          }`}
+          className={`filter-btn pending ${filter === "accepted_by_company" ? "active" : ""}`}
         >
-          En attente ({stats.pending})
+          Pending ({stats.pending})
         </button>
         <button
           onClick={() => setFilter("validated_by_co_dept")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-            filter === "validated_by_co_dept" ? "bg-purple-600 text-white" : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
-          }`}
+          className={`filter-btn validated ${filter === "validated_by_co_dept" ? "active" : ""}`}
         >
-          Validées ({stats.validated})
+          Validated ({stats.validated})
         </button>
         <button
           onClick={() => setFilter("rejected_by_co_dept")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-            filter === "rejected_by_co_dept" ? "bg-red-600 text-white" : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
-          }`}
+          className={`filter-btn rejected ${filter === "rejected_by_co_dept" ? "active" : ""}`}
         >
-          Refusées ({stats.rejected})
+          Rejected ({stats.rejected})
         </button>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20 bg-white/5 rounded-b-xl">
-          <Loader2 size={32} className="animate-spin text-purple-400" />
+        <div className="loading-container">
+          <Loader2 size={32} className="loading-spinner" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="p-16 text-center bg-white/5 rounded-b-xl">
-          <FileSignature size={48} className="mx-auto mb-3 text-white/20" />
-          <p className="text-white/50">{emptyMessage}</p>
+        <div className="empty-container">
+          <FileSignature size={48} className="empty-icon" />
+          <p className="empty-text">{emptyMessage}</p>
         </div>
       ) : (
-        <div className="bg-white/5 rounded-b-xl border border-white/10 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-white/10 text-white/50 text-xs uppercase">
-              <tr>
-                <th className="px-4 py-3 text-left">Étudiant</th>
-                <th className="px-4 py-3 text-left">Offre</th>
-                <th className="px-4 py-3 text-left">Entreprise</th>
-                <th className="px-4 py-3 text-left">Date</th>
-                <th className="px-4 py-3 text-left">Statut</th>
-                <th className="px-4 py-3 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {filtered.map((app) => (
-                <tr key={app.id} className="hover:bg-white/5 transition">
-                  <td className="px-4 py-3">
-                    <p className="font-semibold text-white">{app.student?.full_name || "N/A"}</p>
-                    <p className="text-white/40 text-xs">{app.student?.email || "N/A"}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="text-white">{app.offer?.title || "N/A"}</p>
-                    <p className="text-white/40 text-xs">{app.offer?.internship_type || "N/A"}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="text-white">{app.company?.company_name || "N/A"}</p>
-                    <p className="text-white/40 text-xs">{app.company?.location || "N/A"}</p>
-                  </td>
-                  <td className="px-4 py-3 text-white/60">
-                    {app.applied_at ? new Date(app.applied_at).toLocaleDateString() : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={app.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => setSelectedApp(app)}
-                      className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 text-xs font-medium transition"
-                    >
-                      <Eye size={14} /> Détails
-                    </button>
-                  </td>
+        <div className="table-container">
+          <div className="table-wrapper">
+            <table className="applications-table">
+              <thead className="table-header">
+                <tr>
+                  <th className="table-cell">Student</th>
+                  <th className="table-cell">Offer</th>
+                  <th className="table-cell">Company</th>
+                  <th className="table-cell">Date</th>
+                  <th className="table-cell">Status</th>
+                  <th className="table-cell">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="table-body">
+                {filtered.map((app) => (
+                  <tr key={app.id} className="table-row">
+                    <td className="table-cell">
+                      <p className="student-name">{app.student?.full_name || "N/A"}</p>
+                      <p className="student-email">{app.student?.email || "N/A"}</p>
+                    </td>
+                    <td className="table-cell">
+                      <p className="offer-title">{app.offer?.title || "N/A"}</p>
+                      <p className="offer-type">{app.offer?.internship_type || "N/A"}</p>
+                    </td>
+                    <td className="table-cell">
+                      <p className="company-name">{app.company?.company_name || "N/A"}</p>
+                      <p className="company-location">{app.company?.location || "N/A"}</p>
+                    </td>
+                    <td className="table-cell date-cell">
+                      {app.applied_at ? new Date(app.applied_at).toLocaleDateString() : "—"}
+                    </td>
+                    <td className="table-cell">
+                      <StatusBadge status={app.status} />
+                    </td>
+                    <td className="table-cell">
+                      <button onClick={() => setSelectedApp(app)} className="details-btn">
+                        <Eye size={14} /> Details
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -786,6 +1300,335 @@ export default function PendingValidationsList({
           onPermissionError={onPermissionError}
         />
       )}
+
+      <style>{`
+        /* ===== PENDING VALIDATIONS LIST STYLES ===== */
+        
+        /* Stats Cards Grid */
+        .stats-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 24px;
+          margin-bottom: 32px;
+        }
+        .stats-card {
+          background: rgba(255, 255, 255, 0.07);
+          backdrop-filter: blur(14px);
+          border: 1px solid rgba(255, 255, 255, 0.13);
+          border-radius: 16px;
+          padding: 20px;
+          transition: all 0.3s ease;
+        }
+        .stats-card:hover {
+          border-color: rgba(139, 92, 246, 0.5);
+        }
+        .stats-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 16px;
+        }
+        .stats-card-title {
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: rgba(255, 255, 255, 0.6);
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+        .stats-card-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .stats-card-chart {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 16px;
+        }
+        .stats-card-chart-container {
+          position: relative;
+        }
+        .stats-card-chart-value {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+        }
+        .stats-card-chart-number {
+          font-size: 1.5rem;
+          font-weight: 800;
+          color: white;
+          line-height: 1;
+        }
+        .stats-card-legend {
+          display: flex;
+          justify-content: center;
+          gap: 16px;
+        }
+        .stats-card-legend-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .stats-card-legend-dot {
+          width: 9px;
+          height: 9px;
+          border-radius: 50%;
+          display: inline-block;
+        }
+        .stats-card-legend-label {
+          font-size: 0.7rem;
+          color: rgba(255, 255, 255, 0.55);
+        }
+        .stats-card-skeleton {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 16px;
+          padding: 20px;
+          animation: pulse 1.5s infinite;
+        }
+        .stats-card-skeleton-content {
+          height: 120px;
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 8px;
+        }
+        
+        /* Filter Buttons */
+        .filter-container {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 24px;
+          flex-wrap: wrap;
+          padding: 16px 16px 0 16px;
+          background: rgba(255, 255, 255, 0.05);
+          border-top-left-radius: 12px;
+          border-top-right-radius: 12px;
+        }
+        .filter-btn {
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          font-weight: 500;
+          transition: all 0.2s;
+          background: rgba(255, 255, 255, 0.05);
+          color: rgba(255, 255, 255, 0.5);
+          border: none;
+          cursor: pointer;
+        }
+        .filter-btn:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: white;
+        }
+        .filter-btn.active {
+          background: rgba(255, 255, 255, 0.2);
+          color: white;
+        }
+        .filter-btn.pending.active {
+          background: #ca8a04;
+        }
+        .filter-btn.validated.active {
+          background: #9333ea;
+        }
+        .filter-btn.rejected.active {
+          background: #dc2626;
+        }
+        
+        /* Loading & Empty States */
+        .loading-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 80px 0;
+          background: rgba(255, 255, 255, 0.05);
+          border-bottom-left-radius: 12px;
+          border-bottom-right-radius: 12px;
+        }
+        .loading-spinner {
+          animation: spin 1s linear infinite;
+          color: #a855f7;
+        }
+        .empty-container {
+          padding: 64px;
+          text-align: center;
+          background: rgba(255, 255, 255, 0.05);
+          border-bottom-left-radius: 12px;
+          border-bottom-right-radius: 12px;
+        }
+        .empty-icon {
+          margin: 0 auto 12px;
+          color: rgba(255, 255, 255, 0.2);
+        }
+        .empty-text {
+          color: rgba(255, 255, 255, 0.5);
+        }
+        
+        /* Table Styles */
+        .table-container {
+          background: rgba(255, 255, 255, 0.05);
+          border-bottom-left-radius: 12px;
+          border-bottom-right-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          overflow: hidden;
+        }
+        .table-wrapper {
+          overflow-x: auto;
+        }
+        .applications-table {
+          width: 100%;
+          font-size: 0.875rem;
+        }
+        .table-header {
+          background: rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.5);
+          font-size: 0.7rem;
+          text-transform: uppercase;
+        }
+        .table-cell {
+          padding: 12px 16px;
+          text-align: left;
+        }
+        .table-body .table-row {
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          transition: background 0.2s;
+        }
+        .table-body .table-row:hover {
+          background: rgba(255, 255, 255, 0.05);
+        }
+        .student-name {
+          font-weight: 600;
+          color: white;
+          margin: 0;
+        }
+        .student-email {
+          color: rgba(255, 255, 255, 0.4);
+          font-size: 0.7rem;
+          margin: 0;
+        }
+        .offer-title {
+          color: white;
+          margin: 0;
+        }
+        .offer-type {
+          color: rgba(255, 255, 255, 0.4);
+          font-size: 0.7rem;
+          margin: 0;
+        }
+        .company-name {
+          color: white;
+          margin: 0;
+        }
+        .company-location {
+          color: rgba(255, 255, 255, 0.4);
+          font-size: 0.7rem;
+          margin: 0;
+        }
+        .date-cell {
+          color: rgba(255, 255, 255, 0.6);
+        }
+        .details-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: #818cf8;
+          font-size: 0.7rem;
+          font-weight: 500;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          transition: color 0.2s;
+        }
+        .details-btn:hover {
+          color: #a78bfa;
+        }
+        
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+          .stats-cards-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        @media (max-width: 640px) {
+          .stats-cards-grid {
+            grid-template-columns: 1fr;
+          }
+          .filter-container {
+            justify-content: center;
+          }
+        }
+        
+        /* Light Mode */
+        body.light-mode .stats-card {
+          background: rgba(255, 255, 255, 0.9);
+          border-color: rgba(141, 35, 212, 0.25);
+        }
+        body.light-mode .stats-card-title {
+          color: #1a1a2e;
+        }
+        body.light-mode .stats-card-legend-label {
+          color: #666;
+        }
+        body.light-mode .stats-card-chart-number {
+          color: #1a1a2e;
+        }
+        body.light-mode .filter-container {
+          background: rgba(141, 35, 212, 0.05);
+        }
+        body.light-mode .filter-btn {
+          background: rgba(141, 35, 212, 0.08);
+          color: #555;
+        }
+        body.light-mode .filter-btn:hover {
+          background: rgba(141, 35, 212, 0.15);
+          color: #1a1a2e;
+        }
+        body.light-mode .filter-btn.active {
+          background: rgba(141, 35, 212, 0.2);
+          color: #1a1a2e;
+        }
+        body.light-mode .table-container {
+          background: rgba(255, 255, 255, 0.9);
+          border-color: rgba(141, 35, 212, 0.2);
+        }
+        body.light-mode .student-name,
+        body.light-mode .offer-title,
+        body.light-mode .company-name {
+          color: #1a1a2e;
+        }
+        body.light-mode .student-email,
+        body.light-mode .offer-type,
+        body.light-mode .company-location,
+        body.light-mode .date-cell {
+          color: #666;
+        }
+        body.light-mode .table-header {
+          background: rgba(141, 35, 212, 0.08);
+          color: #666;
+        }
+        body.light-mode .table-body .table-row:hover {
+          background: rgba(141, 35, 212, 0.05);
+        }
+        body.light-mode .empty-container {
+          background: rgba(255, 255, 255, 0.9);
+        }
+        body.light-mode .empty-text {
+          color: #666;
+        }
+        body.light-mode .empty-icon {
+          color: #ccc;
+        }
+      `}</style>
     </div>
   );
 }

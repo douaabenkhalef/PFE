@@ -5,7 +5,40 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Authentication Page</title>
+    <title>UnivStage - Internship Platform</title>
+    
+    <script>
+      (function() {
+        // فقط تطبيق light mode إذا كان محفوظاً
+        const savedMode = localStorage.getItem('darkMode');
+        if (savedMode === 'false') {
+          document.body.classList.add('light-mode');
+        }
+        
+        // الاستماع لتغييرات الوضع
+        window.addEventListener('themeChange', function(e) {
+          if (e.detail && e.detail.isDark === false) {
+            document.body.classList.add('light-mode');
+          } else if (e.detail && e.detail.isDark === true) {
+            document.body.classList.remove('light-mode');
+          }
+        });
+        
+        // مراقبة تغييرات localStorage
+        window.addEventListener('storage', function(e) {
+          if (e.key === 'darkMode') {
+            if (e.newValue === 'false') {
+              document.body.classList.add('light-mode');
+            } else if (e.newValue === 'true') {
+              document.body.classList.remove('light-mode');
+            }
+          }
+        });
+      })();
+    </script>
+    
+    <!-- لا توجد أي styles هنا حتى لا تؤثر على dark mode -->
+    
   </head>
   <body>
     <div id="root"></div>

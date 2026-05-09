@@ -19,7 +19,7 @@ const PrivateChat = ({ university, currentUser, targetUser, onClose }) => {
   const playNotificationSound = () => {
     const audio = new Audio('/notification.mp3');
     audio.volume = 0.3;
-    audio.play().catch(e => console.log('Audio non supporté'));
+    audio.play().catch(e => console.log('Audio not supported'));
   };
 
   const scrollToBottom = () => {
@@ -87,7 +87,7 @@ const PrivateChat = ({ university, currentUser, targetUser, onClose }) => {
     
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      alert('Le fichier est trop volumineux (max 5MB)');
+      alert('File is too large (max 5MB)');
       return;
     }
     
@@ -108,7 +108,7 @@ const PrivateChat = ({ university, currentUser, targetUser, onClose }) => {
     const socket = new WebSocket(wsUrl);
     
     socket.onopen = () => {
-      console.log('✅ Private chat WebSocket connecté');
+      console.log('✅ Private chat WebSocket connected');
       setConnectionStatus('connected');
       
       if (targetUser?.id) {
@@ -120,7 +120,7 @@ const PrivateChat = ({ university, currentUser, targetUser, onClose }) => {
     };
     
     socket.onclose = () => {
-      console.log('⚠️ Private chat WebSocket déconnecté');
+      console.log('⚠️ Private chat WebSocket disconnected');
       setConnectionStatus('disconnected');
       setTimeout(() => connectWebSocket(), 3000);
     };
@@ -132,7 +132,7 @@ const PrivateChat = ({ university, currentUser, targetUser, onClose }) => {
     
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log('📩 Message reçu:', data.type);
+      console.log('📩 Message received:', data.type);
       
       if (data.type === 'private_message') {
         if (data.from_user_id !== user?.id) {
@@ -170,7 +170,7 @@ const PrivateChat = ({ university, currentUser, targetUser, onClose }) => {
           is_read: false
         }]);
       } else if (data.type === 'history') {
-        console.log('📜 Historique reçu:', data.messages.length, 'messages');
+        console.log('📜 History received:', data.messages.length, 'messages');
         setMessages(data.messages.map(msg => ({
           ...msg,
           is_own: msg.sender_id === user?.id
@@ -233,17 +233,17 @@ const PrivateChat = ({ university, currentUser, targetUser, onClose }) => {
   
   if (isMinimized) {
     return (
-      <div className="fixed bottom-6 right-6 z-50 bg-[#1e293b] rounded-xl shadow-2xl border border-slate-700 overflow-hidden">
-        <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-2 px-4 flex justify-between items-center min-w-[200px]">
-          <div className="flex items-center gap-2">
+      <div className="private-chat-minimized">
+        <div className="private-chat-minimized-header">
+          <div className="private-chat-minimized-header-left">
             <User size={14} className="text-white" />
-            <span className="text-white text-sm font-semibold">{targetUser?.full_name || targetUser?.username}</span>
+            <span className="private-chat-minimized-name">{targetUser?.full_name || targetUser?.username}</span>
           </div>
-          <div className="flex gap-2">
-            <button onClick={() => setIsMinimized(false)} className="text-white/80 hover:text-white">
+          <div className="private-chat-minimized-actions">
+            <button onClick={() => setIsMinimized(false)} className="private-chat-minimized-btn">
               <Maximize2 size={12} />
             </button>
-            <button onClick={onClose} className="text-white/80 hover:text-white">
+            <button onClick={onClose} className="private-chat-minimized-btn">
               <X size={12} />
             </button>
           </div>
@@ -253,112 +253,99 @@ const PrivateChat = ({ university, currentUser, targetUser, onClose }) => {
   }
   
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-96 bg-[#1e293b] rounded-2xl shadow-2xl border border-slate-700 overflow-hidden transition-all duration-300 flex flex-col" style={{ height: '550px' }}>
-      {/* Header - fixed */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-4 flex justify-between items-center flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="relative">
+    <div className="private-chat-window">
+      {/* Header */}
+      <div className="private-chat-header">
+        <div className="private-chat-header-left">
+          <div className="private-chat-avatar">
             <User size={18} className="text-white" />
-            <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ${targetUser?.is_online ? 'bg-green-400' : 'bg-gray-400'}`} />
+            <div className={`private-chat-status ${targetUser?.is_online ? 'online' : 'offline'}`} />
           </div>
-          <div>
-            <h3 className="text-white font-semibold text-sm">
+          <div className="private-chat-user-info">
+            <h3 className="private-chat-user-name">
               {targetUser?.full_name || targetUser?.username}
             </h3>
             {isTypingFromUser && (
-              <p className="text-xs text-purple-200 animate-pulse">En train d'écrire...</p>
+              <p className="private-chat-typing">Typing...</p>
             )}
           </div>
           {connectionStatus === 'connected' && (
-            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse ml-1" />
+            <span className="private-chat-connection-dot" />
           )}
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setIsMinimized(true)}
-            className="text-white/80 hover:text-white transition"
-          >
+        <div className="private-chat-header-actions">
+          <button onClick={() => setIsMinimized(true)} className="private-chat-header-btn">
             <Minimize2 size={16} />
           </button>
-          <button
-            onClick={onClose}
-            className="text-white/80 hover:text-white transition"
-          >
+          <button onClick={onClose} className="private-chat-header-btn">
             <X size={18} />
           </button>
         </div>
       </div>
       
-      {/* Messages - scrollable */}
+      {/* Messages */}
       <div 
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-900/50"
-        style={{ minHeight: 0 }}
+        className="private-chat-messages"
       >
         {messages.length === 0 ? (
-          <div className="text-center text-white/40 py-8">
-            <MessageCircle size={32} className="mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Aucun message</p>
-            <p className="text-xs">Envoyez un message pour commencer la conversation</p>
+          <div className="private-chat-empty">
+            <MessageCircle size={32} className="private-chat-empty-icon" />
+            <p className="private-chat-empty-text">No messages yet</p>
+            <p className="private-chat-empty-subtext">Send a message to start the conversation</p>
           </div>
         ) : (
           messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex ${msg.is_own ? 'justify-end' : 'justify-start'}`}
+              className={`private-chat-message ${msg.is_own ? 'own' : 'other'}`}
             >
-              <div
-                className={`max-w-[70%] rounded-lg p-3 ${
-                  msg.is_own
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-slate-700 text-white'
-                }`}
-              >
+              <div className={`private-chat-bubble ${msg.is_own ? 'own' : 'other'}`}>
                 {!msg.is_own && (
-                  <p className="text-xs text-purple-300 mb-1 font-semibold">
+                  <p className="private-chat-bubble-name">
                     {msg.from_user_name}
                   </p>
                 )}
                 
-                {/* Message texte */}
+                {/* Text message */}
                 {msg.message_type === 'text' && msg.message && (
-                  <p className="text-sm break-words">{msg.message}</p>
+                  <p className="private-chat-bubble-text">{msg.message}</p>
                 )}
                 
                 {/* Image */}
                 {msg.message_type === 'image' && msg.file_url && (
-                  <div className="mt-1">
+                  <div className="private-chat-image-container">
                     <img 
                       src={`https://pfe-l31r.onrender.com${msg.file_url}`}
                       alt={msg.file_name}
-                      className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition"
+                      className="private-chat-image"
                       onClick={() => window.open(`https://pfe-l31r.onrender.com${msg.file_url}`, '_blank')}
                     />
-                    <p className="text-xs mt-1 opacity-70">{msg.file_name}</p>
+                    <p className="private-chat-image-name">{msg.file_name}</p>
                   </div>
                 )}
                 
-                {/* Fichier */}
+                {/* File */}
                 {msg.message_type === 'file' && msg.file_url && (
-                  <div className="mt-1">
+                  <div className="private-chat-file-container">
                     <a 
                       href={`https://pfe-l31r.onrender.com${msg.file_url}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm bg-slate-600/50 rounded-lg p-2 hover:bg-slate-600 transition"
+                      className="private-chat-file-link"
                     >
                       <File size={16} />
-                      <span className="truncate max-w-[150px]">{msg.file_name}</span>
+                      <span className="private-chat-file-name">{msg.file_name}</span>
                     </a>
                   </div>
                 )}
                 
-                <div className="flex items-center justify-end gap-1 mt-1">
-                  <p className={`text-xs ${msg.is_own ? 'text-purple-200' : 'text-slate-400'}`}>
+                <div className="private-chat-bubble-footer">
+                  <p className={`private-chat-time ${msg.is_own ? 'own' : 'other'}`}>
                     {formatTime(msg.timestamp)}
                   </p>
                   {msg.is_own && msg.is_read && (
-                    <span className="text-xs text-green-400">✓✓</span>
+                    <span className="private-chat-read">✓✓</span>
                   )}
                 </div>
               </div>
@@ -366,12 +353,12 @@ const PrivateChat = ({ university, currentUser, targetUser, onClose }) => {
           ))
         )}
         {isTypingFromUser && (
-          <div className="flex justify-start">
-            <div className="bg-slate-700 rounded-lg p-2 px-3">
-              <div className="flex gap-1">
-                <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          <div className="private-chat-typing-indicator">
+            <div className="private-chat-typing-bubble">
+              <div className="private-chat-typing-dots">
+                <span className="private-chat-typing-dot" style={{ animationDelay: '0ms' }} />
+                <span className="private-chat-typing-dot" style={{ animationDelay: '150ms' }} />
+                <span className="private-chat-typing-dot" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
           </div>
@@ -379,19 +366,19 @@ const PrivateChat = ({ university, currentUser, targetUser, onClose }) => {
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Input - fixed at bottom */}
-      <div className="p-4 border-t border-slate-700 flex gap-2 flex-shrink-0">
+      {/* Input */}
+      <div className="private-chat-input-area">
         <input
           type="file"
           id="private-file-input"
           accept="image/*, .pdf, .doc, .docx, .txt"
-          className="hidden"
+          className="private-chat-file-input"
           onChange={handleFileSelect}
         />
         <label
           htmlFor="private-file-input"
-          className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg cursor-pointer transition"
-          title="Envoyer un fichier"
+          className="private-chat-attach-btn"
+          title="Send file"
         >
           {uploading ? <Loader2 size={18} className="animate-spin" /> : <Paperclip size={18} />}
         </label>
@@ -400,18 +387,464 @@ const PrivateChat = ({ university, currentUser, targetUser, onClose }) => {
           value={inputMessage}
           onChange={(e) => setInputMessage(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder={`Message pour ${targetUser?.full_name || targetUser?.username}...`}
-          className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm resize-none focus:outline-none focus:border-purple-500"
+          placeholder={`Message to ${targetUser?.full_name || targetUser?.username}...`}
+          className="private-chat-input"
           rows={1}
         />
         <button
           onClick={sendMessage}
           disabled={!inputMessage.trim() || connectionStatus !== 'connected'}
-          className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition"
+          className="private-chat-send-btn"
         >
           <Send size={18} />
         </button>
       </div>
+
+      <style>{`
+        /* ===== PRIVATE CHAT STYLES ===== */
+        
+        /* Minimized state */
+        .private-chat-minimized {
+          position: fixed;
+          bottom: 24px;
+          right: 24px;
+          z-index: 50;
+          background: #1e293b;
+          border-radius: 12px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+          border: 1px solid rgba(141, 35, 212, 0.3);
+          overflow: hidden;
+        }
+        .private-chat-minimized-header {
+          background: linear-gradient(135deg, #8D23D4, #F75AFA);
+          padding: 8px 16px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          min-width: 200px;
+        }
+        .private-chat-minimized-header-left {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .private-chat-minimized-name {
+          color: white;
+          font-size: 0.875rem;
+          font-weight: 600;
+        }
+        .private-chat-minimized-actions {
+          display: flex;
+          gap: 8px;
+        }
+        .private-chat-minimized-btn {
+          background: transparent;
+          border: none;
+          color: rgba(255, 255, 255, 0.8);
+          cursor: pointer;
+          transition: color 0.2s;
+        }
+        .private-chat-minimized-btn:hover {
+          color: white;
+        }
+        
+        /* Main chat window */
+        .private-chat-window {
+          position: fixed;
+          bottom: 24px;
+          right: 24px;
+          z-index: 50;
+          width: 384px;
+          background: #1e293b;
+          border-radius: 16px;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+          border: 1px solid rgba(141, 35, 212, 0.3);
+          overflow: hidden;
+          transition: all 0.3s ease;
+          display: flex;
+          flex-direction: column;
+          height: 550px;
+        }
+        
+        /* Header */
+        .private-chat-header {
+          background: linear-gradient(135deg, #8D23D4, #F75AFA);
+          padding: 16px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-shrink: 0;
+        }
+        .private-chat-header-left {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .private-chat-avatar {
+          position: relative;
+        }
+        .private-chat-status {
+          position: absolute;
+          bottom: -2px;
+          right: -2px;
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+        }
+        .private-chat-status.online {
+          background: #10b981;
+        }
+        .private-chat-status.offline {
+          background: #9ca3af;
+        }
+        .private-chat-user-info {
+          margin-left: 4px;
+        }
+        .private-chat-user-name {
+          color: white;
+          font-weight: 600;
+          font-size: 0.875rem;
+          margin: 0;
+        }
+        .private-chat-typing {
+          color: #d8b4fe;
+          font-size: 0.7rem;
+          margin: 0;
+          animation: pulse 1.5s infinite;
+        }
+        .private-chat-connection-dot {
+          width: 8px;
+          height: 8px;
+          background: #10b981;
+          border-radius: 50%;
+          animation: pulse 1.5s infinite;
+          margin-left: 4px;
+        }
+        .private-chat-header-actions {
+          display: flex;
+          gap: 8px;
+        }
+        .private-chat-header-btn {
+          background: transparent;
+          border: none;
+          color: rgba(255, 255, 255, 0.8);
+          cursor: pointer;
+          transition: color 0.2s;
+        }
+        .private-chat-header-btn:hover {
+          color: white;
+        }
+        
+        /* Messages area */
+        .private-chat-messages {
+          flex: 1;
+          overflow-y: auto;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          background: rgba(15, 23, 42, 0.5);
+          min-height: 0;
+        }
+        .private-chat-empty {
+          text-align: center;
+          color: rgba(255, 255, 255, 0.4);
+          padding: 32px 0;
+        }
+        .private-chat-empty-icon {
+          margin: 0 auto 8px;
+          opacity: 0.3;
+        }
+        .private-chat-empty-text {
+          font-size: 0.875rem;
+          margin: 0;
+        }
+        .private-chat-empty-subtext {
+          font-size: 0.75rem;
+          margin: 0;
+        }
+        
+        /* Message bubbles */
+        .private-chat-message {
+          display: flex;
+        }
+        .private-chat-message.own {
+          justify-content: flex-end;
+        }
+        .private-chat-message.other {
+          justify-content: flex-start;
+        }
+        .private-chat-bubble {
+          max-width: 70%;
+          border-radius: 12px;
+          padding: 12px;
+        }
+        .private-chat-bubble.own {
+          background: #8D23D4;
+          color: white;
+        }
+        .private-chat-bubble.other {
+          background: #334155;
+          color: white;
+        }
+        .private-chat-bubble-name {
+          font-size: 0.7rem;
+          color: #c084fc;
+          margin-bottom: 4px;
+          font-weight: 600;
+        }
+        .private-chat-bubble-text {
+          font-size: 0.875rem;
+          margin: 0;
+          word-break: break-word;
+        }
+        .private-chat-image-container {
+          margin-top: 4px;
+        }
+        .private-chat-image {
+          max-width: 100%;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: opacity 0.2s;
+        }
+        .private-chat-image:hover {
+          opacity: 0.9;
+        }
+        .private-chat-image-name {
+          font-size: 0.7rem;
+          margin-top: 4px;
+          opacity: 0.7;
+        }
+        .private-chat-file-container {
+          margin-top: 4px;
+        }
+        .private-chat-file-link {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          padding: 8px;
+          text-decoration: none;
+          color: white;
+          transition: background 0.2s;
+        }
+        .private-chat-file-link:hover {
+          background: rgba(255, 255, 255, 0.2);
+        }
+        .private-chat-file-name {
+          font-size: 0.75rem;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 150px;
+        }
+        .private-chat-bubble-footer {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 4px;
+          margin-top: 4px;
+        }
+        .private-chat-time {
+          font-size: 0.6rem;
+        }
+        .private-chat-time.own {
+          color: #d8b4fe;
+        }
+        .private-chat-time.other {
+          color: #94a3b8;
+        }
+        .private-chat-read {
+          font-size: 0.6rem;
+          color: #10b981;
+        }
+        
+        /* Typing indicator */
+        .private-chat-typing-indicator {
+          display: flex;
+          justify-content: flex-start;
+        }
+        .private-chat-typing-bubble {
+          background: #334155;
+          border-radius: 12px;
+          padding: 8px 12px;
+        }
+        .private-chat-typing-dots {
+          display: flex;
+          gap: 4px;
+        }
+        .private-chat-typing-dot {
+          width: 6px;
+          height: 6px;
+          background: rgba(255, 255, 255, 0.5);
+          border-radius: 50%;
+          animation: bounce 1.4s infinite ease-in-out;
+        }
+        @keyframes bounce {
+          0%, 60%, 100% { transform: translateY(0); }
+          30% { transform: translateY(-6px); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        
+        /* Input area */
+        .private-chat-input-area {
+          padding: 16px;
+          border-top: 1px solid rgba(141, 35, 212, 0.2);
+          display: flex;
+          gap: 8px;
+          flex-shrink: 0;
+          background: #1e293b;
+        }
+        .private-chat-file-input {
+          display: none;
+        }
+        .private-chat-attach-btn {
+          background: #334155;
+          border: none;
+          border-radius: 8px;
+          padding: 8px;
+          cursor: pointer;
+          color: white;
+          transition: background 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .private-chat-attach-btn:hover {
+          background: #475569;
+        }
+        .private-chat-input {
+          flex: 1;
+          background: #1e293b;
+          border: 1px solid #475569;
+          border-radius: 8px;
+          padding: 8px 12px;
+          color: white;
+          font-size: 0.875rem;
+          resize: none;
+          outline: none;
+        }
+        .private-chat-input:focus {
+          border-color: #8D23D4;
+        }
+        .private-chat-input::placeholder {
+          color: rgba(255, 255, 255, 0.4);
+        }
+        .private-chat-send-btn {
+          background: #8D23D4;
+          border: none;
+          border-radius: 8px;
+          padding: 8px 16px;
+          cursor: pointer;
+          color: white;
+          transition: opacity 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .private-chat-send-btn:hover:not(:disabled) {
+          opacity: 0.85;
+        }
+        .private-chat-send-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        
+        /* Scrollbar */
+        .private-chat-messages::-webkit-scrollbar {
+          width: 4px;
+        }
+        .private-chat-messages::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+        }
+        .private-chat-messages::-webkit-scrollbar-thumb {
+          background: rgba(141, 35, 212, 0.4);
+          border-radius: 4px;
+        }
+        
+        /* ===== RESPONSIVE STYLES ===== */
+        @media (max-width: 480px) {
+          .private-chat-window {
+            width: 90%;
+            right: 5%;
+            left: 5%;
+            bottom: 16px;
+            height: 500px;
+          }
+          .private-chat-minimized {
+            right: 16px;
+            bottom: 16px;
+          }
+          .private-chat-bubble {
+            max-width: 85%;
+          }
+          .private-chat-file-name {
+            max-width: 120px;
+          }
+        }
+        
+        /* ===== LIGHT MODE STYLES ===== */
+        body.light-mode .private-chat-window {
+          background: #ffffff;
+          border-color: rgba(141, 35, 212, 0.3);
+        }
+        body.light-mode .private-chat-messages {
+          background: #f8fafc;
+        }
+        body.light-mode .private-chat-bubble.other {
+          background: #e2e8f0;
+          color: #1a1a2e;
+        }
+        body.light-mode .private-chat-bubble.own {
+          background: #8D23D4;
+          color: white;
+        }
+        body.light-mode .private-chat-bubble-name {
+          color: #8D23D4;
+        }
+        body.light-mode .private-chat-time.other {
+          color: #64748b;
+        }
+        body.light-mode .private-chat-typing-bubble {
+          background: #e2e8f0;
+        }
+        body.light-mode .private-chat-typing-dot {
+          background: #94a3b8;
+        }
+        body.light-mode .private-chat-input-area {
+          background: #ffffff;
+        }
+        body.light-mode .private-chat-input {
+          background: #f1f5f9;
+          border-color: #cbd5e1;
+          color: #1a1a2e;
+        }
+        body.light-mode .private-chat-input::placeholder {
+          color: #94a3b8;
+        }
+        body.light-mode .private-chat-attach-btn {
+          background: #e2e8f0;
+          color: #1a1a2e;
+        }
+        body.light-mode .private-chat-attach-btn:hover {
+          background: #cbd5e1;
+        }
+        body.light-mode .private-chat-empty-text,
+        body.light-mode .private-chat-empty-subtext {
+          color: #64748b;
+        }
+        body.light-mode .private-chat-empty-icon {
+          color: #cbd5e1;
+        }
+        body.light-mode .private-chat-minimized {
+          background: #ffffff;
+          border-color: rgba(141, 35, 212, 0.3);
+        }
+      `}</style>
     </div>
   );
 };

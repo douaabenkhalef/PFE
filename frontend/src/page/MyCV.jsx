@@ -5,7 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   FileText, Download, Upload, Eye, Trash2, Loader2, 
   X, Clock, Briefcase, User, ExternalLink, Search,
-  LogOut, ArrowLeft, GraduationCap
+  LogOut, ArrowLeft, GraduationCap, ClipboardList
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import './MyCV.css';
@@ -17,7 +17,7 @@ const authHeaders = () => ({
   'Authorization': `Bearer ${token()}`
 });
 
-// Composant CVViewer amélioré
+// Enhanced CVViewer component
 function CVViewer({ url, onClose }) {
   const [blobUrl, setBlobUrl] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -53,7 +53,7 @@ function CVViewer({ url, onClose }) {
         setLoading(false);
       } catch (err) {
         console.error('❌ Error loading PDF:', err);
-        setError(err.message || 'Impossible de charger le CV');
+        setError(err.message || 'Unable to load CV');
         setLoading(false);
       }
     };
@@ -61,7 +61,7 @@ function CVViewer({ url, onClose }) {
     if (url) {
       loadPdf();
     } else {
-      setError('URL du CV non trouvée');
+      setError('CV URL not found');
       setLoading(false);
     }
     
@@ -113,7 +113,7 @@ function CVViewer({ url, onClose }) {
                   fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none',
                 }}
               >
-                <Download size={13} /> Télécharger
+                <Download size={13} /> Download
               </a>
             )}
             <button
@@ -127,7 +127,7 @@ function CVViewer({ url, onClose }) {
         {loading ? (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
             <div className="sd-spinner" style={{ width: 40, height: 40, border: '3px solid rgba(141,35,212,0.3)', borderTopColor: '#8d23d4', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-            <p style={{ color: '#fff' }}>Chargement du PDF...</p>
+            <p style={{ color: '#fff' }}>Loading PDF...</p>
           </div>
         ) : error ? (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -138,7 +138,7 @@ function CVViewer({ url, onClose }) {
                 onClick={() => window.open(url, '_blank')}
                 style={{ marginTop: 16, padding: '8px 16px', background: '#8d23d4', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer' }}
               >
-                Ouvrir dans un nouvel onglet
+                Open in new tab
               </button>
             </div>
           </div>
@@ -150,7 +150,7 @@ function CVViewer({ url, onClose }) {
           />
         ) : (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <p style={{ color: '#fff' }}>Impossible de charger le PDF.</p>
+            <p style={{ color: '#fff' }}>Unable to load PDF.</p>
           </div>
         )}
       </div>
@@ -165,22 +165,22 @@ export default function MyCV() {
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   
-  // CV personnel
+  // Personal CV
   const [personalCV, setPersonalCV] = useState(null);
   const [cvHistory, setCvHistory] = useState([]);
   const [applicationCVs, setApplicationCVs] = useState([]);
   
   const [selectedFile, setSelectedFile] = useState(null);
   
-  // États pour le modal CV
+  // States for CV modal
   const [showCVModal, setShowCVModal] = useState(false);
   const [currentCVUrl, setCurrentCVUrl] = useState(null);
   
-  // États pour la photo de profil
+  // States for profile picture
   const [profilePicture, setProfilePicture] = useState(null);
   const [profile, setProfile] = useState(null);
 
-  // Récupérer la photo de profil
+  // Fetch profile picture
   const fetchProfilePicture = async () => {
     try {
       const res = await fetch(`${API}/student/profile/me/`, { headers: authHeaders() });
@@ -276,8 +276,8 @@ export default function MyCV() {
         fetchProfilePicture()
       ]);
     } catch (err) {
-      console.error('❌ Erreur:', err);
-      toast.error('Erreur de chargement des données');
+      console.error('❌ Error:', err);
+      toast.error('Error loading data');
     } finally {
       setLoading(false);
     }
@@ -295,7 +295,7 @@ export default function MyCV() {
 
   const handleDownload = async (url, filename) => {
     if (!url) {
-      toast.error('URL du CV non trouvée');
+      toast.error('CV URL not found');
       return;
     }
     
@@ -330,10 +330,10 @@ export default function MyCV() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
-      toast.success('Téléchargement démarré');
+      toast.success('Download started');
     } catch (err) {
       console.error('❌ Download error:', err);
-      toast.error('Erreur lors du téléchargement');
+      toast.error('Error during download');
     }
   };
 
@@ -342,22 +342,22 @@ export default function MyCV() {
     if (!file) return;
 
     if (file.type !== 'application/pdf') {
-      toast.error('Seuls les fichiers PDF sont acceptés');
+      toast.error('Only PDF files are accepted');
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Le fichier ne doit pas dépasser 5 Mo');
+      toast.error('File must not exceed 5 MB');
       return;
     }
 
     setSelectedFile(file);
-    toast.success(`Fichier sélectionné: ${file.name}`);
+    toast.success(`File selected: ${file.name}`);
   };
 
   const handleUpload = async () => {
     if (!selectedFile) {
-      toast.error('Veuillez sélectionner un fichier');
+      toast.error('Please select a file');
       return;
     }
 
@@ -377,17 +377,17 @@ export default function MyCV() {
       const data = await res.json();
       
       if (data.success) {
-        toast.success('CV téléchargé avec succès');
+        toast.success('CV uploaded successfully');
         setSelectedFile(null);
         const fileInput = document.getElementById('cv-file-input');
         if (fileInput) fileInput.value = '';
         await fetchAllData();
       } else {
-        toast.error(data.error || 'Erreur lors du téléchargement');
+        toast.error(data.error || 'Error during upload');
       }
     } catch (err) {
-      console.error('❌ Erreur upload:', err);
-      toast.error('Erreur de connexion');
+      console.error('❌ Upload error:', err);
+      toast.error('Connection error');
     } finally {
       setUploading(false);
     }
@@ -395,11 +395,11 @@ export default function MyCV() {
 
   const handleDeletePersonal = async () => {
     if (!personalCV) {
-      toast.error('Aucun CV à supprimer');
+      toast.error('No CV to delete');
       return;
     }
     
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer votre CV personnel ? Cette action est irréversible.')) {
+    if (!window.confirm('Are you sure you want to delete your personal CV? This action is irreversible.')) {
       return;
     }
 
@@ -413,14 +413,14 @@ export default function MyCV() {
       const data = await res.json();
       
       if (data.success) {
-        toast.success('CV personnel supprimé avec succès');
+        toast.success('Personal CV deleted successfully');
         await fetchAllData();
       } else {
-        toast.error(data.error || 'Erreur lors de la suppression');
+        toast.error(data.error || 'Error during deletion');
       }
     } catch (err) {
-      console.error('❌ Erreur delete:', err);
-      toast.error('Erreur de connexion');
+      console.error('❌ Delete error:', err);
+      toast.error('Connection error');
     } finally {
       setDeleting(false);
     }
@@ -434,7 +434,7 @@ export default function MyCV() {
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
-    return date.toLocaleDateString('fr-FR', {
+    return date.toLocaleDateString('en-GB', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -530,7 +530,7 @@ export default function MyCV() {
                 to="/student/applications" 
                 className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:bg-white/10"
               >
-                <FileText size={16} /> Application status
+                <ClipboardList size={16} /> Application status
               </Link>
             </div>
           </div>
@@ -557,26 +557,26 @@ export default function MyCV() {
             className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
           >
             <ArrowLeft size={18} />
-            Retour au tableau de bord
+            Back to Dashboard
           </button>
 
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">Gestion des CVs</h1>
-            <p className="text-white/60">Consultez et gérez vos curriculum vitae</p>
+            <h1 className="text-3xl font-bold text-white mb-2">CV Management</h1>
+            <p className="text-white/60">View and manage your curriculum vitae</p>
           </div>
 
           {/* Two columns layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            {/* COLONNE DE GAUCHE */}
+            {/* LEFT COLUMN */}
             <div className="space-y-6">
               
-              {/* Carte - Mon CV actuel */}
+              {/* Card - My current CV */}
               <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
                 <div className="p-5 border-b border-white/10 flex items-center gap-3">
                   <User size={20} className="text-purple-400" />
-                  <h2 className="text-white font-semibold">Mon CV actuel</h2>
+                  <h2 className="text-white font-semibold">My current CV</h2>
                 </div>
                 
                 {personalCV ? (
@@ -598,13 +598,13 @@ export default function MyCV() {
                         onClick={() => handlePreview(personalCV.url)}
                         className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition shadow-lg"
                       >
-                        <Eye size={16} /> Aperçu
+                        <Eye size={16} /> Preview
                       </button>
                       <button 
                         onClick={() => handleDownload(personalCV.url, personalCV.filename || 'cv.pdf')}
                         className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition"
                       >
-                        <Download size={16} /> Télécharger
+                        <Download size={16} /> Download
                       </button>
                       <button 
                         onClick={handleDeletePersonal}
@@ -612,24 +612,24 @@ export default function MyCV() {
                         className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-sm font-semibold transition disabled:opacity-50"
                       >
                         {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                        Supprimer
+                        Delete
                       </button>
                     </div>
                   </div>
                 ) : (
                   <div className="p-8 text-center">
                     <FileText size={48} className="mx-auto text-white/30 mb-3" />
-                    <p className="text-white/60">Aucun CV téléchargé</p>
-                    <p className="text-white/40 text-sm">Téléchargez votre CV ci-dessous</p>
+                    <p className="text-white/60">No CV uploaded</p>
+                    <p className="text-white/40 text-sm">Upload your CV below</p>
                   </div>
                 )}
               </div>
 
-              {/* Carte - Télécharger un nouveau CV */}
+              {/* Card - Upload new CV */}
               <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
                 <div className="p-5 border-b border-white/10 flex items-center gap-3">
                   <Upload size={20} className="text-purple-400" />
-                  <h2 className="text-white font-semibold">Nouveau CV</h2>
+                  <h2 className="text-white font-semibold">New CV</h2>
                 </div>
                 
                 <div className="p-5">
@@ -645,8 +645,8 @@ export default function MyCV() {
                     className="flex flex-col items-center justify-center gap-3 p-6 border-2 border-dashed border-purple-500/30 rounded-xl cursor-pointer transition hover:border-purple-500 hover:bg-purple-500/10"
                   >
                     <Upload size={28} className="text-purple-400" />
-                    <span className="text-white/80 text-sm">Cliquez pour sélectionner un fichier PDF</span>
-                    <span className="text-white/40 text-xs">PDF uniquement, max 5 Mo</span>
+                    <span className="text-white/80 text-sm">Click to select a PDF file</span>
+                    <span className="text-white/40 text-xs">PDF only, max 5 MB</span>
                   </label>
                   
                   {selectedFile && (
@@ -670,24 +670,24 @@ export default function MyCV() {
                     {uploading ? (
                       <>
                         <Loader2 size={16} className="animate-spin" />
-                        Téléchargement...
+                        Uploading...
                       </>
                     ) : (
                       <>
                         <Upload size={16} />
-                        {personalCV ? 'Mettre à jour mon CV' : 'Télécharger mon CV'}
+                        {personalCV ? 'Update my CV' : 'Upload my CV'}
                       </>
                     )}
                   </button>
                 </div>
               </div>
 
-              {/* Carte - Historique */}
+              {/* Card - History */}
               {cvHistory.length > 0 && (
                 <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
                   <div className="p-5 border-b border-white/10 flex items-center gap-3">
                     <Clock size={20} className="text-purple-400" />
-                    <h2 className="text-white font-semibold">Historique des CVs</h2>
+                    <h2 className="text-white font-semibold">CV History</h2>
                   </div>
                   
                   <div className="divide-y divide-white/10">
@@ -704,14 +704,14 @@ export default function MyCV() {
                           <button 
                             onClick={() => handlePreview(cv.url)}
                             className="p-2 bg-white/10 hover:bg-purple-500/30 rounded-lg transition text-white/60 hover:text-white"
-                            title="Aperçu"
+                            title="Preview"
                           >
                             <Eye size={16} />
                           </button>
                           <button 
                             onClick={() => handleDownload(cv.url, cv.filename)}
                             className="p-2 bg-white/10 hover:bg-purple-500/30 rounded-lg transition text-white/60 hover:text-white"
-                            title="Télécharger"
+                            title="Download"
                           >
                             <Download size={16} />
                           </button>
@@ -723,18 +723,18 @@ export default function MyCV() {
               )}
             </div>
 
-            {/* COLONNE DE DROITE - CVs des candidatures */}
+            {/* RIGHT COLUMN - CVs from applications */}
             <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
               <div className="p-5 border-b border-white/10 flex items-center gap-3">
                 <Briefcase size={20} className="text-purple-400" />
-                <h2 className="text-white font-semibold">CVs des candidatures</h2>
+                <h2 className="text-white font-semibold">Application CVs</h2>
               </div>
               
               {applicationCVs.length === 0 ? (
                 <div className="p-8 text-center">
                   <Briefcase size={48} className="mx-auto text-white/30 mb-3" />
-                  <p className="text-white/60">Aucun CV trouvé</p>
-                  <p className="text-white/40 text-sm">Les CVs de vos candidatures apparaîtront ici</p>
+                  <p className="text-white/60">No CV found</p>
+                  <p className="text-white/40 text-sm">CVs from your applications will appear here</p>
                 </div>
               ) : (
                 <div className="divide-y divide-white/10">
@@ -745,29 +745,29 @@ export default function MyCV() {
                       </div>
                       <div className="flex-1">
                         <p className="text-white text-sm font-medium">{app.offer_title}</p>
-                        <p className="text-white/40 text-xs">Envoyé le {formatDate(app.applied_at)}</p>
+                        <p className="text-white/40 text-xs">Sent on {formatDate(app.applied_at)}</p>
                         <p className={`text-xs mt-1 ${
                           app.status === 'accepted_by_company' ? 'text-green-400' :
                           app.status === 'rejected_by_company' ? 'text-red-400' :
                           app.status === 'validated_by_co_dept' ? 'text-blue-400' : 'text-yellow-400'
                         }`}>
-                          {app.status === 'accepted_by_company' ? '✅ Accepté' : 
-                           app.status === 'rejected_by_company' ? '❌ Refusé' :
-                           app.status === 'validated_by_co_dept' ? '✓ Validé' : '⏳ En attente'}
+                          {app.status === 'accepted_by_company' ? '✅ Accepted' : 
+                           app.status === 'rejected_by_company' ? '❌ Rejected' :
+                           app.status === 'validated_by_co_dept' ? '✓ Validated' : '⏳ Pending'}
                         </p>
                       </div>
                       <div className="flex gap-2">
                         <button 
                           onClick={() => handlePreview(app.cv_file_url)}
                           className="p-2 bg-white/10 hover:bg-purple-500/30 rounded-lg transition text-white/60 hover:text-white"
-                          title="Aperçu"
+                          title="Preview"
                         >
                           <Eye size={16} />
                         </button>
                         <button 
                           onClick={() => handleDownload(app.cv_file_url, `CV_${app.offer_title}.pdf`)}
                           className="p-2 bg-white/10 hover:bg-purple-500/30 rounded-lg transition text-white/60 hover:text-white"
-                          title="Télécharger"
+                          title="Download"
                         >
                           <Download size={16} />
                         </button>

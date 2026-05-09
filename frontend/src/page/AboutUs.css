@@ -270,3 +270,80 @@
     font-size: 0.75rem;
   }
 }
+
+/* ===== LIGHT MODE STYLES FOR ABOUT US PAGE ===== */
+body.light-mode .about-us-page {
+  background-color: #f5f5f5;
+}
+
+body.light-mode .about-hero h1 {
+  color: #1a1a2e;
+}
+
+body.light-mode .about-hero p {
+  color: #555;
+}
+
+body.light-mode .about-how-it-works h2 {
+  color: #1a1a2e;
+}
+
+body.light-mode .about-step {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(141, 35, 212, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .about-step h3 {
+  color: #1a1a2e;
+}
+
+body.light-mode .about-step p {
+  color: #666;
+}
+
+body.light-mode .about-role-section:nth-child(even) {
+  background: rgba(141, 35, 212, 0.05);
+}
+
+body.light-mode .about-role-header h2 {
+  color: #1a1a2e;
+}
+
+body.light-mode .about-role-header p {
+  color: #666;
+}
+
+body.light-mode .about-role-card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(141, 35, 212, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .about-role-card h3 {
+  color: #1a1a2e;
+}
+
+body.light-mode .about-role-card p {
+  color: #555;
+}
+
+body.light-mode .about-back-home-btn {
+  border-color: #8D23D4;
+  color: #8D23D4;
+}
+
+body.light-mode .about-back-home-btn:hover {
+  background: #8D23D4;
+  color: #ffffff;
+}
+
+body.light-mode .about-role-card-icon {
+  background: rgba(141, 35, 212, 0.1);
+  color: #8D23D4;
+}
+
+body.light-mode .about-step-icon {
+  background: rgba(141, 35, 212, 0.1);
+  color: #8D23D4;
+}

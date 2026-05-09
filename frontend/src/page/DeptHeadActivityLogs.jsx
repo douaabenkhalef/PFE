@@ -1,3 +1,4 @@
+
 // frontend/src/page/DeptHeadActivityLogs.jsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
@@ -129,19 +130,19 @@ const SummaryCard = ({ label, value, accent, delay = 0 }) => {
 
 // ==================== Activity Log Card ====================
 const actionIcons = {
-  'validate_convention': { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10', label: 'Validation de convention' },
-  'reject_convention': { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Refus de convention' },
-  'generate_convention': { icon: FileText, color: 'text-blue-400', bg: 'bg-blue-500/10', label: 'Génération de convention' },
-  'approve_co_dept_head': { icon: UserPlus, color: 'text-green-400', bg: 'bg-green-500/10', label: 'Approbation Co Dept Head' },
-  'reject_co_dept_head': { icon: UserMinus, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Refus Co Dept Head' },
-  'add_signature': { icon: PenTool, color: 'text-purple-400', bg: 'bg-purple-500/10', label: 'Ajout de signature' },
-  'update_permissions': { icon: Settings, color: 'text-yellow-400', bg: 'bg-yellow-500/10', label: 'Modification permissions' },
-  'delete_co_dept_head': { icon: Trash2, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Suppression Co Dept Head' },
-  'create_offer': { icon: Briefcase, color: 'text-cyan-400', bg: 'bg-cyan-500/10', label: 'Création offre' },
-  'update_offer': { icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-500/10', label: 'Modification offre' },
-  'delete_offer': { icon: Trash2, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Suppression offre' },
-  'accept_application': { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10', label: 'Acceptation candidature' },
-  'reject_application': { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Refus candidature' }
+  'validate_convention': { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10', label: 'Convention Validation' },
+  'reject_convention': { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Convention Rejection' },
+  'generate_convention': { icon: FileText, color: 'text-blue-400', bg: 'bg-blue-500/10', label: 'Convention Generation' },
+  'approve_co_dept_head': { icon: UserPlus, color: 'text-green-400', bg: 'bg-green-500/10', label: 'Co Dept Head Approval' },
+  'reject_co_dept_head': { icon: UserMinus, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Co Dept Head Rejection' },
+  'add_signature': { icon: PenTool, color: 'text-purple-400', bg: 'bg-purple-500/10', label: 'Signature Added' },
+  'update_permissions': { icon: Settings, color: 'text-yellow-400', bg: 'bg-yellow-500/10', label: 'Permissions Updated' },
+  'delete_co_dept_head': { icon: Trash2, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Co Dept Head Deleted' },
+  'create_offer': { icon: Briefcase, color: 'text-cyan-400', bg: 'bg-cyan-500/10', label: 'Offer Created' },
+  'update_offer': { icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-500/10', label: 'Offer Updated' },
+  'delete_offer': { icon: Trash2, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Offer Deleted' },
+  'accept_application': { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10', label: 'Application Accepted' },
+  'reject_application': { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10', label: 'Application Rejected' }
 };
 
 const ActivityLogCard = ({ log }) => {
@@ -164,7 +165,7 @@ const ActivityLogCard = ({ log }) => {
             <div>
               <h4 className="text-white font-semibold">{config.label}</h4>
               <p className="text-white/60 text-sm mt-1">
-                Par <span className="text-purple-400">{log.user_name}</span>
+                By <span className="text-purple-400">{log.user_name}</span>
               </p>
             </div>
             <div className="flex items-center gap-2 text-white/40 text-xs">
@@ -175,7 +176,7 @@ const ActivityLogCard = ({ log }) => {
           
           <div className="mt-3 p-3 bg-slate-800/60 rounded-lg">
             <p className="text-white/80 text-sm">
-              <span className="text-purple-400">Cible:</span> {log.target_name}
+              <span className="text-purple-400">Target:</span> {log.target_name}
             </p>
             {log.details && Object.keys(log.details).length > 0 && (
               <div className="mt-2 space-y-1">
@@ -186,19 +187,19 @@ const ActivityLogCard = ({ log }) => {
                   <p className="text-white/60 text-xs">📋 {log.details.offer_title}</p>
                 )}
                 {log.details.reason && (
-                  <p className="text-white/60 text-xs">📝 Motif: {log.details.reason}</p>
+                  <p className="text-white/60 text-xs">📝 Reason: {log.details.reason}</p>
                 )}
                 {log.details.validated_by && (
-                  <p className="text-green-400 text-xs">✅ Validé par: {log.details.validated_by}</p>
+                  <p className="text-green-400 text-xs">✅ Validated by: {log.details.validated_by}</p>
                 )}
                 {log.details.company_name && (
                   <p className="text-white/60 text-xs">🏢 {log.details.company_name}</p>
                 )}
                 {log.details.signed_by && (
-                  <p className="text-purple-400 text-xs">✎ Signé par: {log.details.signed_by}</p>
+                  <p className="text-purple-400 text-xs">✎ Signed by: {log.details.signed_by}</p>
                 )}
                 {log.details.permissions && (
-                  <p className="text-yellow-400 text-xs">🔧 Permissions modifiées</p>
+                  <p className="text-yellow-400 text-xs">🔧 Permissions modified</p>
                 )}
               </div>
             )}
@@ -248,41 +249,41 @@ const StatisticsSection = ({ stats, loading, onViewDetails }) => {
   const genPct = totalActions > 0 ? Math.round(generationsCount / totalActions * 100) : 0;
 
   const donuts = [
-    { title: "Validations", percentage: valPct, count: validationsCount, label: "actions", color: "#34d399", trackColor: "#063d28", legendA: "Validations", legendB: "Autres" },
-    { title: "Refus", percentage: rejPct, count: rejectionsCount, label: "actions", color: "#f97316", trackColor: "#3b1200", legendA: "Refus", legendB: "Autres" },
-    { title: "Signatures", percentage: sigPct, count: signaturesCount, label: "actions", color: "#c084fc", trackColor: "#3b0764", legendA: "Signatures", legendB: "Autres" },
-    { title: "Approbations", percentage: appPct, count: approvalsCount, label: "actions", color: "#60a5fa", trackColor: "#1e3a5f", legendA: "Approbations", legendB: "Autres" },
-    { title: "Permissions", percentage: permPct, count: permissionsCount, label: "actions", color: "#fbbf24", trackColor: "#3d2a00", legendA: "Permissions", legendB: "Autres" },
+    { title: "Validations", percentage: valPct, count: validationsCount, label: "actions", color: "#34d399", trackColor: "#063d28", legendA: "Validations", legendB: "Others" },
+    { title: "Rejections", percentage: rejPct, count: rejectionsCount, label: "actions", color: "#f97316", trackColor: "#3b1200", legendA: "Rejections", legendB: "Others" },
+    { title: "Signatures", percentage: sigPct, count: signaturesCount, label: "actions", color: "#c084fc", trackColor: "#3b0764", legendA: "Signatures", legendB: "Others" },
+    { title: "Approvals", percentage: appPct, count: approvalsCount, label: "actions", color: "#60a5fa", trackColor: "#1e3a5f", legendA: "Approvals", legendB: "Others" },
+    { title: "Permissions", percentage: permPct, count: permissionsCount, label: "actions", color: "#fbbf24", trackColor: "#3d2a00", legendA: "Permissions", legendB: "Others" },
   ];
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Bouton retour */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-white">Statistiques d'activité</h2>
+      {/* Back button */}
+      <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
+        <h2 className="text-xl font-bold text-white">Activity Statistics</h2>
         <button
           onClick={onViewDetails}
           className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition shadow-lg flex items-center gap-2"
         >
           <Eye size={16} />
-          Voir les logs détaillés
+          View detailed logs
         </button>
       </div>
 
       {/* Donuts */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '20px', marginBottom: '36px' }}>
         {donuts.map((d, i) => <DonutCard key={d.title} {...d} delay={i * 90} />)}
       </div>
       
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
         <SummaryCard label="Total Actions" value={totalActions} delay={0} />
-        <SummaryCard label="Offres traitées" value={offersCount} accent="#a855f7" delay={80} />
-        <SummaryCard label="Candidatures" value={applicationsCount} accent="#60a5fa" delay={160} />
-        <SummaryCard label="Suppressions" value={deletionsCount} accent="#ef4444" delay={240} />
+        <SummaryCard label="Offers Processed" value={offersCount} accent="#a855f7" delay={80} />
+        <SummaryCard label="Applications" value={applicationsCount} accent="#60a5fa" delay={160} />
+        <SummaryCard label="Deletions" value={deletionsCount} accent="#ef4444" delay={240} />
       </div>
 
-      {/* Détails par type */}
+      {/* Details by type */}
       <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
         <button
           onClick={() => setExpandedSection(expandedSection === 'details' ? null : 'details')}
@@ -290,7 +291,7 @@ const StatisticsSection = ({ stats, loading, onViewDetails }) => {
         >
           <div className="flex items-center gap-3">
             <BarChart3 className="w-5 h-5 text-purple-400" />
-            <h3 className="text-lg font-semibold text-white">Détail par type d'action</h3>
+            <h3 className="text-lg font-semibold text-white">Details by action type</h3>
           </div>
           {expandedSection === 'details' ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
@@ -311,7 +312,7 @@ const StatisticsSection = ({ stats, loading, onViewDetails }) => {
               <div className="bg-slate-800/60 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <XCircle className="w-4 h-4 text-orange-400" />
-                  <span className="text-white font-medium">Refus</span>
+                  <span className="text-white font-medium">Rejections</span>
                   <span className="text-orange-400 ml-auto">{rejectionsCount}</span>
                 </div>
                 <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
@@ -331,7 +332,7 @@ const StatisticsSection = ({ stats, loading, onViewDetails }) => {
               <div className="bg-slate-800/60 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <UserPlus className="w-4 h-4 text-blue-400" />
-                  <span className="text-white font-medium">Approbations Co Dept</span>
+                  <span className="text-white font-medium">Co Dept Approvals</span>
                   <span className="text-blue-400 ml-auto">{approvalsCount}</span>
                 </div>
                 <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
@@ -341,7 +342,7 @@ const StatisticsSection = ({ stats, loading, onViewDetails }) => {
               <div className="bg-slate-800/60 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Settings className="w-4 h-4 text-yellow-400" />
-                  <span className="text-white font-medium">Modif. permissions</span>
+                  <span className="text-white font-medium">Permissions Modified</span>
                   <span className="text-yellow-400 ml-auto">{permissionsCount}</span>
                 </div>
                 <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
@@ -351,7 +352,7 @@ const StatisticsSection = ({ stats, loading, onViewDetails }) => {
               <div className="bg-slate-800/60 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Trash2 className="w-4 h-4 text-red-400" />
-                  <span className="text-white font-medium">Suppressions</span>
+                  <span className="text-white font-medium">Deletions</span>
                   <span className="text-red-400 ml-auto">{deletionsCount}</span>
                 </div>
                 <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
@@ -361,7 +362,7 @@ const StatisticsSection = ({ stats, loading, onViewDetails }) => {
               <div className="bg-slate-800/60 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Briefcase className="w-4 h-4 text-cyan-400" />
-                  <span className="text-white font-medium">Offres traitées</span>
+                  <span className="text-white font-medium">Offers Processed</span>
                   <span className="text-cyan-400 ml-auto">{offersCount}</span>
                 </div>
                 <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
@@ -371,7 +372,7 @@ const StatisticsSection = ({ stats, loading, onViewDetails }) => {
               <div className="bg-slate-800/60 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Users className="w-4 h-4 text-blue-400" />
-                  <span className="text-white font-medium">Candidatures traitées</span>
+                  <span className="text-white font-medium">Applications Processed</span>
                   <span className="text-blue-400 ml-auto">{applicationsCount}</span>
                 </div>
                 <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
@@ -381,7 +382,7 @@ const StatisticsSection = ({ stats, loading, onViewDetails }) => {
               <div className="bg-slate-800/60 rounded-lg p-4 md:col-span-2">
                 <div className="flex items-center gap-2 mb-3">
                   <FileText className="w-4 h-4 text-emerald-400" />
-                  <span className="text-white font-medium">Générations de convention</span>
+                  <span className="text-white font-medium">Convention Generations</span>
                   <span className="text-emerald-400 ml-auto">{generationsCount}</span>
                 </div>
                 <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
@@ -427,10 +428,10 @@ export default function DeptHeadActivityLogs() {
         setLogs(data.logs);
         setStats(data.stats);
       } else {
-        toast.error(data.error || 'Erreur de chargement');
+        toast.error(data.error || 'Error loading logs');
       }
     } catch (err) {
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     } finally {
       setLoading(false);
     }
@@ -441,19 +442,19 @@ export default function DeptHeadActivityLogs() {
   }, [filters]);
 
   const actionTypes = [
-    { value: 'validate_convention', label: 'Validations de convention' },
-    { value: 'reject_convention', label: 'Refus de convention' },
-    { value: 'generate_convention', label: 'Générations de convention' },
-    { value: 'add_signature', label: 'Ajouts de signature' },
-    { value: 'approve_co_dept_head', label: 'Approbations Co Dept Head' },
-    { value: 'reject_co_dept_head', label: 'Refus Co Dept Head' },
-    { value: 'update_permissions', label: 'Modifications permissions' },
-    { value: 'delete_co_dept_head', label: 'Suppressions Co Dept Head' },
-    { value: 'create_offer', label: 'Créations offre' },
-    { value: 'update_offer', label: 'Modifications offre' },
-    { value: 'delete_offer', label: 'Suppressions offre' },
-    { value: 'accept_application', label: 'Acceptations candidature' },
-    { value: 'reject_application', label: 'Refus candidature' }
+    { value: 'validate_convention', label: 'Convention Validations' },
+    { value: 'reject_convention', label: 'Convention Rejections' },
+    { value: 'generate_convention', label: 'Convention Generations' },
+    { value: 'add_signature', label: 'Signature Additions' },
+    { value: 'approve_co_dept_head', label: 'Co Dept Head Approvals' },
+    { value: 'reject_co_dept_head', label: 'Co Dept Head Rejections' },
+    { value: 'update_permissions', label: 'Permissions Modifications' },
+    { value: 'delete_co_dept_head', label: 'Co Dept Head Deletions' },
+    { value: 'create_offer', label: 'Offer Creations' },
+    { value: 'update_offer', label: 'Offer Modifications' },
+    { value: 'delete_offer', label: 'Offer Deletions' },
+    { value: 'accept_application', label: 'Application Acceptances' },
+    { value: 'reject_application', label: 'Application Rejections' }
   ];
 
   const handleLogout = () => {
@@ -487,20 +488,20 @@ export default function DeptHeadActivityLogs() {
 
       <div className="ml-64 flex-1 min-h-screen py-8 px-6">
         <div className="max-w-7xl mx-auto">
-          {/* Back button to admin dashboard */}
+          {/* Back button */}
           <button
             onClick={() => navigate('/admin/dashboard')}
             className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
           >
             <ArrowLeft size={18} />
-            Retour au tableau de bord
+            Back to Dashboard
           </button>
 
           {/* Header with toggle */}
           <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-white">Activité des Co Department Heads</h1>
-              <p className="text-white/60 text-sm mt-1">Suivez l'activité des co department heads de votre université</p>
+              <h1 className="text-2xl font-bold text-white">Co Department Heads Activity</h1>
+              <p className="text-white/60 text-sm mt-1">Track activity of co department heads at your university</p>
             </div>
             <div className="flex gap-3">
               <button
@@ -512,14 +513,14 @@ export default function DeptHeadActivityLogs() {
                 }`}
               >
                 {showStatsView ? <BarChart3 size={16} /> : <Activity size={16} />}
-                {showStatsView ? 'Voir les logs' : 'Voir les statistiques'}
+                {showStatsView ? 'View logs' : 'View statistics'}
               </button>
               <button
                 onClick={fetchLogs}
                 className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition flex items-center gap-2"
               >
                 <RefreshCw size={14} />
-                Actualiser
+                Refresh
               </button>
             </div>
           </div>
@@ -539,26 +540,26 @@ export default function DeptHeadActivityLogs() {
                   className="flex items-center gap-2 text-white/70 hover:text-white transition"
                 >
                   <Filter size={16} />
-                  {showFilters ? 'Masquer les filtres' : 'Afficher les filtres'}
+                  {showFilters ? 'Hide filters' : 'Show filters'}
                 </button>
                 
                 {showFilters && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                     <div>
-                      <label className="block text-white/70 text-sm mb-2">Type d'action</label>
+                      <label className="block text-white/70 text-sm mb-2">Action type</label>
                       <select
                         value={filters.action_type}
                         onChange={(e) => setFilters(prev => ({ ...prev, action_type: e.target.value }))}
                         className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
                       >
-                        <option value="">Tous</option>
+                        <option value="">All</option>
                         {actionTypes.map(at => (
                           <option key={at.value} value={at.value}>{at.label}</option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-white/70 text-sm mb-2">Date début</label>
+                      <label className="block text-white/70 text-sm mb-2">Start date</label>
                       <input
                         type="date"
                         value={filters.start_date}
@@ -567,7 +568,7 @@ export default function DeptHeadActivityLogs() {
                       />
                     </div>
                     <div>
-                      <label className="block text-white/70 text-sm mb-2">Date fin</label>
+                      <label className="block text-white/70 text-sm mb-2">End date</label>
                       <input
                         type="date"
                         value={filters.end_date}
@@ -584,7 +585,7 @@ export default function DeptHeadActivityLogs() {
                       onClick={clearFilters}
                       className="text-white/50 text-sm hover:text-white/80 transition px-3 py-1 rounded-lg hover:bg-white/10"
                     >
-                      ✕ Effacer les filtres
+                      ✕ Clear filters
                     </button>
                   </div>
                 )}
@@ -592,7 +593,7 @@ export default function DeptHeadActivityLogs() {
 
               {/* Actions header */}
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-white">Historique des actions</h2>
+                <h2 className="text-xl font-bold text-white">Action history</h2>
                 <p className="text-white/40 text-sm">{logs.length} action(s)</p>
               </div>
 
@@ -604,14 +605,14 @@ export default function DeptHeadActivityLogs() {
               ) : logs.length === 0 ? (
                 <div className="bg-white/10 backdrop-blur-lg rounded-xl p-12 text-center border border-white/20">
                   <Activity className="w-16 h-16 text-white/30 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">Aucune activité enregistrée</h3>
-                  <p className="text-white/60">Les actions des Co Department Heads apparaîtront ici.</p>
+                  <h3 className="text-xl font-semibold text-white mb-2">No activity recorded</h3>
+                  <p className="text-white/60">Co Department Heads' actions will appear here.</p>
                   {hasActiveFilters && (
                     <button
                       onClick={clearFilters}
                       className="mt-4 px-4 py-2 bg-purple-600/40 hover:bg-purple-600/60 rounded-lg text-white text-sm transition"
                     >
-                      Effacer les filtres
+                      Clear filters
                     </button>
                   )}
                 </div>
@@ -628,15 +629,207 @@ export default function DeptHeadActivityLogs() {
       </div>
 
       {/* Floating chat */}
-      <ChatWidget university={user?.university || "Université"} />
+      <ChatWidget university={user?.university || "University"} />
       {privateChatOpen && selectedChatUser && (
         <PrivateChat
-          university={user?.university || "Université"}
+          university={user?.university || "University"}
           currentUser={user}
           targetUser={selectedChatUser}
           onClose={handleClosePrivateChat}
         />
       )}
+
+      <style>{`
+        /* ===== RESPONSIVE STYLES ===== */
+        @media (max-width: 1200px) {
+          .stats-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 16px;
+          }
+          .summary-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        
+        @media (max-width: 768px) {
+          .ml-64 {
+            margin-left: 220px !important;
+          }
+          .stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px;
+          }
+          .summary-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .flex.justify-between.items-center {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 0.75rem;
+          }
+          .grid-cols-1.md\\:grid-cols-2 {
+            grid-template-columns: 1fr !important;
+          }
+          .grid-cols-1.md\\:grid-cols-3 {
+            grid-template-columns: 1fr !important;
+          }
+        }
+        
+        @media (max-width: 580px) {
+          .ml-64 {
+            margin-left: 200px !important;
+          }
+          .stats-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .py-8 {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+          }
+          .px-6 {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+          }
+          .px-4.py-2 {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.7rem;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .ml-64 {
+            margin-left: 180px !important;
+          }
+          .text-2xl.font-bold {
+            font-size: 1.1rem;
+          }
+          .text-xl.font-bold {
+            font-size: 1rem;
+          }
+        }
+        
+        /* ===== LIGHT MODE STYLES ===== */
+        body.light-mode .bg-white\\/10 {
+          background: rgba(255, 255, 255, 0.9) !important;
+          border-color: rgba(141, 35, 212, 0.25) !important;
+        }
+        body.light-mode .bg-white\\/10.backdrop-blur-lg {
+          background: rgba(255, 255, 255, 0.95) !important;
+        }
+        body.light-mode .bg-white\\/5 {
+          background: rgba(0, 0, 0, 0.03) !important;
+        }
+        body.light-mode .text-white,
+        body.light-mode .text-white\\/70,
+        body.light-mode .text-white\\/80,
+        body.light-mode .text-white\\/90 {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .text-white\\/50,
+        body.light-mode .text-white\\/60,
+        body.light-mode .text-white\\/40,
+        body.light-mode .text-white\\/30 {
+          color: #666 !important;
+        }
+        body.light-mode .text-purple-400 {
+          color: #8D23D4 !important;
+        }
+        body.light-mode .border-white\\/20 {
+          border-color: rgba(141, 35, 212, 0.2) !important;
+        }
+        body.light-mode .bg-slate-800\\/60 {
+          background: rgba(0, 0, 0, 0.05) !important;
+        }
+        body.light-mode .bg-slate-800 {
+          background: rgba(0, 0, 0, 0.05) !important;
+        }
+        body.light-mode .bg-slate-800 .text-white {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .bg-slate-800 .text-white\\/80,
+        body.light-mode .bg-slate-800 .text-white\\/60,
+        body.light-mode .bg-slate-800 .text-white\\/40 {
+          color: #555 !important;
+        }
+        body.light-mode .border-slate-700 {
+          border-color: rgba(141, 35, 212, 0.15) !important;
+        }
+        body.light-mode .donut-card {
+          background: rgba(255, 255, 255, 0.9) !important;
+          border-color: rgba(141, 35, 212, 0.25) !important;
+        }
+        body.light-mode .donut-card span,
+        body.light-mode .donut-card [style*="color: rgba(255,255,255,0.8)"] {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .donut-card [style*="color: rgba(255,255,255,0.55)"] {
+          color: #666 !important;
+        }
+        body.light-mode .summary-card,
+        body.light-mode [style*="background: rgba(255,255,255,0.07)"] {
+          background: rgba(255, 255, 255, 0.9) !important;
+          border-color: rgba(141, 35, 212, 0.25) !important;
+        }
+        body.light-mode .summary-card p,
+        body.light-mode [style*="color: rgba(255,255,255,0.5)"] {
+          color: #666 !important;
+        }
+        body.light-mode .bg-green-500/10,
+        body.light-mode .bg-red-500/10,
+        body.light-mode .bg-purple-500/10,
+        body.light-mode .bg-blue-500/10,
+        body.light-mode .bg-yellow-500/10,
+        body.light-mode .bg-cyan-500/10,
+        body.light-mode .bg-emerald-500/10 {
+          background: rgba(141, 35, 212, 0.08) !important;
+        }
+        body.light-mode .text-green-400 {
+          color: #059669 !important;
+        }
+        body.light-mode .text-red-400 {
+          color: #dc2626 !important;
+        }
+        body.light-mode .text-purple-400 {
+          color: #8D23D4 !important;
+        }
+        body.light-mode .text-blue-400 {
+          color: #2563eb !important;
+        }
+        body.light-mode .text-yellow-400 {
+          color: #d97706 !important;
+        }
+        body.light-mode .text-cyan-400 {
+          color: #0891b2 !important;
+        }
+        body.light-mode .text-emerald-400 {
+          color: #059669 !important;
+        }
+        body.light-mode .text-orange-400 {
+          color: #ea580c !important;
+        }
+        body.light-mode select,
+        body.light-mode input {
+          background: rgba(0, 0, 0, 0.05) !important;
+          border-color: rgba(141, 35, 212, 0.2) !important;
+          color: #1a1a2e !important;
+        }
+        body.light-mode select option {
+          background: white !important;
+          color: #1a1a2e !important;
+        }
+        body.light-mode .bg-purple-600 {
+          background: #8D23D4 !important;
+        }
+        body.light-mode .bg-purple-600:hover {
+          background: #6B21A5 !important;
+        }
+        body.light-mode button.bg-white\\/10 {
+          background: rgba(141, 35, 212, 0.08) !important;
+        }
+        body.light-mode button.bg-white\\/10:hover {
+          background: rgba(141, 35, 212, 0.15) !important;
+        }
+      `}</style>
     </div>
   );
 }

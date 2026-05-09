@@ -720,3 +720,1229 @@
   border-color: #f87171;
   color: #fff;
 }
+/* ===== RESPONSIVE STYLES FOR STUDENT PROFILE PAGE ===== */
+
+/* شاشات متوسطة (Tablets) - أقل من 1024px */
+@media (max-width: 1024px) {
+  /* الـ Sidebar يبقى ثابتاً لكن أصغر */
+  .w-64.fixed {
+    width: 220px !important;
+  }
+  
+  .ml-64 {
+    margin-left: 220px !important;
+  }
+  
+  .max-w-5xl {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  
+  /* تصغير حجم الخطوط */
+  .text-2xl.font-bold {
+    font-size: 1.5rem;
+  }
+  
+  .text-xl.font-semibold {
+    font-size: 1.2rem;
+  }
+}
+
+/* شاشات صغيرة (Mobile) - أقل من 768px */
+@media (max-width: 768px) {
+  /* الـ Sidebar يبقى ثابتاً لكن بعرض أصغر */
+  .w-64.fixed {
+    position: fixed;
+    width: 200px !important;
+    transform: none !important;
+    z-index: 100;
+  }
+  
+  .ml-64 {
+    margin-left: 200px !important;
+  }
+  
+  /* المحتوى الرئيسي */
+  .max-w-5xl {
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-top: 20px;
+  }
+  
+  /* Back button */
+  .flex.items-center.gap-2.text-white\/70 {
+    margin-bottom: 16px;
+    font-size: 0.8rem;
+  }
+  
+  /* صورة البروفايل والاسم */
+  .flex.items-center.gap-6.mb-8 {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+  
+  .relative {
+    margin: 0 auto;
+  }
+  
+  .w-24.h-24 {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .w-24.h-24 span {
+    font-size: 1.8rem;
+  }
+  
+  .text-2xl.font-bold {
+    font-size: 1.3rem;
+  }
+  
+  .text-purple-400 {
+    font-size: 0.8rem;
+  }
+  
+  /* عنوان الصفحة */
+  .flex.justify-between.items-center.mb-6 {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .flex.justify-between.items-center.mb-6 h2 {
+    font-size: 1.2rem;
+  }
+  
+  .flex.justify-between.items-center.mb-6 p {
+    font-size: 0.7rem;
+  }
+  
+  /* التبويبات */
+  .flex.gap-4.mb-6 {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  
+  .pb-2.px-4 {
+    padding: 6px 12px;
+    font-size: 0.7rem;
+  }
+  
+  .flex.items-center.gap-2 svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  /* البطاقات */
+  .bg-white\/10.backdrop-blur-lg.rounded-xl {
+    padding: 0;
+  }
+  
+  .p-6.space-y-5 {
+    padding: 14px;
+  }
+  
+  /* الحقول في شكل عمودي */
+  .flex.flex-col.md\:flex-row.md\:items-center.gap-4 {
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .md\:w-32 {
+    width: 100%;
+    margin-bottom: 2px;
+    font-size: 0.7rem;
+  }
+  
+  /* أزرار Edit و Save */
+  .px-5.py-2 {
+    padding: 6px 12px;
+    font-size: 0.7rem;
+  }
+  
+  .flex.gap-3 {
+    flex-wrap: wrap;
+  }
+  
+  /* قسم الأمان */
+  .flex.flex-col.md\:flex-row.md\:items-center.justify-between {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .mt-3.md\:mt-0 {
+    margin-top: 0;
+    width: 100%;
+  }
+  
+  .mt-3.md\:mt-0 button {
+    width: 100%;
+  }
+  
+  /* تصغير النصوص في قسم الأمان */
+  .text-white.text-sm.font-medium {
+    font-size: 0.75rem;
+  }
+  
+  .text-white\/50.text-xs {
+    font-size: 0.6rem;
+  }
+  
+  /* الـ Sidebar الداخلي */
+  .w-64.fixed .p-4 {
+    padding: 12px;
+  }
+  
+  .w-64.fixed .w-10.h-10 {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .w-64.fixed .w-10.h-10 span {
+    font-size: 0.7rem;
+  }
+  
+  .w-64.fixed .text-white.font-medium.text-sm {
+    font-size: 0.7rem;
+  }
+  
+  .w-64.fixed .text-white\/50.text-xs {
+    font-size: 0.55rem;
+  }
+  
+  .w-64.fixed .text-xs.text-purple-300\/60 {
+    font-size: 0.55rem;
+  }
+  
+  .w-64.fixed .space-y-1 a,
+  .w-64.fixed .space-y-1 button {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+  }
+  
+  .w-64.fixed .space-y-1 a svg,
+  .w-64.fixed .space-y-1 button svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  /* شريط البحث في الـ Sidebar */
+  .w-64.fixed .p-4 .relative input {
+    font-size: 0.7rem;
+    padding: 6px 10px 6px 28px;
+  }
+  
+  .w-64.fixed .p-4 .relative svg {
+    width: 12px;
+    height: 12px;
+    left: 8px;
+  }
+  
+  /* زر الخروج */
+  .w-64.fixed .p-4.border-t button {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+  }
+  
+  /* النوافذ المنبثقة */
+  .profile-modal {
+    width: 95%;
+    max-width: 380px;
+    margin: 0 10px;
+  }
+  
+  .profile-modal-body .flex.justify-center.gap-3 {
+    gap: 6px;
+  }
+  
+  .profile-modal-body .w-12.h-12 {
+    width: 35px;
+    height: 35px;
+    font-size: 1rem;
+  }
+}
+
+/* شاشات صغيرة جدا (أقل من 580px) */
+@media (max-width: 580px) {
+  /* الـ Sidebar يبقى ثابتاً لكن بعرض أقل */
+  .w-64.fixed {
+    width: 160px !important;
+  }
+  
+  .ml-64 {
+    margin-left: 160px !important;
+  }
+  
+  /* تصغير النصوص أكثر */
+  .text-2xl.font-bold {
+    font-size: 1.1rem;
+  }
+  
+  .text-purple-400 {
+    font-size: 0.7rem;
+  }
+  
+  .text-xl.font-semibold {
+    font-size: 1rem;
+  }
+  
+  .flex.justify-between.items-center.mb-6 p {
+    font-size: 0.65rem;
+  }
+  
+  /* التبويبات */
+  .pb-2.px-4 {
+    padding: 4px 8px;
+    font-size: 0.65rem;
+  }
+  
+  /* الحقول */
+  .profile-edit-input,
+  .profile-edit-select,
+  .flex-1.bg-slate-800\/80 {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+  }
+  
+  /* الأزرار */
+  .px-5.py-2 {
+    padding: 5px 10px;
+    font-size: 0.65rem;
+  }
+  
+  /* الـ Sidebar */
+  .w-64.fixed .text-white.font-medium.text-sm {
+    font-size: 0.6rem;
+  }
+  
+  .w-64.fixed .text-white\/50.text-xs {
+    font-size: 0.5rem;
+  }
+  
+  .w-64.fixed .space-y-1 a,
+  .w-64.fixed .space-y-1 button {
+    padding: 5px 8px;
+    font-size: 0.65rem;
+  }
+  
+  .w-64.fixed .space-y-1 a svg,
+  .w-64.fixed .space-y-1 button svg {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .w-64.fixed .p-4 .relative input {
+    font-size: 0.65rem;
+    padding: 5px 8px 5px 24px;
+  }
+  
+  .w-64.fixed .p-4 .relative svg {
+    width: 10px;
+    height: 10px;
+    left: 8px;
+  }
+  
+  /* زر الخروج */
+  .w-64.fixed .p-4.border-t button {
+    padding: 5px 8px;
+    font-size: 0.65rem;
+  }
+  
+  .w-64.fixed .p-4.border-t button svg {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+/* شاشات صغيرة جدا (أقل من 480px) */
+@media (max-width: 480px) {
+  .w-64.fixed {
+    width: 140px !important;
+  }
+  
+  .ml-64 {
+    margin-left: 140px !important;
+  }
+  
+  .w-24.h-24 {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .w-24.h-24 span {
+    font-size: 1.5rem;
+  }
+  
+  .text-2xl.font-bold {
+    font-size: 1rem;
+  }
+  
+  .text-purple-400 {
+    font-size: 0.65rem;
+  }
+  
+  .pb-2.px-4 {
+    padding: 4px 6px;
+    font-size: 0.6rem;
+  }
+  
+  .profile-edit-input,
+  .profile-edit-select {
+    padding: 5px 8px;
+    font-size: 0.65rem;
+  }
+  
+  .px-5.py-2 {
+    padding: 4px 8px;
+    font-size: 0.6rem;
+  }
+}
+
+/* ===== LIGHT MODE FOR STUDENT PROFILE ===== */
+body.light-mode .w-64.fixed {
+  background: linear-gradient(180deg, #ffffff 0%, #f5f0ff 100%);
+  border-right: 1px solid rgba(141, 35, 212, 0.2);
+}
+
+body.light-mode .w-64.fixed .text-white {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .w-64.fixed .text-white\/50,
+body.light-mode .w-64.fixed .text-white\/70 {
+  color: #666 !important;
+}
+
+body.light-mode .w-64.fixed .text-purple-300\/60 {
+  color: #8D23D4 !important;
+  opacity: 0.7;
+}
+
+body.light-mode .w-64.fixed .bg-white\/10 {
+  background: rgba(141, 35, 212, 0.08);
+}
+
+body.light-mode .w-64.fixed .border-white\/10,
+body.light-mode .w-64.fixed .border-white\/20 {
+  border-color: rgba(141, 35, 212, 0.15);
+}
+
+body.light-mode .w-64.fixed .bg-purple-600\/30 {
+  background: rgba(141, 35, 212, 0.15);
+}
+
+body.light-mode .w-64.fixed .text-purple-300 {
+  color: #8D23D4 !important;
+}
+
+body.light-mode .w-64.fixed .hover\:bg-white\/10:hover {
+  background: rgba(141, 35, 212, 0.1);
+}
+
+body.light-mode .w-64.fixed .bg-gradient-to-r.from-purple-600.to-pink-600 {
+  background: linear-gradient(135deg, #8D23D4, #6B21A5);
+}
+
+body.light-mode .bg-white\/10.backdrop-blur-lg {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(141, 35, 212, 0.2);
+}
+
+body.light-mode .bg-slate-800\/80 {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(141, 35, 212, 0.25);
+  color: #1a1a2e;
+}
+
+body.light-mode .bg-slate-800\/80::placeholder {
+  color: #999;
+}
+
+body.light-mode .text-white\/60,
+body.light-mode .text-white\/70,
+body.light-mode .text-white\/80 {
+  color: #555 !important;
+}
+
+body.light-mode .text-white {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .border-white\/10,
+body.light-mode .border-white\/20 {
+  border-color: rgba(141, 35, 212, 0.15);
+}
+
+body.light-mode .bg-purple-600 {
+  background: #8D23D4;
+}
+
+body.light-mode .bg-purple-600:hover {
+  background: #6B21A5;
+}
+
+body.light-mode .bg-green-600 {
+  background: #059669;
+}
+
+body.light-mode .bg-white\/5 {
+  background: rgba(141, 35, 212, 0.05);
+}
+
+body.light-mode .text-purple-400 {
+  color: #8D23D4;
+}
+
+body.light-mode .profile-modal {
+  background: #ffffff;
+  border-color: rgba(141, 35, 212, 0.2);
+}
+
+body.light-mode .profile-modal .text-white {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .profile-modal .text-white\/60 {
+  color: #666 !important;
+}
+
+body.light-mode .profile-modal-header {
+  background: rgba(141, 35, 212, 0.1);
+}
+
+body.light-mode .profile-modal-input {
+  background: rgba(0, 0, 0, 0.05);
+  color: #1a1a2e;
+}
+
+body.light-mode .fixed.inset-0.bg-black\/80 {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+body.light-mode .bg-\[\#1e293b\] {
+  background: #ffffff;
+  border-color: rgba(141, 35, 212, 0.2);
+}
+
+body.light-mode .bg-\[\#1e293b\] .text-white {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .bg-\[\#1e293b\] .text-white\/70,
+body.light-mode .bg-\[\#1e293b\] .text-white\/60 {
+  color: #555 !important;
+}
+
+body.light-mode .bg-slate-700 {
+  background: rgba(0, 0, 0, 0.1);
+  color: #1a1a2e;
+}
+
+body.light-mode .bg-slate-700:hover {
+  background: rgba(0, 0, 0, 0.15);
+}
+/* ===== RESPONSIVE SIDEBAR FOR STUDENT PROFILE ===== */
+
+/* تحسين الـ Sidebar ليكون متجاوب */
+@media (max-width: 1024px) {
+  .w-64.fixed {
+    width: 240px !important;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 1000;
+  }
+  
+  .w-64.fixed.open {
+    transform: translateX(0);
+  }
+  
+  .ml-64 {
+    margin-left: 0 !important;
+  }
+  
+  /* زر الهامبرغر لفتح الـ Sidebar */
+  .profile-mobile-menu-btn {
+    display: flex !important;
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 1001;
+    background: rgba(141, 35, 212, 0.8);
+    backdrop-filter: blur(8px);
+    border: none;
+    border-radius: 12px;
+    padding: 10px;
+    cursor: pointer;
+    color: white;
+    transition: all 0.2s;
+  }
+  
+  .profile-mobile-menu-btn:hover {
+    background: rgba(141, 35, 212, 1);
+  }
+  
+  /* Overlay عند فتح الـ Sidebar */
+  .profile-sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 999;
+    animation: fadeIn 0.2s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  /* تحسين المحتوى الرئيسي */
+  .max-w-5xl {
+    padding-top: 20px;
+  }
+}
+
+/* للشاشات الصغيرة جداً */
+@media (max-width: 580px) {
+  .w-64.fixed {
+    width: 260px !important;
+  }
+  
+  .w-64.fixed .p-4 {
+    padding: 12px;
+  }
+  
+  .w-64.fixed .w-10.h-10 {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .w-64.fixed .w-10.h-10 span {
+    font-size: 0.8rem;
+  }
+  
+  .w-64.fixed .text-white.font-medium.text-sm {
+    font-size: 0.75rem;
+  }
+  
+  .w-64.fixed .text-white\/50.text-xs {
+    font-size: 0.6rem;
+  }
+  
+  .w-64.fixed .text-xs.text-purple-300\/60 {
+    font-size: 0.55rem;
+  }
+  
+  .w-64.fixed .space-y-1 a,
+  .w-64.fixed .space-y-1 button {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+  }
+  
+  .w-64.fixed .space-y-1 a svg,
+  .w-64.fixed .space-y-1 button svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .w-64.fixed .p-4 .relative input {
+    font-size: 0.7rem;
+    padding: 6px 10px 6px 28px;
+  }
+  
+  .w-64.fixed .p-4 .relative svg {
+    width: 12px;
+    height: 12px;
+    left: 8px;
+  }
+  
+  .w-64.fixed .p-4.border-t button {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+  }
+}
+
+/* Light Mode للـ Sidebar في Profile */
+body.light-mode .w-64.fixed {
+  background: linear-gradient(180deg, #ffffff 0%, #f5f0ff 100%);
+  border-right: 1px solid rgba(141, 35, 212, 0.2);
+}
+
+body.light-mode .w-64.fixed .text-white {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .w-64.fixed .text-white\/50,
+body.light-mode .w-64.fixed .text-white\/70 {
+  color: #666 !important;
+}
+
+body.light-mode .w-64.fixed .text-purple-300\/60 {
+  color: #8D23D4 !important;
+}
+
+body.light-mode .w-64.fixed .bg-white\/10 {
+  background: rgba(141, 35, 212, 0.08);
+}
+
+body.light-mode .w-64.fixed .border-white\/10,
+body.light-mode .w-64.fixed .border-white\/20 {
+  border-color: rgba(141, 35, 212, 0.15);
+}
+
+body.light-mode .w-64.fixed .bg-purple-600\/30 {
+  background: rgba(141, 35, 212, 0.15);
+}
+
+body.light-mode .w-64.fixed .text-purple-300 {
+  color: #8D23D4 !important;
+}
+
+body.light-mode .w-64.fixed .hover\:bg-white\/10:hover {
+  background: rgba(141, 35, 212, 0.1);
+}
+
+body.light-mode .w-64.fixed .bg-gradient-to-r.from-purple-600.to-pink-600 {
+  background: linear-gradient(135deg, #8D23D4, #6B21A5);
+}
+/* ===== RESPONSIVE SIDEBAR FOR STUDENT PROFILE ===== */
+
+/* تحسين الـ Sidebar ليكون متجاوب بدون هامبرغر - Sidebar ثابت دائماً */
+
+/* شاشات متوسطة (Tablets) */
+@media (max-width: 1024px) {
+  /* تصغير عرض الـ Sidebar */
+  .w-64.fixed {
+    width: 220px !important;
+  }
+  
+  .ml-64 {
+    margin-left: 220px !important;
+  }
+  
+  /* تصغير حجم النصوص والأيقونات في الـ Sidebar */
+  .w-64.fixed .p-4 {
+    padding: 12px;
+  }
+  
+  .w-64.fixed .w-10.h-10 {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .w-64.fixed .w-10.h-10 span {
+    font-size: 0.8rem;
+  }
+  
+  .w-64.fixed .text-white.font-medium.text-sm {
+    font-size: 0.75rem;
+  }
+  
+  .w-64.fixed .text-white\/50.text-xs {
+    font-size: 0.6rem;
+  }
+  
+  /* تصغير شريط البحث */
+  .w-64.fixed .relative input {
+    font-size: 0.75rem;
+    padding: 8px 10px 8px 32px;
+  }
+  
+  .w-64.fixed .relative svg {
+    width: 14px;
+    height: 14px;
+    left: 10px;
+  }
+  
+  /* تصغير عناصر القائمة */
+  .w-64.fixed .text-xs.text-purple-300\/60 {
+    font-size: 0.6rem;
+    padding: 0 8px 6px;
+  }
+  
+  .w-64.fixed .space-y-1 a,
+  .w-64.fixed .space-y-1 button {
+    padding: 8px 10px;
+    font-size: 0.75rem;
+  }
+  
+  .w-64.fixed .space-y-1 a svg,
+  .w-64.fixed .space-y-1 button svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  /* تصغير زر الخروج */
+  .w-64.fixed .p-4.border-t button {
+    padding: 8px 10px;
+    font-size: 0.75rem;
+  }
+  
+  .w-64.fixed .p-4.border-t button svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  /* تصغير المسافات بين العناصر */
+  .w-64.fixed .p-4.border-b,
+  .w-64.fixed .p-4 {
+    padding: 12px;
+  }
+  
+  .w-64.fixed .space-y-1 {
+    gap: 4px;
+  }
+  
+  .w-64.fixed .gap-3 {
+    gap: 8px;
+  }
+}
+
+/* شاشات صغيرة (Mobile) - أقل من 768px */
+@media (max-width: 768px) {
+  /* تصغير عرض الـ Sidebar أكثر */
+  .w-64.fixed {
+    width: 200px !important;
+  }
+  
+  .ml-64 {
+    margin-left: 200px !important;
+  }
+  
+  /* تصغير الصورة الرمزية */
+  .w-64.fixed .w-10.h-10 {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .w-64.fixed .w-10.h-10 span {
+    font-size: 0.7rem;
+  }
+  
+  /* تصغير النصوص */
+  .w-64.fixed .text-white.font-medium.text-sm {
+    font-size: 0.7rem;
+  }
+  
+  .w-64.fixed .text-white\/50.text-xs {
+    font-size: 0.55rem;
+  }
+  
+  /* تصغير شريط البحث */
+  .w-64.fixed .relative input {
+    font-size: 0.7rem;
+    padding: 6px 8px 6px 28px;
+  }
+  
+  .w-64.fixed .relative svg {
+    width: 12px;
+    height: 12px;
+    left: 8px;
+  }
+  
+  /* تصغير عناصر القائمة */
+  .w-64.fixed .text-xs.text-purple-300\/60 {
+    font-size: 0.55rem;
+    letter-spacing: 0.5px;
+  }
+  
+  .w-64.fixed .space-y-1 a,
+  .w-64.fixed .space-y-1 button {
+    padding: 6px 8px;
+    font-size: 0.7rem;
+    border-radius: 8px;
+  }
+  
+  .w-64.fixed .space-y-1 a svg,
+  .w-64.fixed .space-y-1 button svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  /* تصغير زر الخروج */
+  .w-64.fixed .p-4.border-t button {
+    padding: 6px 8px;
+    font-size: 0.7rem;
+  }
+  
+  .w-64.fixed .p-4.border-t button svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  /* تصغير المسافات */
+  .w-64.fixed .p-4.border-b,
+  .w-64.fixed .p-4 {
+    padding: 10px;
+  }
+  
+  .w-64.fixed .gap-3 {
+    gap: 6px;
+  }
+}
+
+/* شاشات صغيرة جداً (أقل من 580px) */
+@media (max-width: 580px) {
+  /* تصغير عرض الـ Sidebar */
+  .w-64.fixed {
+    width: 180px !important;
+  }
+  
+  .ml-64 {
+    margin-left: 180px !important;
+  }
+  
+  /* تصغير الصورة الرمزية */
+  .w-64.fixed .w-10.h-10 {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .w-64.fixed .w-10.h-10 span {
+    font-size: 0.6rem;
+  }
+  
+  /* تصغير النصوص */
+  .w-64.fixed .text-white.font-medium.text-sm {
+    font-size: 0.65rem;
+  }
+  
+  .w-64.fixed .text-white\/50.text-xs {
+    font-size: 0.5rem;
+  }
+  
+  /* تصغير عناصر القائمة */
+  .w-64.fixed .space-y-1 a,
+  .w-64.fixed .space-y-1 button {
+    padding: 5px 6px;
+    font-size: 0.65rem;
+  }
+  
+  .w-64.fixed .space-y-1 a svg,
+  .w-64.fixed .space-y-1 button svg {
+    width: 12px;
+    height: 12px;
+  }
+  
+  /* إخفاء عنوان "Control & Management" في الشاشات الصغيرة جداً */
+  .w-64.fixed .text-xs.text-purple-300\/60 {
+    font-size: 0.5rem;
+    margin-bottom: 4px;
+  }
+  
+  /* تصغير شريط البحث */
+  .w-64.fixed .relative input {
+    font-size: 0.6rem;
+    padding: 5px 6px 5px 24px;
+  }
+  
+  .w-64.fixed .relative svg {
+    width: 10px;
+    height: 10px;
+    left: 8px;
+  }
+}
+
+/* شاشات صغيرة جداً (أقل من 480px) */
+@media (max-width: 480px) {
+  /* تصغير عرض الـ Sidebar */
+  .w-64.fixed {
+    width: 160px !important;
+  }
+  
+  .ml-64 {
+    margin-left: 160px !important;
+  }
+  
+  /* الصورة الرمزية */
+  .w-64.fixed .w-10.h-10 {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .w-64.fixed .w-10.h-10 span {
+    font-size: 0.55rem;
+  }
+  
+  /* النصوص */
+  .w-64.fixed .text-white.font-medium.text-sm {
+    font-size: 0.6rem;
+  }
+  
+  .w-64.fixed .text-white\/50.text-xs {
+    font-size: 0.45rem;
+  }
+  
+  /* عناصر القائمة */
+  .w-64.fixed .space-y-1 a,
+  .w-64.fixed .space-y-1 button {
+    padding: 4px 5px;
+    font-size: 0.6rem;
+  }
+  
+  .w-64.fixed .space-y-1 a svg,
+  .w-64.fixed .space-y-1 button svg {
+    width: 11px;
+    height: 11px;
+  }
+  
+  /* زر الخروج */
+  .w-64.fixed .p-4.border-t button {
+    padding: 5px 6px;
+    font-size: 0.6rem;
+  }
+  
+  .w-64.fixed .p-4.border-t button svg {
+    width: 12px;
+    height: 12px;
+  }
+  
+  /* أيقونة البحث */
+  .w-64.fixed .relative svg {
+    width: 9px;
+    height: 9px;
+  }
+}
+
+/* ===== تحسين المحتوى الرئيسي في الشاشات الصغيرة ===== */
+@media (max-width: 768px) {
+  .max-w-5xl.mx-auto.px-6.py-8 {
+    padding: 20px 16px !important;
+  }
+  
+  /* تصغير الصورة الرمزية في المحتوى */
+  .flex.items-center.gap-6.mb-8 .w-24.h-24 {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .flex.items-center.gap-6.mb-8 .text-2xl.font-bold {
+    font-size: 1.2rem;
+  }
+  
+  .flex.items-center.gap-6.mb-8 .text-purple-400 {
+    font-size: 0.75rem;
+  }
+  
+  /* تصغير الأزرار */
+  .flex.justify-between.items-center.mb-6 .px-5.py-2 {
+    padding: 6px 12px;
+    font-size: 0.7rem;
+  }
+  
+  /* تصغير التبويبات */
+  .flex.gap-4.mb-6 .pb-2.px-4 {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+  }
+  
+  /* تصغير الحقول */
+  .bg-slate-800\/80.border.border-slate-700.rounded-xl.px-4.py-2\.5 {
+    padding: 8px 12px;
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .max-w-5xl.mx-auto.px-6.py-8 {
+    padding: 16px 12px !important;
+  }
+  
+  .flex.items-center.gap-6.mb-8 {
+    gap: 12px;
+  }
+  
+  .flex.items-center.gap-6.mb-8 .w-24.h-24 {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .flex.items-center.gap-6.mb-8 .text-2xl.font-bold {
+    font-size: 1rem;
+  }
+  
+  .flex.justify-between.items-center.mb-6 {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .flex.justify-between.items-center.mb-6 h2 {
+    font-size: 1rem;
+  }
+  
+  .flex.justify-between.items-center.mb-6 p {
+    font-size: 0.65rem;
+  }
+}
+/* ===== FIX: NAME AND EMAIL IN SIDEBAR - RESPONSIVE ===== */
+
+/* تحسين عرض الاسم والإيميل في الـ Sidebar لجميع الشاشات */
+
+/* للأجهزة المتوسطة (Tablets) */
+@media (max-width: 1024px) {
+  /* تحسين حاوية الاسم والإيميل */
+  .w-64.fixed .flex.items-center.gap-3 {
+    gap: 8px !important;
+  }
+  
+  /* تصغير الاسم */
+  .w-64.fixed .text-white.font-medium.text-sm {
+    font-size: 0.7rem !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    line-height: 1.3 !important;
+    max-width: 130px !important;
+  }
+  
+  /* تصغير الإيميل */
+  .w-64.fixed .text-white\/50.text-xs {
+    font-size: 0.55rem !important;
+    white-space: normal !important;
+    word-break: break-all !important;
+    line-height: 1.2 !important;
+    max-width: 130px !important;
+  }
+  
+  /* تحسين الحاوية التي تحتوي الاسم والإيميل */
+  .w-64.fixed .flex-1.min-w-0 {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+}
+
+/* للأجهزة الصغيرة (Mobile) */
+@media (max-width: 768px) {
+  /* تقليل المسافات */
+  .w-64.fixed .p-4.border-b {
+    padding: 10px !important;
+  }
+  
+  .w-64.fixed .flex.items-center.gap-3 {
+    gap: 6px !important;
+  }
+  
+  /* تصغير الصورة الرمزية */
+  .w-64.fixed .w-10.h-10 {
+    width: 32px !important;
+    height: 32px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .w-64.fixed .w-10.h-10 span {
+    font-size: 0.65rem !important;
+  }
+  
+  /* الاسم - يسمح بالتفاف النص */
+  .w-64.fixed .text-white.font-medium.text-sm {
+    font-size: 0.65rem !important;
+    max-width: 110px !important;
+  }
+  
+  /* الإيميل - يسمح بالتفاف النص */
+  .w-64.fixed .text-white\/50.text-xs {
+    font-size: 0.5rem !important;
+    max-width: 110px !important;
+  }
+  
+  /* الحاوية الداخلية للاسم والإيميل */
+  .w-64.fixed .flex-1 {
+    min-width: 0 !important;
+    width: auto !important;
+  }
+}
+
+/* للأجهزة الصغيرة جداً */
+@media (max-width: 580px) {
+  .w-64.fixed .p-4.border-b {
+    padding: 8px !important;
+  }
+  
+  .w-64.fixed .flex.items-center.gap-3 {
+    gap: 5px !important;
+  }
+  
+  /* تصغير الصورة الرمزية أكثر */
+  .w-64.fixed .w-10.h-10 {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  
+  .w-64.fixed .w-10.h-10 span {
+    font-size: 0.55rem !important;
+  }
+  
+  /* الاسم */
+  .w-64.fixed .text-white.font-medium.text-sm {
+    font-size: 0.6rem !important;
+    max-width: 90px !important;
+  }
+  
+  /* الإيميل */
+  .w-64.fixed .text-white\/50.text-xs {
+    font-size: 0.45rem !important;
+    max-width: 90px !important;
+  }
+}
+
+/* للأجهزة الصغيرة جداً جداً */
+@media (max-width: 480px) {
+  .w-64.fixed .p-4.border-b {
+    padding: 6px !important;
+  }
+  
+  .w-64.fixed .flex.items-center.gap-3 {
+    gap: 4px !important;
+  }
+  
+  /* الصورة الرمزية */
+  .w-64.fixed .w-10.h-10 {
+    width: 24px !important;
+    height: 24px !important;
+  }
+  
+  .w-64.fixed .w-10.h-10 span {
+    font-size: 0.5rem !important;
+  }
+  
+  /* الاسم */
+  .w-64.fixed .text-white.font-medium.text-sm {
+    font-size: 0.55rem !important;
+    max-width: 80px !important;
+  }
+  
+  /* الإيميل */
+  .w-64.fixed .text-white\/50.text-xs {
+    font-size: 0.4rem !important;
+    max-width: 80px !important;
+  }
+}
+
+/* ===== تحسين إضافي للـ Sidebar بالكامل ===== */
+
+/* التأكد من أن النص لا يخرج عن الحاوية */
+.w-64.fixed .flex-1.min-w-0 {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.w-64.fixed .text-white.font-medium.text-sm,
+.w-64.fixed .text-white\/50.text-xs {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* في الشاشات الصغيرة نسمح بالتفاف النص */
+@media (max-width: 768px) {
+  .w-64.fixed .text-white.font-medium.text-sm,
+  .w-64.fixed .text-white\/50.text-xs {
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+}

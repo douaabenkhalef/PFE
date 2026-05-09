@@ -154,15 +154,15 @@ const StatisticsSection = ({ stats, loading, onBackToList, totalStudents }) => {
 
   return (
     <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', width: '100%' }}>
-      {/* Bouton retour */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-white">Statistiques détaillées</h2>
+      {/* Back button */}
+      <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
+        <h2 className="text-xl font-bold text-white">Detailed Statistics</h2>
         <button
           onClick={onBackToList}
           className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition shadow-lg flex items-center gap-2"
         >
           <Users size={16} />
-          Voir la liste des étudiants
+          View student list
         </button>
       </div>
 
@@ -178,7 +178,7 @@ const StatisticsSection = ({ stats, loading, onBackToList, totalStudents }) => {
         <SummaryCard label="Total Applications" value={stats?.total_applications || 0} delay={160} />
       </div>
 
-      {/* Par filière */}
+      {/* By major */}
       <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden mb-6">
         <button
           onClick={() => setExpandedSection(expandedSection === 'major' ? null : 'major')}
@@ -186,7 +186,7 @@ const StatisticsSection = ({ stats, loading, onBackToList, totalStudents }) => {
         >
           <div className="flex items-center gap-3">
             <BookOpen className="w-5 h-5 text-purple-400" />
-            <h3 className="text-lg font-semibold text-white">Par filière</h3>
+            <h3 className="text-lg font-semibold text-white">By major</h3>
           </div>
           {expandedSection === 'major' ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
@@ -200,9 +200,9 @@ const StatisticsSection = ({ stats, loading, onBackToList, totalStudents }) => {
                     <span className="text-white font-medium">{major.name}</span>
                     <span className="text-purple-400 text-sm">{major.placement_rate}%</span>
                   </div>
-                  <div className="flex gap-4 text-sm">
-                    <span className="text-green-400">✅ {major.placed} placés</span>
-                    <span className="text-yellow-400">⏳ {major.unplaced} en recherche</span>
+                  <div className="flex gap-4 text-sm flex-wrap">
+                    <span className="text-green-400">✅ {major.placed} placed</span>
+                    <span className="text-yellow-400">⏳ {major.unplaced} seeking</span>
                     <span className="text-slate-400">📊 Total: {major.total}</span>
                   </div>
                   <div className="mt-2 h-2 bg-slate-700 rounded-full overflow-hidden">
@@ -211,14 +211,14 @@ const StatisticsSection = ({ stats, loading, onBackToList, totalStudents }) => {
                 </div>
               ))}
               {(!stats?.by_major || stats.by_major.length === 0) && (
-                <p className="text-white/40 text-center py-4">Aucune donnée par filière</p>
+                <p className="text-white/40 text-center py-4">No data by major</p>
               )}
             </div>
           </div>
         )}
       </div>
 
-      {/* Par promotion */}
+      {/* By graduation year */}
       <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden mb-6">
         <button
           onClick={() => setExpandedSection(expandedSection === 'year' ? null : 'year')}
@@ -226,7 +226,7 @@ const StatisticsSection = ({ stats, loading, onBackToList, totalStudents }) => {
         >
           <div className="flex items-center gap-3">
             <Calendar className="w-5 h-5 text-purple-400" />
-            <h3 className="text-lg font-semibold text-white">Par promotion</h3>
+            <h3 className="text-lg font-semibold text-white">By graduation year</h3>
           </div>
           {expandedSection === 'year' ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
@@ -237,12 +237,12 @@ const StatisticsSection = ({ stats, loading, onBackToList, totalStudents }) => {
               {stats?.by_graduation_year && stats.by_graduation_year.sort((a,b) => b.year - a.year).map(year => (
                 <div key={year.year} className="bg-slate-800/60 rounded-lg p-4">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-white font-medium">Promotion {year.year}</span>
+                    <span className="text-white font-medium">Class of {year.year}</span>
                     <span className="text-purple-400 text-sm">{year.placement_rate}%</span>
                   </div>
-                  <div className="flex gap-4 text-sm">
-                    <span className="text-green-400">✅ {year.placed} placés</span>
-                    <span className="text-yellow-400">⏳ {year.unplaced} en recherche</span>
+                  <div className="flex gap-4 text-sm flex-wrap">
+                    <span className="text-green-400">✅ {year.placed} placed</span>
+                    <span className="text-yellow-400">⏳ {year.unplaced} seeking</span>
                     <span className="text-slate-400">📊 Total: {year.total}</span>
                   </div>
                   <div className="mt-2 h-2 bg-slate-700 rounded-full overflow-hidden">
@@ -251,14 +251,14 @@ const StatisticsSection = ({ stats, loading, onBackToList, totalStudents }) => {
                 </div>
               ))}
               {(!stats?.by_graduation_year || stats.by_graduation_year.length === 0) && (
-                <p className="text-white/40 text-center py-4">Aucune donnée par promotion</p>
+                <p className="text-white/40 text-center py-4">No data by graduation year</p>
               )}
             </div>
           </div>
         )}
       </div>
 
-      {/* Top compétences */}
+      {/* Top skills */}
       <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
         <button
           onClick={() => setExpandedSection(expandedSection === 'skills' ? null : 'skills')}
@@ -266,7 +266,7 @@ const StatisticsSection = ({ stats, loading, onBackToList, totalStudents }) => {
         >
           <div className="flex items-center gap-3">
             <Award className="w-5 h-5 text-purple-400" />
-            <h3 className="text-lg font-semibold text-white">Top compétences</h3>
+            <h3 className="text-lg font-semibold text-white">Top skills</h3>
           </div>
           {expandedSection === 'skills' ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
@@ -276,33 +276,33 @@ const StatisticsSection = ({ stats, loading, onBackToList, totalStudents }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h4 className="text-green-400 font-semibold mb-3 flex items-center gap-2">
-                  <CheckCircle size={16} /> Étudiants placés
+                  <CheckCircle size={16} /> Placed students
                 </h4>
                 <div className="space-y-2">
                   {stats?.top_skills && stats.top_skills.placed && stats.top_skills.placed.slice(0, 8).map(skill => (
                     <div key={skill.skill} className="flex justify-between items-center bg-green-500/10 rounded-lg p-2">
                       <span className="text-white text-sm">{skill.skill}</span>
-                      <span className="text-green-400 text-sm font-semibold">{skill.count} étudiants</span>
+                      <span className="text-green-400 text-sm font-semibold">{skill.count} students</span>
                     </div>
                   ))}
                   {(!stats?.top_skills?.placed || stats.top_skills.placed.length === 0) && (
-                    <p className="text-white/40 text-center py-4">Aucune donnée</p>
+                    <p className="text-white/40 text-center py-4">No data</p>
                   )}
                 </div>
               </div>
               <div>
                 <h4 className="text-yellow-400 font-semibold mb-3 flex items-center gap-2">
-                  <Clock size={16} /> Étudiants en recherche
+                  <Clock size={16} /> Students seeking
                 </h4>
                 <div className="space-y-2">
                   {stats?.top_skills && stats.top_skills.unplaced && stats.top_skills.unplaced.slice(0, 8).map(skill => (
                     <div key={skill.skill} className="flex justify-between items-center bg-yellow-500/10 rounded-lg p-2">
                       <span className="text-white text-sm">{skill.skill}</span>
-                      <span className="text-yellow-400 text-sm font-semibold">{skill.count} étudiants</span>
+                      <span className="text-yellow-400 text-sm font-semibold">{skill.count} students</span>
                     </div>
                   ))}
                   {(!stats?.top_skills?.unplaced || stats.top_skills.unplaced.length === 0) && (
-                    <p className="text-white/40 text-center py-4">Aucune donnée</p>
+                    <p className="text-white/40 text-center py-4">No data</p>
                   )}
                 </div>
               </div>
@@ -321,7 +321,7 @@ const StudentCard = ({ student, onClick }) => {
       className="bg-white/10 backdrop-blur-lg rounded-xl p-5 border border-white/20 hover:border-purple-500 transition-all cursor-pointer"
       onClick={() => onClick(student)}
     >
-      <div className="flex justify-between items-start mb-3">
+      <div className="flex justify-between items-start mb-3 flex-wrap gap-2">
         <div>
           <h3 className="text-white font-semibold text-lg">{student.full_name}</h3>
           <p className="text-purple-400 text-sm">{student.major}</p>
@@ -331,14 +331,14 @@ const StudentCard = ({ student, onClick }) => {
             ? 'bg-green-500/20 text-green-300' 
             : 'bg-yellow-500/20 text-yellow-300'
         }`}>
-          {student.is_placed ? 'Stage trouvé' : 'En recherche'}
+          {student.is_placed ? 'Placed' : 'Seeking'}
         </div>
       </div>
       
       <div className="space-y-2 text-sm">
         <div className="flex items-center gap-2 text-slate-300">
           <Mail size={14} className="text-slate-500" />
-          <span>{student.email}</span>
+          <span className="break-all">{student.email}</span>
         </div>
         <div className="flex items-center gap-2 text-slate-300">
           <MapPin size={14} className="text-slate-500" />
@@ -346,7 +346,7 @@ const StudentCard = ({ student, onClick }) => {
         </div>
         <div className="flex items-center gap-2 text-slate-300">
           <Calendar size={14} className="text-slate-500" />
-          <span>Promotion {student.graduation_year}</span>
+          <span>Class of {student.graduation_year}</span>
         </div>
       </div>
       
@@ -363,10 +363,10 @@ const StudentCard = ({ student, onClick }) => {
         </div>
       )}
       
-      <div className="mt-3 flex gap-3 text-xs text-slate-400">
-        <span>📋 {student.applications_count} candidatures</span>
+      <div className="mt-3 flex gap-3 text-xs text-slate-400 flex-wrap">
+        <span>📋 {student.applications_count} applications</span>
         {student.accepted_applications > 0 && (
-          <span className="text-green-400">✅ {student.accepted_applications} acceptées</span>
+          <span className="text-green-400">✅ {student.accepted_applications} accepted</span>
         )}
       </div>
     </div>
@@ -393,7 +393,7 @@ const StudentDetailsModal = ({ student, onClose }) => {
         setApplications(data.applications || []);
       }
     } catch (err) {
-      console.error("Erreur:", err);
+      console.error("Error:", err);
     } finally {
       setLoading(false);
     }
@@ -416,29 +416,29 @@ const StudentDetailsModal = ({ student, onClose }) => {
         
         <div className="p-6 space-y-6">
           <div className="bg-slate-800/60 rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">Informations personnelles</h3>
+            <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">Personal Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-slate-500">Email</p>
-                <p className="text-white">{student.email}</p>
+                <p className="text-white break-all">{student.email}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-500">Wilaya</p>
                 <p className="text-white">{student.wilaya}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-500">Université</p>
+                <p className="text-xs text-slate-500">University</p>
                 <p className="text-white">{student.university}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-500">Date d'inscription</p>
+                <p className="text-xs text-slate-500">Registration Date</p>
                 <p className="text-white">{student.created_at}</p>
               </div>
             </div>
             
             {student.skills && student.skills.length > 0 && (
               <div className="mt-4">
-                <p className="text-xs text-slate-500 mb-2">Compétences</p>
+                <p className="text-xs text-slate-500 mb-2">Skills</p>
                 <div className="flex flex-wrap gap-2">
                   {student.skills.map(skill => (
                     <span key={skill} className="bg-purple-900/60 text-purple-300 text-xs px-2.5 py-1 rounded-full">{skill}</span>
@@ -449,22 +449,22 @@ const StudentDetailsModal = ({ student, onClose }) => {
           </div>
           
           <div className="bg-slate-800/60 rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">Situation professionnelle</h3>
+            <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">Professional Status</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-slate-500">Statut</p>
+                <p className="text-xs text-slate-500">Status</p>
                 <p className={`font-semibold ${student.is_placed ? 'text-green-400' : 'text-yellow-400'}`}>
-                  {student.is_placed ? 'Stage trouvé' : 'En recherche de stage'}
+                  {student.is_placed ? 'Placed' : 'Seeking internship'}
                 </p>
               </div>
               {student.is_placed && (
                 <>
                   <div>
-                    <p className="text-xs text-slate-500">Entreprise</p>
+                    <p className="text-xs text-slate-500">Company</p>
                     <p className="text-white">{student.placed_company_name}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500">Date de placement</p>
+                    <p className="text-xs text-slate-500">Placement Date</p>
                     <p className="text-white">{student.placement_date}</p>
                   </div>
                 </>
@@ -473,18 +473,18 @@ const StudentDetailsModal = ({ student, onClose }) => {
           </div>
           
           <div className="bg-slate-800/60 rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">Historique des candidatures</h3>
+            <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">Application History</h3>
             {loading ? (
               <div className="flex justify-center py-8">
                 <Loader2 size={24} className="animate-spin text-purple-400" />
               </div>
             ) : applications.length === 0 ? (
-              <p className="text-slate-400 text-center py-4">Aucune candidature</p>
+              <p className="text-slate-400 text-center py-4">No applications</p>
             ) : (
               <div className="space-y-3">
                 {applications.map(app => (
                   <div key={app.id} className="bg-slate-800 rounded-lg p-3">
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start flex-wrap gap-2">
                       <div>
                         <p className="text-white font-medium">{app.offer_title}</p>
                         <p className="text-slate-400 text-sm">{app.company_name}</p>
@@ -495,12 +495,12 @@ const StudentDetailsModal = ({ student, onClose }) => {
                         app.status === 'rejected_by_company' ? 'bg-red-500/20 text-red-300' :
                         'bg-yellow-500/20 text-yellow-300'
                       }`}>
-                        {app.status === 'validated_by_co_dept' ? 'Validé' :
-                         app.status === 'accepted_by_company' ? 'Accepté' :
-                         app.status === 'rejected_by_company' ? 'Refusé' : 'En attente'}
+                        {app.status === 'validated_by_co_dept' ? 'Validated' :
+                         app.status === 'accepted_by_company' ? 'Accepted' :
+                         app.status === 'rejected_by_company' ? 'Rejected' : 'Pending'}
                       </span>
                     </div>
-                    <p className="text-slate-500 text-xs mt-2">Postulé le {app.applied_at}</p>
+                    <p className="text-slate-500 text-xs mt-2">Applied on {app.applied_at}</p>
                   </div>
                 ))}
               </div>
@@ -564,10 +564,10 @@ export default function ManageStudents() {
         const uniqueMajors = [...new Set(data.students.map(s => s.major).filter(Boolean))];
         setMajors(uniqueMajors);
       } else {
-        toast.error(data.error || 'Erreur de chargement');
+        toast.error(data.error || 'Error loading students');
       }
     } catch (err) {
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     } finally {
       setLoading(false);
     }
@@ -579,7 +579,6 @@ export default function ManageStudents() {
       const res = await fetch(`${API}/admin/placement-stats/`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) {
-        // Calculer total des applications
         let totalApps = 0;
         if (students.length > 0) {
           totalApps = students.reduce((sum, s) => sum + (s.applications_count || 0), 0);
@@ -643,7 +642,7 @@ export default function ManageStudents() {
             className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
           >
             <ArrowLeft size={18} />
-            Retour au tableau de bord
+            Back to Dashboard
           </button>
 
           {showStats ? (
@@ -657,16 +656,16 @@ export default function ManageStudents() {
             <>
               {/* Professional Filter Section */}
               <div className="bg-white/5 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl mb-8 overflow-hidden">
-                <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center">
+                <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center flex-wrap gap-3">
                   <div className="flex items-center gap-2">
                     <SlidersHorizontal size={18} className="text-purple-400" />
-                    <h3 className="text-white font-semibold">Filtres avancés</h3>
+                    <h3 className="text-white font-semibold">Advanced Filters</h3>
                   </div>
                   <button
                     onClick={() => setShowFilters(!showFilters)}
                     className="text-white/60 hover:text-white transition text-sm flex items-center gap-1"
                   >
-                    {showFilters ? 'Masquer' : 'Afficher'}
+                    {showFilters ? 'Hide' : 'Show'}
                     {showFilters ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                   </button>
                 </div>
@@ -675,23 +674,23 @@ export default function ManageStudents() {
                   <div className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
                       <div>
-                        <label className="block text-white/80 text-xs font-medium uppercase tracking-wider mb-2">Recherche</label>
+                        <label className="block text-white/80 text-xs font-medium uppercase tracking-wider mb-2">Search</label>
                         <input
                           type="text"
-                          placeholder="Nom, email, filière..."
+                          placeholder="Name, email, major..."
                           value={filters.search}
                           onChange={(e) => handleFilterChange('search', e.target.value)}
                           className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
                         />
                       </div>
                       <div>
-                        <label className="block text-white/80 text-xs font-medium uppercase tracking-wider mb-2">Filière</label>
+                        <label className="block text-white/80 text-xs font-medium uppercase tracking-wider mb-2">Major</label>
                         <select
                           value={filters.major}
                           onChange={(e) => handleFilterChange('major', e.target.value)}
                           className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
                         >
-                          <option value="">Toutes</option>
+                          <option value="">All</option>
                           {majors.map(m => <option key={m} value={m}>{m}</option>)}
                         </select>
                       </div>
@@ -702,12 +701,12 @@ export default function ManageStudents() {
                           onChange={(e) => handleFilterChange('wilaya', e.target.value)}
                           className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
                         >
-                          <option value="">Toutes</option>
+                          <option value="">All</option>
                           {wilayasList.map(w => <option key={w} value={w}>{w}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label className="block text-white/80 text-xs font-medium uppercase tracking-wider mb-2">Compétences</label>
+                        <label className="block text-white/80 text-xs font-medium uppercase tracking-wider mb-2">Skills</label>
                         <input
                           type="text"
                           placeholder="React, Python, Java..."
@@ -717,32 +716,32 @@ export default function ManageStudents() {
                         />
                       </div>
                       <div>
-                        <label className="block text-white/80 text-xs font-medium uppercase tracking-wider mb-2">Statut</label>
+                        <label className="block text-white/80 text-xs font-medium uppercase tracking-wider mb-2">Status</label>
                         <select
                           value={filters.is_placed}
                           onChange={(e) => handleFilterChange('is_placed', e.target.value)}
                           className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
                         >
-                          <option value="">Tous</option>
-                          <option value="true">Stage trouvé</option>
-                          <option value="false">En recherche</option>
+                          <option value="">All</option>
+                          <option value="true">Placed</option>
+                          <option value="false">Seeking</option>
                         </select>
                       </div>
                     </div>
                     
-                    <div className="flex justify-end mt-6 gap-3">
+                    <div className="flex justify-end mt-6 gap-3 flex-wrap">
                       <button
                         onClick={resetFilters}
                         className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-medium transition border border-white/20"
                       >
-                        Réinitialiser
+                        Reset
                       </button>
                       <button
                         onClick={fetchStudents}
                         className="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-medium transition shadow-md flex items-center gap-2"
                       >
                         <Search size={16} />
-                        Rechercher
+                        Search
                       </button>
                     </div>
                   </div>
@@ -750,17 +749,17 @@ export default function ManageStudents() {
               </div>
 
               {/* Header with stats toggle */}
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
                 <div>
-                  <h2 className="text-2xl font-bold text-white">Étudiants</h2>
-                  <p className="text-white/50 text-sm mt-1">{stats.filtered || students.length} résultat(s)</p>
+                  <h2 className="text-2xl font-bold text-white">Students</h2>
+                  <p className="text-white/50 text-sm mt-1">{stats.filtered || students.length} result(s)</p>
                 </div>
                 <button
                   onClick={() => setShowStats(true)}
                   className="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-semibold transition shadow-lg flex items-center gap-2"
                 >
                   <BarChart3 size={16} />
-                  Statistiques
+                  Statistics
                 </button>
               </div>
 
@@ -772,8 +771,8 @@ export default function ManageStudents() {
               ) : students.length === 0 ? (
                 <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-12 text-center border border-white/20">
                   <Users className="w-16 h-16 text-white/30 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">Aucun étudiant trouvé</h3>
-                  <p className="text-white/60">Modifiez vos filtres pour élargir la recherche.</p>
+                  <h3 className="text-xl font-semibold text-white mb-2">No students found</h3>
+                  <p className="text-white/60">Adjust your filters to broaden the search.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -790,6 +789,197 @@ export default function ManageStudents() {
       {selectedStudent && (
         <StudentDetailsModal student={selectedStudent} onClose={() => setSelectedStudent(null)} />
       )}
+
+      <style>{`
+        /* ===== RESPONSIVE STYLES ===== */
+        @media (max-width: 1024px) {
+          .grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3 {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        
+        @media (max-width: 768px) {
+          .ml-64 {
+            margin-left: 220px !important;
+          }
+          .max-w-7xl {
+            padding-left: 1rem;
+            padding-right: 1rem;
+          }
+          .flex.justify-between.items-center {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 0.75rem;
+          }
+          .grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-5 {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .grid-cols-1.md\\:grid-cols-2 {
+            grid-template-columns: 1fr !important;
+          }
+          .stats-grid {
+            grid-template-columns: 1fr !important;
+          }
+          [style*="display: grid; gridTemplateColumns: repeat(2, 1fr)"] {
+            grid-template-columns: 1fr !important;
+          }
+          [style*="grid-template-columns: repeat(3,1fr)"] {
+            grid-template-columns: 1fr !important;
+            gap: 0.75rem;
+          }
+          .p-6 {
+            padding: 1rem;
+          }
+        }
+        
+        @media (max-width: 580px) {
+          .ml-64 {
+            margin-left: 200px !important;
+          }
+          .py-8 {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+          }
+          .px-4 {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+          }
+          .text-2xl.font-bold {
+            font-size: 1.2rem;
+          }
+          .grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3 {
+            grid-template-columns: 1fr !important;
+          }
+          .grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-5 {
+            grid-template-columns: 1fr !important;
+          }
+          .break-all {
+            word-break: break-all;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .ml-64 {
+            margin-left: 180px !important;
+          }
+          .px-5.py-2 {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.7rem;
+          }
+        }
+        
+        /* ===== LIGHT MODE STYLES ===== */
+        body.light-mode .bg-white\\/10,
+        body.light-mode .bg-white\\/5 {
+          background: rgba(255, 255, 255, 0.9) !important;
+          border-color: rgba(141, 35, 212, 0.25) !important;
+        }
+        body.light-mode .bg-white\\/10.backdrop-blur-lg {
+          background: rgba(255, 255, 255, 0.95) !important;
+        }
+        body.light-mode .bg-slate-800\\/60,
+        body.light-mode .bg-slate-800,
+        body.light-mode .bg-slate-800\\/80 {
+          background: rgba(0, 0, 0, 0.05) !important;
+        }
+        body.light-mode .text-white,
+        body.light-mode .text-white\\/70,
+        body.light-mode .text-white\\/80,
+        body.light-mode .text-white\\/90 {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .text-white\\/50,
+        body.light-mode .text-white\\/60,
+        body.light-mode .text-white\\/40,
+        body.light-mode .text-slate-400,
+        body.light-mode .text-slate-500,
+        body.light-mode .text-slate-300 {
+          color: #666 !important;
+        }
+        body.light-mode .text-purple-400 {
+          color: #8D23D4 !important;
+        }
+        body.light-mode .border-white\\/20 {
+          border-color: rgba(141, 35, 212, 0.2) !important;
+        }
+        body.light-mode .border-slate-700 {
+          border-color: rgba(141, 35, 212, 0.15) !important;
+        }
+        body.light-mode .bg-purple-900\\/60 {
+          background: rgba(141, 35, 212, 0.1) !important;
+        }
+        body.light-mode .text-purple-300 {
+          color: #8D23D4 !important;
+        }
+        body.light-mode .bg-green-500\\/10 {
+          background: rgba(5, 150, 105, 0.1) !important;
+        }
+        body.light-mode .bg-yellow-500\\/10 {
+          background: rgba(217, 119, 6, 0.1) !important;
+        }
+        body.light-mode .text-green-400 {
+          color: #059669 !important;
+        }
+        body.light-mode .text-yellow-400 {
+          color: #d97706 !important;
+        }
+        body.light-mode .bg-green-500\\/20 {
+          background: rgba(5, 150, 105, 0.1) !important;
+        }
+        body.light-mode .bg-yellow-500\\/20 {
+          background: rgba(217, 119, 6, 0.1) !important;
+        }
+        body.light-mode .text-green-300 {
+          color: #059669 !important;
+        }
+        body.light-mode .text-yellow-300 {
+          color: #d97706 !important;
+        }
+        body.light-mode .bg-blue-500\\/20 {
+          background: rgba(37, 99, 235, 0.1) !important;
+        }
+        body.light-mode .text-blue-300 {
+          color: #2563eb !important;
+        }
+        body.light-mode .bg-red-500\\/20 {
+          background: rgba(220, 38, 38, 0.1) !important;
+        }
+        body.light-mode .text-red-300 {
+          color: #dc2626 !important;
+        }
+        body.light-mode .bg-\\[\\#1e293b\\] {
+          background: white !important;
+          border-color: rgba(141, 35, 212, 0.2) !important;
+        }
+        body.light-mode .bg-\\[\\#1e293b\\] .text-white {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .bg-\\[\\#1e293b\\] .text-slate-400 {
+          color: #666 !important;
+        }
+        body.light-mode .bg-\\[\\#1e293b\\] .text-slate-500 {
+          color: #777 !important;
+        }
+        body.light-mode input,
+        body.light-mode select {
+          background: rgba(0, 0, 0, 0.05) !important;
+          border-color: rgba(141, 35, 212, 0.2) !important;
+          color: #1a1a2e !important;
+        }
+        body.light-mode input::placeholder {
+          color: #999 !important;
+        }
+        body.light-mode select option {
+          background: white !important;
+          color: #1a1a2e !important;
+        }
+        body.light-mode .bg-purple-600 {
+          background: #8D23D4 !important;
+        }
+        body.light-mode .bg-purple-600:hover {
+          background: #6B21A5 !important;
+        }
+      `}</style>
     </div>
   );
 }

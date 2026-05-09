@@ -10,7 +10,7 @@ import {
 import toast from 'react-hot-toast';
 import { AdminSidebarInline } from '../components/AdminSidebar';
 import ChatWidget from '../components/ChatWidget';
-import './StudentDashboard.css'; // provides radial gradient background
+import './StudentDashboard.css';
 
 const API = 'https://pfe-l31r.onrender.com/api';
 const authHeaders = () => ({
@@ -23,7 +23,7 @@ const NoPermissionBanner = ({ message }) => (
   <div className="flex items-center gap-3 bg-red-500/10 backdrop-blur-lg border border-red-500/30 rounded-xl p-4 mb-6">
     <Lock className="w-5 h-5 text-red-400 flex-shrink-0" />
     <div>
-      <p className="text-red-300 font-medium">Permission refusée</p>
+      <p className="text-red-300 font-medium">Permission denied</p>
       <p className="text-red-400/80 text-sm">{message}</p>
     </div>
   </div>
@@ -70,7 +70,7 @@ const ImageUploadArea = ({ label, value, onChange, canEdit, aspectClass = 'aspec
         >
           <div className="flex flex-col items-center gap-2 text-white">
             <Upload size={20} />
-            <span className="text-xs">Changer l'image</span>
+            <span className="text-xs">Change image</span>
           </div>
         </div>
       )}
@@ -144,7 +144,7 @@ export default function UniversityProfile() {
         });
       }
     } catch (err) {
-      toast.error('Erreur de chargement du profil');
+      toast.error('Error loading profile');
     } finally {
       setLoading(false);
     }
@@ -160,14 +160,14 @@ export default function UniversityProfile() {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success('Profil université mis à jour');
+        toast.success('University profile updated');
         setProfile({ ...profile, ...form });
         setIsEditing(false);
       } else {
-        toast.error(data.error || 'Erreur lors de la sauvegarde');
+        toast.error(data.error || 'Error saving profile');
       }
     } catch {
-      toast.error('Erreur de connexion');
+      toast.error('Connection error');
     } finally {
       setSaving(false);
     }
@@ -177,7 +177,7 @@ export default function UniversityProfile() {
     const trimmed = newFaculty.trim();
     if (!trimmed) return;
     if (form.faculties.includes(trimmed)) {
-      toast.error('Cette faculté existe déjà');
+      toast.error('This faculty already exists');
       return;
     }
     setForm(prev => ({ ...prev, faculties: [...prev.faculties, trimmed] }));
@@ -192,7 +192,7 @@ export default function UniversityProfile() {
 
   const handleEditClick = () => {
     if (!canEdit) {
-      toast.error("Vous n'avez pas la permission de modifier le profil université.");
+      toast.error("You don't have permission to edit the university profile.");
       return;
     }
     setIsEditing(true);
@@ -237,12 +237,12 @@ export default function UniversityProfile() {
             className="flex items-center gap-2 text-white/70 hover:text-white transition mb-6"
           >
             <ArrowLeft size={18} />
-            Retour au tableau de bord
+            Back to Dashboard
           </button>
 
           {/* Permission warning for co dept head without permission */}
           {!isDeptHead && userPermissions && !userPermissions.can_manage_university_profile && (
-            <NoPermissionBanner message="Vous pouvez consulter le profil université, mais vous n'avez pas la permission de le modifier. Contactez le Department Head pour obtenir cet accès." />
+            <NoPermissionBanner message="You can view the university profile, but you don't have permission to edit it. Contact the Department Head to get access." />
           )}
 
           {loading ? (
@@ -267,7 +267,7 @@ export default function UniversityProfile() {
                     <label className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm cursor-pointer group">
                       <div className="flex flex-col items-center gap-2 text-white opacity-0 group-hover:opacity-100 transition">
                         <Camera size={24} />
-                        <span className="text-sm font-medium">Changer la photo de couverture</span>
+                        <span className="text-sm font-medium">Change cover photo</span>
                       </div>
                       <input
                         type="file" accept="image/*" className="hidden"
@@ -315,20 +315,20 @@ export default function UniversityProfile() {
                     </div>
 
                     {/* Name & edit button */}
-                    <div className="flex-1 flex items-center justify-between pt-10">
+                    <div className="flex-1 flex items-center justify-between pt-10 flex-wrap gap-3">
                       <div>
                         {isEditing ? (
                           <input
                             value={form.name}
                             onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
                             className="text-2xl font-bold bg-transparent border-b border-purple-500 text-white focus:outline-none w-full"
-                            placeholder="Nom de l'université"
+                            placeholder="University name"
                           />
                         ) : (
-                          <h1 className="text-2xl font-bold text-white">{form.name || 'Université'}</h1>
+                          <h1 className="text-2xl font-bold text-white">{form.name || 'University'}</h1>
                         )}
                         <p className="text-purple-400 text-sm mt-1">
-                          {isDeptHead ? 'Département Head' : 'Co-Département Head'} · {user?.university}
+                          {isDeptHead ? 'Department Head' : 'Co-Department Head'} · {user?.university}
                         </p>
                       </div>
                       <div className="flex gap-2">
@@ -342,7 +342,7 @@ export default function UniversityProfile() {
                             }`}
                           >
                             {canEdit ? <Edit2 size={15} /> : <Lock size={15} />}
-                            {canEdit ? 'Modifier' : 'Accès limité'}
+                            {canEdit ? 'Edit' : 'Limited Access'}
                           </button>
                         ) : (
                           <>
@@ -350,7 +350,7 @@ export default function UniversityProfile() {
                               onClick={handleCancel}
                               className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-medium transition"
                             >
-                              <X size={15} /> Annuler
+                              <X size={15} /> Cancel
                             </button>
                             <button
                               onClick={handleSave}
@@ -358,7 +358,7 @@ export default function UniversityProfile() {
                               className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-xl text-sm font-medium transition disabled:opacity-60"
                             >
                               {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-                              Sauvegarder
+                              Save
                             </button>
                           </>
                         )}
@@ -375,19 +375,19 @@ export default function UniversityProfile() {
                 <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-6">
                   <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-4 flex items-center gap-2">
                     <BookOpen size={15} className="text-purple-400" />
-                    À propos
+                    About
                   </h3>
                   {isEditing ? (
                     <textarea
                       value={form.description}
                       onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
                       rows={5}
-                      placeholder="Description de l'université..."
+                      placeholder="University description..."
                       className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-purple-500 resize-none"
                     />
                   ) : (
                     <p className="text-white/70 text-sm leading-relaxed">
-                      {form.description || <span className="text-white/40 italic">Aucune description</span>}
+                      {form.description || <span className="text-white/40 italic">No description</span>}
                     </p>
                   )}
                 </div>
@@ -396,15 +396,15 @@ export default function UniversityProfile() {
                 <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-6">
                   <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-4 flex items-center gap-2">
                     <Mail size={15} className="text-purple-400" />
-                    Informations de contact
+                    Contact Information
                   </h3>
                   <div className="space-y-3">
                     {[
-                      { icon: Mail, key: 'email', label: 'Email universitaire', type: 'email', placeholder: 'contact@universite.dz' },
-                      { icon: Phone, key: 'phone', label: 'Numéro de téléphone', type: 'tel', placeholder: '+213 xx xxx xxxx' },
-                      { icon: MapPin, key: 'address', label: 'Adresse', type: 'text', placeholder: '123 rue de l\'université...' },
-                      { icon: MapPin, key: 'wilaya', label: 'Wilaya', type: 'text', placeholder: 'Alger' },
-                      { icon: Globe, key: 'website', label: 'Site web', type: 'url', placeholder: 'https://universite.dz' },
+                      { icon: Mail, key: 'email', label: 'University email', type: 'email', placeholder: 'contact@university.dz' },
+                      { icon: Phone, key: 'phone', label: 'Phone number', type: 'tel', placeholder: '+213 xx xxx xxxx' },
+                      { icon: MapPin, key: 'address', label: 'Address', type: 'text', placeholder: '123 university street...' },
+                      { icon: MapPin, key: 'wilaya', label: 'Wilaya', type: 'text', placeholder: 'Algiers' },
+                      { icon: Globe, key: 'website', label: 'Website', type: 'url', placeholder: 'https://university.dz' },
                       { icon: Linkedin, key: 'linkedin', label: 'LinkedIn', type: 'url', placeholder: 'https://linkedin.com/school/...' },
                     ].map(({ icon: Icon, key, label, type, placeholder }) => (
                       <div key={key}>
@@ -426,7 +426,7 @@ export default function UniversityProfile() {
                                 ? <a href={form[key]} target="_blank" rel="noreferrer" className="text-purple-400 hover:underline">{form[key]}</a>
                                 : form[key]
                             ) : (
-                              <span className="text-white/40 italic">Non renseigné</span>
+                              <span className="text-white/40 italic">Not provided</span>
                             )}
                           </p>
                         )}
@@ -440,11 +440,11 @@ export default function UniversityProfile() {
               <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-6">
                 <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-4 flex items-center gap-2">
                   <Building2 size={15} className="text-purple-400" />
-                  Facultés & Départements
+                  Faculties & Departments
                 </h3>
                 <div className="flex flex-wrap gap-2 mb-4">
                   {form.faculties.length === 0 ? (
-                    <p className="text-white/40 italic text-sm">Aucune faculté renseignée</p>
+                    <p className="text-white/40 italic text-sm">No faculties listed</p>
                   ) : (
                     form.faculties.map(f => (
                       <FacultyTag key={f} faculty={f} onRemove={handleRemoveFaculty} canEdit={isEditing} />
@@ -452,20 +452,20 @@ export default function UniversityProfile() {
                   )}
                 </div>
                 {isEditing && (
-                  <div className="flex gap-2 mt-3">
+                  <div className="flex gap-2 mt-3 flex-wrap">
                     <input
                       type="text"
                       value={newFaculty}
                       onChange={(e) => setNewFaculty(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleAddFaculty()}
-                      placeholder="Ajouter une faculté (ex: Informatique, Médecine...)"
+                      placeholder="Add a faculty (ex: Computer Science, Medicine...)"
                       className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-purple-500"
                     />
                     <button
                       onClick={handleAddFaculty}
                       className="flex items-center gap-1 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-medium transition"
                     >
-                      <Plus size={15} /> Ajouter
+                      <Plus size={15} /> Add
                     </button>
                   </div>
                 )}
@@ -475,7 +475,7 @@ export default function UniversityProfile() {
               {!isEditing && form.cover_picture && (
                 <div className="flex items-center gap-2 bg-blue-500/10 backdrop-blur-sm border border-blue-500/20 rounded-xl px-4 py-3 text-sm text-blue-300">
                   <CheckCircle size={15} />
-                  La photo de couverture s'affiche sur le côté droit des tableaux de bord Admin et Co-Dept Head.
+                  The cover photo displays on the right side of Admin and Co-Dept Head dashboards.
                 </div>
               )}
 
@@ -484,7 +484,166 @@ export default function UniversityProfile() {
         </div>
       </div>
 
-      <ChatWidget university={user?.university || 'Université'} />
+      <ChatWidget university={user?.university || 'University'} />
+
+      <style>{`
+        /* ===== RESPONSIVE STYLES ===== */
+        @media (max-width: 768px) {
+          .ml-64 {
+            margin-left: 220px !important;
+          }
+          .max-w-5xl {
+            padding-left: 1rem;
+            padding-right: 1rem;
+          }
+          .flex.items-end.gap-5 {
+            flex-direction: column;
+            align-items: flex-start !important;
+          }
+          .pt-10 {
+            padding-top: 0 !important;
+          }
+          .flex-1.flex.items-center.justify-between {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 0.75rem;
+          }
+          .grid-cols-1.lg\\:grid-cols-2 {
+            grid-template-columns: 1fr !important;
+          }
+          .relative.h-48 {
+            height: 160px;
+          }
+          .w-20.h-20 {
+            width: 60px;
+            height: 60px;
+          }
+          .text-2xl.font-bold {
+            font-size: 1.2rem;
+          }
+          .p-6 {
+            padding: 1rem;
+          }
+        }
+        
+        @media (max-width: 580px) {
+          .ml-64 {
+            margin-left: 200px !important;
+          }
+          .py-8 {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+          }
+          .px-6 {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+          }
+          .relative.h-48 {
+            height: 140px;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .ml-64 {
+            margin-left: 180px !important;
+          }
+          .px-4.py-2 {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.7rem;
+          }
+          .flex.gap-2 {
+            gap: 0.5rem;
+          }
+        }
+        
+        /* ===== LIGHT MODE STYLES ===== */
+        body.light-mode .bg-white\\/10 {
+          background: rgba(255, 255, 255, 0.9) !important;
+          border-color: rgba(141, 35, 212, 0.25) !important;
+        }
+        body.light-mode .bg-white\\/10.backdrop-blur-lg {
+          background: rgba(255, 255, 255, 0.95) !important;
+        }
+        body.light-mode .text-white,
+        body.light-mode .text-white\\/70,
+        body.light-mode .text-white\\/80,
+        body.light-mode .text-white\\/90 {
+          color: #1a1a2e !important;
+        }
+        body.light-mode .text-white\\/50,
+        body.light-mode .text-white\\/60,
+        body.light-mode .text-white\\/40 {
+          color: #666 !important;
+        }
+        body.light-mode .text-purple-400 {
+          color: #8D23D4 !important;
+        }
+        body.light-mode .text-purple-200 {
+          color: #6B21A5 !important;
+        }
+        body.light-mode .text-slate-300 {
+          color: #555 !important;
+        }
+        body.light-mode .text-white/20 {
+          color: rgba(141, 35, 212, 0.2) !important;
+        }
+        body.light-mode .border-white\\/20 {
+          border-color: rgba(141, 35, 212, 0.2) !important;
+        }
+        body.light-mode .bg-purple-500\\/20 {
+          background: rgba(141, 35, 212, 0.1) !important;
+        }
+        body.light-mode .bg-white\\/10.border-white\\/20 {
+          background: rgba(0, 0, 0, 0.05) !important;
+          border-color: rgba(141, 35, 212, 0.2) !important;
+          color: #1a1a2e !important;
+        }
+        body.light-mode input,
+        body.light-mode textarea {
+          color: #1a1a2e !important;
+        }
+        body.light-mode input::placeholder,
+        body.light-mode textarea::placeholder {
+          color: #999 !important;
+        }
+        body.light-mode .bg-black\\/40,
+        body.light-mode .bg-black\\/50 {
+          background: rgba(0, 0, 0, 0.6) !important;
+        }
+        body.light-mode .bg-purple-600 {
+          background: #8D23D4 !important;
+        }
+        body.light-mode .bg-purple-600:hover {
+          background: #6B21A5 !important;
+        }
+        body.light-mode .bg-green-600 {
+          background: #059669 !important;
+        }
+        body.light-mode .bg-green-600:hover {
+          background: #047857 !important;
+        }
+        body.light-mode .bg-red-500\\/10 {
+          background: rgba(220, 38, 38, 0.1) !important;
+        }
+        body.light-mode .text-red-300 {
+          color: #dc2626 !important;
+        }
+        body.light-mode .text-red-400\\/80 {
+          color: #dc2626 !important;
+        }
+        body.light-mode .bg-blue-500\\/10 {
+          background: rgba(37, 99, 235, 0.1) !important;
+        }
+        body.light-mode .text-blue-300 {
+          color: #2563eb !important;
+        }
+        body.light-mode .border-blue-500\\/20 {
+          border-color: rgba(37, 99, 235, 0.2) !important;
+        }
+        body.light-mode .border-purple-500\\/30 {
+          border-color: rgba(141, 35, 212, 0.3) !important;
+        }
+      `}</style>
     </div>
   );
 }
