@@ -277,7 +277,7 @@ section { padding: 100px 5% 80px; }
 
 .hero-content p {
   font-size: 0.92rem;
-  color: #fff;
+  color:rgba(255, 255, 255, 0.646);
   line-height: 1.75;
   margin: 1.4rem 0 2.2rem;
   max-width: 420px;
@@ -799,8 +799,8 @@ section { padding: 100px 5% 80px; }
   .hero-image {
     width: 100%;
     height: auto;
-    max-height: 280px;
-    object-fit: contain;
+    max-height: 200px;
+    object-fit: cover;
   }
 }
 
@@ -2243,7 +2243,7 @@ section { padding: 100px 5% 80px; }
   }
   
   .hero-image-box {
-    flex: 1;
+    flex: 2;
     max-width: 45%;
     min-height: auto;
     padding: 0;
@@ -2251,9 +2251,9 @@ section { padding: 100px 5% 80px; }
   
   .hero-image {
     width: 100%;
-    height: auto;
-    max-height: 280px;
-    object-fit: contain;
+    height: 100%;
+    max-height: 100%;
+    object-fit: cover;
   }
   
   /* تصغير حجم البطاقات */
@@ -2525,7 +2525,7 @@ section { padding: 100px 5% 80px; }
   }
   
   .hero-image-box {
-    max-width: 90%;
+    max-width: 100%;
   }
   
   .section-title {
