@@ -265,19 +265,19 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 2rem;
+  gap: 1rem;
   width: 100%;
 }
 
 .sd-hero-content {
   flex: 1;
-  max-width: 480px;
+  max-width: 600px;
 }
 
 .sd-hero-content h1 {
   font-size: clamp(2.5rem, 5vw, 4rem);
   font-weight: 800;
-  line-height: 1.1;
+  line-height: 1.2;
   color: #fff;
   animation: fadeSlideUp 0.8s cubic-bezier(0.22,1,0.36,1) 0.2s both;
 }
@@ -290,9 +290,9 @@ body {
 }
 
 .sd-hero-content p {
-  font-size: 0.92rem;
+  font-size: 1.25rem;
   color: #fff;
-  line-height: 1.75;
+  line-height: 1.9;
   margin: 1rem 0 1.8rem;
   max-width: 400px;
   animation: fadeSlideUp 0.8s cubic-bezier(0.22,1,0.36,1) 0.38s both;
@@ -409,14 +409,14 @@ body {
 }
 
 .sd-hero-image img {
-  width: 100%;
-  height: auto;
+  width: 600px;
+  height: 600px;
   max-height: 500px;
   object-fit: contain;
   border-radius: 22px;
 }
 .sd-hero-image svg {
-  width: 70px; height: 70px;
+  width: 90px; height: 70px;
   stroke: rgba(247,90,250,0.35);
 }
 
@@ -1564,7 +1564,7 @@ body {
   }
   
   .sd-logo-img {
-    height: 28px;
+    height: 40px;
   }
 }
 
@@ -2039,15 +2039,15 @@ body.light-mode button.w-full.p-3.text-left:hover {
   }
   
   .sd-hero-content p {
-    font-size: 0.85rem;
+    font-size: 2rem;
   }
   
   .sd-hero-image {
-    min-height: 320px;
+    min-height: 500px;
   }
   
   .sd-hero-image img {
-    max-height: 400px;
+    max-height: 700px;
   }
 }
 
@@ -2083,8 +2083,8 @@ body.light-mode button.w-full.p-3.text-left:hover {
 
   .sd-hero-image {
     flex: none !important;
-    width: 42% !important;
-    max-width: 42% !important;
+    width: 45% !important;
+    max-width: 50% !important;
     min-height: unset !important;
     display: flex !important;
     align-items: center !important;
@@ -2249,7 +2249,7 @@ body.light-mode button.w-full.p-3.text-left:hover {
   }
   
   .sd-hero-content p {
-    font-size: 0.68rem;
+    font-size: 0.75rem;
   }
   
   .sd-hero-image img {
@@ -2277,13 +2277,13 @@ body.light-mode button.w-full.p-3.text-left:hover {
   }
   
   .sd-hero-content p {
-    font-size: 0.58rem;
+    font-size: 0.75rem;
     margin: 0.4rem 0 0.7rem;
   }
   
   .sd-hero-image {
-    width: 42% !important;
-    max-width: 42% !important;
+    width: 50% !important;
+    max-width: 100% !important;
   }
   
   .sd-hero-image img {

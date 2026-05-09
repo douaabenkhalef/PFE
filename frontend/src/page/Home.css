@@ -277,7 +277,7 @@ section { padding: 100px 5% 80px; }
 
 .hero-content p {
   font-size: 0.92rem;
-  color: rgba(255,255,255,0.62);
+  color: #fff;
   line-height: 1.75;
   margin: 1.4rem 0 2.2rem;
   max-width: 420px;
@@ -758,7 +758,7 @@ section { padding: 100px 5% 80px; }
   
   /* الحفاظ على الترتيب الأصلي (كتابة يسار - صورة يمين) */
   .hero-container {
-    display: flex;
+    display:flex;
     flex-direction: row !important;
     align-items: center;
     justify-content: space-between;
@@ -792,8 +792,8 @@ section { padding: 100px 5% 80px; }
   
   .hero-image-box {
     flex: 1;
-    max-width: 48%;
-    min-height: auto;
+    max-width: 900px;
+    min-height: 900px;
   }
   
   .hero-image {
@@ -1860,6 +1860,9 @@ section { padding: 100px 5% 80px; }
     max-width: 100%;
   }
   
+  .hero-content h1 {
+    font-size: 2rem;
+  }
   .hero-content p {
     max-width: 100%;
   }
@@ -1869,8 +1872,8 @@ section { padding: 100px 5% 80px; }
   }
   
   .hero-image-box {
-    max-width: 100%;
-    min-height: auto;
+    max-width: 600px;
+    min-height: 600px;
   }
   
   /* Adjust companies and services grid */
@@ -2217,7 +2220,7 @@ section { padding: 100px 5% 80px; }
   }
   
   .hero-content h1 {
-    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    font-size: 2rem;
   }
   
   .hero-content p {
@@ -2408,7 +2411,8 @@ section { padding: 100px 5% 80px; }
 /* تحسين الشاشات المتوسطة (بين 640px و 768px) */
 @media (min-width: 641px) and (max-width: 768px) {
   .hero-content h1 {
-    font-size: 1.8rem;
+    font-size: 2rem;
+    
   }
   
   .hero-buttons button {
@@ -2507,7 +2511,7 @@ section { padding: 100px 5% 80px; }
   }
   
   .hero-content h1 {
-    font-size: 1.5rem;
+    font-size: 2rem;
   }
   
   .hero-content p {
@@ -2695,7 +2699,7 @@ section { padding: 100px 5% 80px; }
   }
   
   .hero-content h1 {
-    font-size: 1.5rem;
+    font-size: 2rem;
   }
   
   .hero-buttons button {
