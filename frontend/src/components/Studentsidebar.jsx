@@ -5,7 +5,7 @@ import {
   User, FileText, ClipboardList, LogOut, Search,
   ChevronRight, X
 } from 'lucide-react';
-import "./StudentSidebar.css";
+import "./Studentsidebar.css";
 
 const API = 'https://pfe-l31r.onrender.com/api';
 const token = () => localStorage.getItem('access_token');
