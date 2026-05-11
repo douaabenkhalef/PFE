@@ -996,8 +996,7 @@ export default function CoDeptValidations() {
         </div>
       </div>
 
-      <ChatWidget university={user?.university || "University"} />
-
+      
       {selectedApp && (
         <DetailsModal
           application={selectedApp}

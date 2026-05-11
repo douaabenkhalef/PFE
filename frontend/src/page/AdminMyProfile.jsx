@@ -605,7 +605,7 @@ export default function AdminMyProfile() {
         </div>
       </div>
 
-      <ChatWidget university={user?.university || 'University'} />
+      
 
       {/* 2FA Modal */}
       {show2FAModal && (

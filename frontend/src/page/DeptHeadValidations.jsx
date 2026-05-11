@@ -861,7 +861,7 @@ export default function DeptHeadValidations() {
         </div>
       </div>
 
-      <ChatWidget university={user?.university || "University"} />
+      
 
       {selectedApp && (
         <DetailsModal

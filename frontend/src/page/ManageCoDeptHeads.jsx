@@ -469,16 +469,7 @@ export default function ManageCoDeptHeads() {
         </div>
       </div>
 
-      {/* Chat */}
-      <ChatWidget university={user?.university || "University"} />
-      {privateChatOpen && selectedChatUser && (
-        <PrivateChat
-          university={user?.university || "University"}
-          currentUser={user}
-          targetUser={selectedChatUser}
-          onClose={handleClosePrivateChat}
-        />
-      )}
+      
 
       <style>{`
         /* ===== RESPONSIVE STYLES ===== */

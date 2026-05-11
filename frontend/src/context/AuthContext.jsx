@@ -134,24 +134,60 @@ export const AuthProvider = ({ children }) => {
         return { success: true, redirectUrl };
       }
       
-      let errorMessage = "Email ou mot de passe incorrect.";
+      // 🔥 معالجة الأخطاء - استخراج رسالة الخطأ من response
+      let errorMessage = "Email or password is incorrect.";
+      
       if (response.message) {
         errorMessage = response.message;
-      } else if (response.errors && response.errors.non_field_errors && response.errors.non_field_errors.length > 0) {
-        errorMessage = response.errors.non_field_errors[0];
+      } else if (response.errors) {
+        if (response.errors.non_field_errors && response.errors.non_field_errors.length > 0) {
+          errorMessage = response.errors.non_field_errors[0];
+        } else if (response.errors.email && response.errors.email.length > 0) {
+          errorMessage = response.errors.email[0];
+        } else if (response.errors.password && response.errors.password.length > 0) {
+          errorMessage = response.errors.password[0];
+        } else {
+          // محاولة استخراج أول خطأ موجود
+          const firstErrorKey = Object.keys(response.errors)[0];
+          if (firstErrorKey && response.errors[firstErrorKey] && response.errors[firstErrorKey].length > 0) {
+            errorMessage = response.errors[firstErrorKey][0];
+          }
+        }
+      } else if (response.error) {
+        errorMessage = response.error;
       }
       
       return {
         success: false,
-        errors: response.errors || { non_field_errors: [errorMessage] },
         message: errorMessage,
+        errors: response.errors || { non_field_errors: [errorMessage] },
       };
     } catch (error) {
       console.error("❌ Error:", error);
+      let errorMessage = ERROR_MESSAGES.SERVER_ERROR;
+      
+      if (error.response && error.response.data) {
+        const data = error.response.data;
+        if (data.message) {
+          errorMessage = data.message;
+        } else if (data.errors) {
+          if (data.errors.non_field_errors && data.errors.non_field_errors.length > 0) {
+            errorMessage = data.errors.non_field_errors[0];
+          } else {
+            const firstKey = Object.keys(data.errors)[0];
+            if (firstKey && data.errors[firstKey] && data.errors[firstKey].length > 0) {
+              errorMessage = data.errors[firstKey][0];
+            }
+          }
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       return {
         success: false,
-        errors: { non_field_errors: [ERROR_MESSAGES.SERVER_ERROR] },
-        message: ERROR_MESSAGES.SERVER_ERROR,
+        message: errorMessage,
+        errors: { non_field_errors: [errorMessage] },
       };
     } finally {
       setLoading(false);

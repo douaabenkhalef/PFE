@@ -11,7 +11,7 @@ import {
   LogOut, Search, Activity, UserCog, FileText, ArrowLeft, Briefcase
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import ChatWidget from '../components/ChatWidget';
+
 import './CompanyProfile.css';
 import UserAvatar from '../components/UserAvatar';
 
@@ -643,8 +643,7 @@ export default function MyProfile() {
         </div>
       </div>
 
-      <ChatWidget companyMode={true} />
-
+      
       {/* 2FA Modal */}
       {show2FAModal && (
         <div className="profile-modal-overlay" onClick={() => setShow2FAModal(false)}>

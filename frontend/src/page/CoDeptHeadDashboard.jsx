@@ -9,7 +9,7 @@ import {
   MapPin, BookOpen, Mail, User as UserIcon, Briefcase, Calendar, Moon, Sun
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import ChatWidget from '../components/ChatWidget';
+import AdminChatWidget from '../components/AdminChatWidget';
 import PrivateChat from '../components/PrivateChat';
 import AdminSidebar from '../components/AdminSidebar';
 import './StudentDashboard.css';
@@ -1224,7 +1224,7 @@ const CoDeptHeadDashboard = () => {
       </footer>
 
       {sidebarOpen && <AdminSidebar user={user} onLogout={handleLogout} onClose={() => setSidebarOpen(false)}/>}
-      {isApproved && <ChatWidget university={user?.university || "University"}/>}
+      {isApproved && <AdminChatWidget university={user?.university || "University"} />}
       {privateChatOpen && selectedChatUser && <PrivateChat university={user?.university || "University"} currentUser={user} targetUser={selectedChatUser} onClose={handleClosePrivateChat}/>}
       {selectedStudent && <StudentDetailModal student={selectedStudent} onClose={() => setSelectedStudent(null)} />}
     </div>

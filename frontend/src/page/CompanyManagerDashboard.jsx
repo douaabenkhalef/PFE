@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CompanySidebar from '../components/CompanySidebar';
-import ChatWidget from '../components/ChatWidget';
+import CompanyChatWidget from '../components/CompanyChatWidget';
 import PrivateChat from '../components/PrivateChat';
 
 const API = 'https://pfe-l31r.onrender.com/api';
@@ -778,7 +778,7 @@ const CompanyManagerDashboard = () => {
       `}</style>
       {sidebarOpen && <CompanySidebar user={user} onLogout={handleLogout} onClose={() => setSidebarOpen(false)} />}
 
-      <ChatWidget companyMode={true} />
+      <CompanyChatWidget companyName={companyProfile?.name || user?.company_name || ''} />
 
       <nav className="sd-navbar" style={{ borderBottom: 'none' }}>
         <div className="sd-navbar-left">

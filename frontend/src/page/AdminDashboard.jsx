@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Bell, Image, Search, X, ChevronDown, GraduationCap, MapPin, BookOpen, Mail, User, Briefcase, Calendar, CheckCircle, XCircle, Clock, FileText, AlertTriangle, CheckCheck, Moon, Sun
 } from "lucide-react";
-import ChatWidget from "../components/ChatWidget";
+import AdminChatWidget from '../components/AdminChatWidget';
 import PrivateChat from "../components/PrivateChat";
 import AdminSidebar from "../components/AdminSidebar";
 import toast from "react-hot-toast";
@@ -1284,7 +1284,7 @@ const AdminDashboard = () => {
       </footer>
 
       {sidebarOpen && <AdminSidebar user={user} onLogout={handleLogout} onClose={() => setSidebarOpen(false)}/>}
-      {user?.university && <ChatWidget university={user.university}/>}
+      {user?.university && <AdminChatWidget university={user.university} />}
       {privateChatOpen && selectedChatUser && (
         <PrivateChat university={user?.university || "University"} currentUser={user} targetUser={selectedChatUser} onClose={handleClosePrivateChat}/>
       )}

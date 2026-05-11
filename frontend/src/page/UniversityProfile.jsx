@@ -484,7 +484,7 @@ export default function UniversityProfile() {
         </div>
       </div>
 
-      <ChatWidget university={user?.university || 'University'} />
+      
 
       <style>{`
         /* ===== RESPONSIVE STYLES ===== */

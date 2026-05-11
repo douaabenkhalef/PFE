@@ -628,17 +628,7 @@ export default function DeptHeadActivityLogs() {
         </div>
       </div>
 
-      {/* Floating chat */}
-      <ChatWidget university={user?.university || "University"} />
-      {privateChatOpen && selectedChatUser && (
-        <PrivateChat
-          university={user?.university || "University"}
-          currentUser={user}
-          targetUser={selectedChatUser}
-          onClose={handleClosePrivateChat}
-        />
-      )}
-
+      
       <style>{`
         /* ===== RESPONSIVE STYLES ===== */
         @media (max-width: 1200px) {

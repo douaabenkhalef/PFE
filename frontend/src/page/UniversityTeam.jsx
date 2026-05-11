@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AdminSidebarInline } from '../components/AdminSidebar';
+import AdminChatWidget from '../components/AdminChatWidget';
 import ChatWidget from '../components/ChatWidget';
 import PrivateChat from '../components/PrivateChat';
 import './StudentDashboard.css';
@@ -277,7 +278,7 @@ export default function UniversityTeam() {
         </div>
       </div>
 
-      <ChatWidget university={user?.university || "University"} />
+      
       
       {privateChatOpen && selectedChatUser && (
         <PrivateChat

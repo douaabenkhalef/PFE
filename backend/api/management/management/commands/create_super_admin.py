@@ -11,7 +11,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         """
-        إضافة الوسائط التي يمكن تمريرها عند تشغيل الأمر
+       
         """
         parser.add_argument(
             '--email',
@@ -40,7 +40,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         """
-        الوظيفة الرئيسية التي يتم تنفيذها عند تشغيل الأمر
+       
         """
         email = options['email']
         password = options['password']

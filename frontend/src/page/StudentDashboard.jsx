@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Bell, CheckCheck, X, FileText, CheckCircle, XCircle, Clock, MessageCircle, Users, Briefcase, MessageSquare, MapPin } from 'lucide-react';
+import { Bell, CheckCheck, X, FileText, CheckCircle, XCircle, Clock, MessageCircle, Users, Briefcase, MessageSquare, MapPin, Building2, Mail, Phone, Globe, Linkedin, Eye, Calendar, Award, Code, BookOpen, GraduationCap, ArrowLeft } from 'lucide-react';
 import StudentSidebar from '../components/Studentsidebar';
 import ChatWidget from '../components/ChatWidget';
 import PrivateChat from '../components/PrivateChat';
@@ -18,26 +18,13 @@ const authHeaders = () => ({
   Authorization: `Bearer ${token()}`,
 });
 
-// Helper function for image URLs - FIXED to handle all image types
+// Helper function for image URLs
 const getImageUrl = (url) => {
   if (!url) return null;
-  // If image is base64 (starts with data:image)
-  if (url.startsWith('data:image')) {
-    return url;
-  }
-  // If it's a full URL
-  if (url.startsWith('http')) {
-    return url;
-  }
-  // If URL starts with /api/
-  if (url.startsWith('/api/')) {
-    return `${BACKEND}${url}`;
-  }
-  // If URL starts with /media/
-  if (url.startsWith('/media/')) {
-    return `${BACKEND}${url}`;
-  }
-  // Default case
+  if (url.startsWith('data:image')) return url;
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('/api/')) return `${BACKEND}${url}`;
+  if (url.startsWith('/media/')) return `${BACKEND}${url}`;
   return `${BACKEND}/api/${url}`;
 };
 
@@ -105,7 +92,7 @@ const SunIcon = () => (
   </svg>
 );
 
-const ArrowRight = () => (
+const ArrowRightIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
@@ -257,6 +244,179 @@ const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRe
     );
 };
 
+// ==================== COMPANY DETAIL MODAL ====================
+const CompanyDetailModal = ({ company, onClose, onNavigateToPublicProfile }) => {
+  return (
+    <div className="sd-modal-overlay" onClick={onClose}>
+      <div className="sd-modal" style={{ maxWidth: '500px', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+        <button className="sd-modal-close" onClick={onClose}><CloseIcon /></button>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-16 h-16 rounded-xl overflow-hidden bg-white/10 flex items-center justify-center">
+            {company.logo ? (
+              <img src={getImageUrl(company.logo)} alt={company.company_name} className="w-full h-full object-cover" />
+            ) : (
+              <Building2 size={32} className="text-purple-400" />
+            )}
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-white">{company.company_name}</h3>
+            <p className="text-purple-400 text-sm">{company.industry || 'Company'}</p>
+          </div>
+        </div>
+        
+        <p className="text-white/70 text-sm mb-4 leading-relaxed">
+          {company.description || 'No description available at the moment.'}
+        </p>
+        
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="bg-white/10 rounded-lg p-3 text-center">
+            <Briefcase size={16} className="mx-auto mb-1 text-purple-400" />
+            <span className="text-white font-bold block">{company.active_offers || 0}</span>
+            <span className="text-white/50 text-xs">Active Offers</span>
+          </div>
+          <div className="bg-white/10 rounded-lg p-3 text-center">
+            <Users size={16} className="mx-auto mb-1 text-purple-400" />
+            <span className="text-white font-bold block">{company.students_applied || 0}</span>
+            <span className="text-white/50 text-xs">Total Applications</span>
+          </div>
+        </div>
+        
+        <div className="space-y-2 mb-5">
+          {company.location && (
+            <div className="flex items-center gap-2 text-white/70 text-sm">
+              <MapPin size={14} className="text-purple-400" />
+              <span>{company.location}</span>
+            </div>
+          )}
+          {company.contact_email && (
+            <div className="flex items-center gap-2 text-white/70 text-sm">
+              <Mail size={14} className="text-purple-400" />
+              <span>{company.contact_email}</span>
+            </div>
+          )}
+          {company.website && (
+            <div className="flex items-center gap-2 text-white/70 text-sm">
+              <Globe size={14} className="text-purple-400" />
+              <a href={company.website} target="_blank" rel="noopener noreferrer" className="hover:text-purple-400 transition">{company.website}</a>
+            </div>
+          )}
+        </div>
+        
+        <div className="flex gap-3">
+          <button 
+            onClick={onNavigateToPublicProfile}
+            className="flex-1 flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white py-2.5 rounded-lg transition text-sm font-semibold"
+          >
+            <Eye size={14} /> View Full Profile
+          </button>
+          <button onClick={onClose} className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2.5 rounded-lg transition text-sm">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ==================== INTERNSHIP DETAIL MODAL ====================
+const InternshipDetailModal = ({ offer, onClose, onApply }) => {
+  const [showApplyForm, setShowApplyForm] = useState(false);
+  
+  if (!offer) return null;
+  
+  const isExpired = offer.deadline && new Date(offer.deadline) < new Date();
+  
+  if (showApplyForm) {
+    // إذا اختار المستخدم التقديم، نعرض نموذج ApplyModal
+    setTimeout(() => {
+      onApply();
+      onClose();
+    }, 100);
+    return null;
+  }
+  
+  return (
+    <div className="sd-modal-overlay" onClick={onClose}>
+      <div className="sd-modal" style={{ maxWidth: '550px', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+        <button className="sd-modal-close" onClick={onClose}><CloseIcon /></button>
+        
+        {/* Offer Image */}
+        {offer.image && (
+          <div className="w-full h-48 rounded-xl overflow-hidden mb-4">
+            <img src={getImageUrl(offer.image)} alt={offer.title} className="w-full h-full object-cover" />
+          </div>
+        )}
+        
+        <h3 className="text-xl font-bold text-white mb-1">{offer.title}</h3>
+        <p className="text-purple-400 text-sm mb-3 flex items-center gap-1">
+          <Building2 size={14} /> {offer.company_name}
+        </p>
+        
+        <p className="text-white/70 text-sm mb-4 leading-relaxed">{offer.description}</p>
+        
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="bg-white/10 rounded-lg p-2.5">
+            <span className="text-white/50 text-xs">Type</span>
+            <p className="text-white font-medium">{offer.internship_type}</p>
+          </div>
+          <div className="bg-white/10 rounded-lg p-2.5">
+            <span className="text-white/50 text-xs">Wilaya</span>
+            <p className="text-white font-medium">{offer.wilaya}</p>
+          </div>
+          <div className="bg-white/10 rounded-lg p-2.5">
+            <span className="text-white/50 text-xs">Duration</span>
+            <p className="text-white font-medium">{offer.duration}</p>
+          </div>
+          <div className="bg-white/10 rounded-lg p-2.5">
+            <span className="text-white/50 text-xs">Start Date</span>
+            <p className="text-white font-medium">{offer.start_date || 'Flexible'}</p>
+          </div>
+          <div className="bg-white/10 rounded-lg p-2.5">
+            <span className="text-white/50 text-xs">Deadline</span>
+            <p className={`font-medium ${isExpired ? 'text-red-400' : 'text-white'}`}>
+              {offer.deadline || 'Not specified'}
+            </p>
+          </div>
+          <div className="bg-white/10 rounded-lg p-2.5">
+            <span className="text-white/50 text-xs">Applicants</span>
+            <p className="text-white font-medium">{offer.applicants_count ?? 0} students</p>
+          </div>
+        </div>
+        
+        {offer.required_skills && offer.required_skills.length > 0 && (
+          <div className="mb-4">
+            <p className="text-white/60 text-xs mb-2 flex items-center gap-1"><Code size={12} /> Required Skills</p>
+            <div className="flex flex-wrap gap-2">
+              {offer.required_skills.map(skill => (
+                <span key={skill} className="bg-purple-900/60 text-purple-300 text-xs px-2 py-1 rounded-full">{skill}</span>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        <div className="flex gap-3 mt-4">
+          {!isExpired ? (
+            <button 
+              onClick={() => setShowApplyForm(true)}
+              className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white py-2.5 rounded-lg transition text-sm font-semibold"
+            >
+              <Briefcase size={14} /> Apply Now
+            </button>
+          ) : (
+            <div className="flex-1 text-center bg-red-500/20 text-red-300 py-2.5 rounded-lg text-sm font-semibold">
+              ❌ Offer Expired
+            </div>
+          )}
+          <button onClick={onClose} className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2.5 rounded-lg transition text-sm">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Apply Modal
 const ApplyModal = ({ offer, onClose, onSuccess }) => {
   const [step, setStep] = useState('check'); 
   const [loading, setLoading] = useState(false);
@@ -524,6 +684,10 @@ export default function StudentDashboard() {
   const [showAllCompanies, setShowAllCompanies] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   
+  // New state for modals
+  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [selectedOfferDetail, setSelectedOfferDetail] = useState(null);
+  
   // Chat states
   const [privateChatOpen, setPrivateChatOpen] = useState(false);
   const [selectedChatUser, setSelectedChatUser] = useState(null);
@@ -596,6 +760,32 @@ export default function StudentDashboard() {
 
   const handleCloseInternshipChat = () => {
     setActiveInternshipChat(null);
+  };
+
+  // Handle company click - show company details modal
+  const handleCompanyClick = (company) => {
+    setSelectedCompany(company);
+  };
+  
+  // Handle internship details view
+  const handleInternshipDetails = (offer) => {
+    setSelectedOfferDetail(offer);
+  };
+  
+  // Handle apply from detail modal
+  const handleApplyFromDetail = () => {
+    if (selectedOfferDetail) {
+      setApplyOffer(selectedOfferDetail);
+      setSelectedOfferDetail(null);
+    }
+  };
+  
+  // Navigate to public company profile
+  const navigateToPublicCompanyProfile = (companyId) => {
+    if (companyId) {
+      setSelectedCompany(null);
+      navigate(`/company/${companyId}`);
+    }
   };
 
   useEffect(() => {
@@ -786,6 +976,22 @@ export default function StudentDashboard() {
           offer={applyOffer}
           onClose={() => setApplyOffer(null)}
           onSuccess={handleApplySuccess}
+        />
+      )}
+
+      {selectedCompany && (
+        <CompanyDetailModal 
+          company={selectedCompany}
+          onClose={() => setSelectedCompany(null)}
+          onNavigateToPublicProfile={() => navigateToPublicCompanyProfile(selectedCompany.id)}
+        />
+      )}
+
+      {selectedOfferDetail && (
+        <InternshipDetailModal
+          offer={selectedOfferDetail}
+          onClose={() => setSelectedOfferDetail(null)}
+          onApply={() => setApplyOffer(selectedOfferDetail)}
         />
       )}
 
@@ -1164,8 +1370,8 @@ export default function StudentDashboard() {
                             </div>
                             <div className="sd-intern-footer">
                               <Stars n={offer.rating ?? 4} />
-                              <button className="sd-enroll-btn" onClick={() => setApplyOffer(offer)}>
-                                Apply Now
+                              <button className="sd-enroll-btn" onClick={() => handleInternshipDetails(offer)}>
+                                View Details
                               </button>
                             </div>
                           </div>
@@ -1177,7 +1383,7 @@ export default function StudentDashboard() {
                   {internships.length > 6 && (
                     <div style={{ display: "flex", justifyContent: "center", marginTop: "2rem" }}>
                       <button className="sd-see-all-btn" onClick={() => document.getElementById('internships')?.scrollIntoView({ behavior: "smooth" })}>
-                        See All {internships.length} Internships &nbsp;<ArrowRight />
+                        See All {internships.length} Internships &nbsp;<ArrowRightIcon />
                       </button>
                     </div>
                   )}
@@ -1223,7 +1429,7 @@ export default function StudentDashboard() {
                 className="sd-see-all-btn"
                 onClick={() => setShowAllCompanies(!showAllCompanies)}
               >
-                {showAllCompanies ? "Show Less" : "See All"} &nbsp;<ArrowRight />
+                {showAllCompanies ? "Show Less" : "See All"} &nbsp;<ArrowRightIcon />
               </button>
             )}
           </div>
@@ -1242,7 +1448,7 @@ export default function StudentDashboard() {
           ) : (
             <div className="sd-companies-grid">
               {displayedCompanies.map((c, index) => (
-                <div className="sd-company-card" key={c.id}>
+                <div className="sd-company-card" key={c.id} onClick={() => handleCompanyClick(c)}>
                   <div className="sd-company-img" style={{
                     position: 'relative',
                     overflow: 'hidden',
@@ -1323,8 +1529,8 @@ export default function StudentDashboard() {
                       <UsersIcon />
                       <span style={{ color: "#F75AFA", fontWeight: "bold" }}>{c.students_applied ?? 0}</span> students applied
                     </div>
-                    <button className="sd-learn-btn" onClick={() => scrollTo("internships", internshipsRef)}>
-                      View Offers
+                    <button className="sd-learn-btn" onClick={(e) => { e.stopPropagation(); handleCompanyClick(c); }}>
+                      View Details
                     </button>
                   </div>
                 </div>
@@ -1338,7 +1544,7 @@ export default function StudentDashboard() {
                 className="sd-see-all-btn"
                 onClick={() => setShowAllCompanies(true)}
               >
-                See All {companies.length} Companies &nbsp;<ArrowRight />
+                See All {companies.length} Companies &nbsp;<ArrowRightIcon />
               </button>
             </div>
           )}
@@ -1368,7 +1574,7 @@ export default function StudentDashboard() {
                 className="sd-see-all-btn"
                 onClick={() => setShowAllInternships(!showAllInternships)}
               >
-                {showAllInternships ? "Show Less" : "See All"} &nbsp;<ArrowRight />
+                {showAllInternships ? "Show Less" : "See All"} &nbsp;<ArrowRightIcon />
               </button>
             )}
           </div>
@@ -1427,8 +1633,8 @@ export default function StudentDashboard() {
                     </div>
                     <div className="sd-intern-footer">
                       <Stars n={offer.rating ?? 4} />
-                      <button className="sd-enroll-btn" onClick={() => setApplyOffer(offer)}>
-                        Apply Now
+                      <button className="sd-enroll-btn" onClick={() => handleInternshipDetails(offer)}>
+                        View Details
                       </button>
                     </div>
                   </div>
@@ -1443,11 +1649,13 @@ export default function StudentDashboard() {
                 className="sd-see-all-btn"
                 onClick={() => setShowAllInternships(true)}
               >
-                See All {internships.length} Internships &nbsp;<ArrowRight />
+                See All {internships.length} Internships &nbsp;<ArrowRightIcon />
               </button>
             </div>
           )}
         </section>
+
+    
 
         {/* ========== FOOTER ========== */}
         <footer className="footer">
@@ -1462,7 +1670,6 @@ export default function StudentDashboard() {
              <p>Nouha Labdi</p>
              <p>Safa Oughidni</p>
              <p>Douaa Benkhalef</p>
-
             </div>
             <div className="footer-contact">
               <h4>Contact Us</h4>

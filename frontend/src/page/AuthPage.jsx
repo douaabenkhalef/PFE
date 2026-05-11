@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { VALIDATION_MESSAGES, extractErrors } from "../utils/messages";
+import { universityNames, getDepartmentsByUniversity } from "../data/universitiesData";
 import "./AuthPage.css";
 
 const FormError = ({ messages }) => {
@@ -92,6 +93,7 @@ const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) 
   
   const handleSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
     const fullCode = code.join('');
     if (fullCode.length !== 6) {
       setLocalError('The verification code must contain exactly 6 digits.');
@@ -214,9 +216,48 @@ const OTPVerification = ({ email, onVerify, onBack, loading, error, setError }) 
   );
 };
 
-const InputGroup = ({ icon, label, type, value, onChange, required, placeholder }) => {
+const InputGroup = ({ icon, label, type, value, onChange, required, placeholder, options, isTextarea }) => {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === 'password';
+  
+  if (options && options.length > 0) {
+    return (
+      <div className="input-group">
+        <select
+          value={value}
+          onChange={onChange}
+          required={required}
+          style={{ background: "transparent", color: "white", width: "100%", border: "none", outline: "none" }}
+        >
+          <option value="" style={{ background: "#120d1d" }} disabled>
+            {placeholder || label}
+          </option>
+          {options.map((opt) => (
+            <option key={opt} value={opt} style={{ background: "#120d1d" }}>
+              {opt}
+            </option>
+          ))}
+        </select>
+        {icon && <span className="icon">{icon}</span>}
+      </div>
+    );
+  }
+  
+  if (isTextarea) {
+    return (
+      <div className="input-group">
+        <textarea
+          placeholder={placeholder || label}
+          value={value}
+          onChange={onChange}
+          required={required}
+          rows="2"
+          style={{ background: "transparent", color: "white", width: "100%", border: "none", outline: "none", resize: "vertical" }}
+        />
+        {icon && <span className="icon" style={{ top: "10px" }}>{icon}</span>}
+      </div>
+    );
+  }
   
   return (
     <div className="input-group">
@@ -281,11 +322,22 @@ const AuthPage = () => {
 
   const [adminData, setAdminData] = useState({
     username: "", email: "", password: "", confirm_password: "", sub_role: "",
-    dept_head_email: "", university_for_verification: "", full_name: "",
-    wilaya: "", university: "",
+    dept_head_email: "", 
+    university_for_verification: "", 
+    major_for_verification: "",
+    full_name: "", 
+    wilaya: "", 
+    university: "", 
+    major: "",
   });
 
   const [skillInput, setSkillInput] = useState("");
+  
+  // University and majors states
+  const [availableUniversities] = useState(universityNames);
+  const [availableMajors, setAvailableMajors] = useState([]);
+  const [adminAvailableMajors, setAdminAvailableMajors] = useState([]);
+  const [coDeptAvailableMajors, setCoDeptAvailableMajors] = useState([]);
 
   const validatePassword = (password) => {
     if (password.length < 8) return 'Password must be at least 8 characters.';
@@ -322,6 +374,27 @@ const AuthPage = () => {
   const { login, verify2FACode, completeSignup } = useAuth();
   const navigate = useNavigate();
 
+  // Handle university change for student
+  const handleUniversityChange = (university) => {
+    setStudentData({ ...studentData, university: university, major: "" });
+    const departments = getDepartmentsByUniversity(university);
+    setAvailableMajors(departments);
+  };
+
+  // Handle university change for Department Head
+  const handleAdminUniversityChangeForHead = (university) => {
+    setAdminData({ ...adminData, university: university, major: "" });
+    const departments = getDepartmentsByUniversity(university);
+    setAdminAvailableMajors(departments);
+  };
+
+  // Handle university change for Co Department Head
+  const handleCoDeptUniversityChange = (university) => {
+    setAdminData({ ...adminData, university_for_verification: university, major_for_verification: "" });
+    const departments = getDepartmentsByUniversity(university);
+    setCoDeptAvailableMajors(departments);
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (token) {
@@ -340,7 +413,6 @@ const AuthPage = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [navigate]);
 
-  // Fonction pour extraire et formater les erreurs du backend
   const extractErrorMessage = (result) => {
     if (result.errors) {
       if (typeof result.errors === 'object') {
@@ -424,7 +496,11 @@ const AuthPage = () => {
         confirm_password: data.confirm_password, sub_role: data.sub_role,
         dept_head_email: data.dept_head_email || '',
         university_for_verification: data.university_for_verification || '',
-        full_name: data.full_name || '', wilaya: data.wilaya || '', university: data.university || '',
+        major_for_verification: data.major_for_verification || '',
+        full_name: data.full_name || '', 
+        wilaya: data.wilaya || '', 
+        university: data.university || '',
+        major: data.major || '',
       };
       const response = await fetch('https://pfe-l31r.onrender.com/api/auth/initiate-signup/', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -463,7 +539,6 @@ const AuthPage = () => {
       console.log("Login result:", result);
       
       if (result.success) {
-        // 🔥 شرط واحد لـ 2FA و Super Admin OTP
         if (result.requires_2fa || result.requires_otp) {
           setPending2FAEmail(result.email);
           setShow2FAModal(true);
@@ -488,7 +563,7 @@ const AuthPage = () => {
       }
     } catch (error) {
       console.error("Login error:", error);
-      setLoginErrors([ERROR_MESSAGES.SERVER_ERROR || "Erreur de connexion"]);
+      setLoginErrors([error.message || "Erreur de connexion"]);
     } finally {
       setLoading(false);
     }
@@ -537,6 +612,12 @@ const AuthPage = () => {
     if (!studentData.email.includes('univ') || !studentData.email.includes('.dz')) {
       setStudentErrors([VALIDATION_MESSAGES.STUDENT_EMAIL_UNIVERSITY]); return;
     }
+    if (!studentData.university) {
+      setStudentErrors(["Please select your university"]); return;
+    }
+    if (!studentData.major) {
+      setStudentErrors(["Please select your major/department"]); return;
+    }
     setLoading(true);
     const result = await registerStudent(studentData);
     if (result.success) {
@@ -579,6 +660,27 @@ const AuthPage = () => {
     const passwordError = validatePassword(adminData.password);
     if (passwordError) { setAdminErrors([passwordError]); return; }
     if (!adminData.sub_role) { setAdminErrors([VALIDATION_MESSAGES.ROLE_REQUIRED]); return; }
+    
+    // Validation for Department Head
+    if (adminData.sub_role === "admin") {
+      if (!adminData.university) {
+        setAdminErrors(["Please select your university"]); return;
+      }
+      if (!adminData.major) {
+        setAdminErrors(["Please select your department/faculty"]); return;
+      }
+    }
+    
+    // Validation for Co Department Head
+    if (adminData.sub_role === "co_dept_head") {
+      if (!adminData.university_for_verification) {
+        setAdminErrors(["Please select the university of the Department Head"]); return;
+      }
+      if (!adminData.major_for_verification) {
+        setAdminErrors(["Please select the department/faculty of the Department Head"]); return;
+      }
+    }
+    
     setLoading(true);
     const result = await registerAdmin(adminData);
     if (result.success) {
@@ -655,7 +757,9 @@ const AuthPage = () => {
             <InputGroup icon={<Mail size={20} />} label="Email" type="email" value={loginData.email} onChange={(e) => setLoginData({ ...loginData, email: e.target.value })} required />
             <InputGroup icon={<Lock size={20} />} label="Password" type="password" value={loginData.password} onChange={(e) => setLoginData({ ...loginData, password: e.target.value })} required />
             <FormError messages={loginErrors} />
-            <button type="submit" className="auth-btn" disabled={loading}>{loading ? "Loading..." : "Login"}</button>
+            <button type="button" className="auth-btn" disabled={loading} onClick={handleLogin}>
+              {loading ? "Loading..." : "Login"}
+            </button>
             <div className="text-right mt-2">
               <button type="button" onClick={() => navigate('/forgot-password')} className="text-purple-400 text-sm hover:underline">Forgot password?</button>
             </div>
@@ -734,14 +838,37 @@ const AuthPage = () => {
                           </select>
                           <GraduationCap size={18} className="icon" />
                         </div>
-                        <InputGroup icon={<BookOpen size={18} />} label="University" type="text" value={studentData.university} onChange={(e) => setStudentData({ ...studentData, university: e.target.value })} required />
-                        <InputGroup icon={<Award size={18} />} label="Major" type="text" value={studentData.major} onChange={(e) => setStudentData({ ...studentData, major: e.target.value })} required />
+                        {/* University Selection for Student */}
+                        <InputGroup
+                          icon={<BookOpen size={18} />}
+                          label="University"
+                          type="select"
+                          value={studentData.university}
+                          onChange={(e) => handleUniversityChange(e.target.value)}
+                          required
+                          placeholder="Select your university"
+                          options={availableUniversities}
+                        />
+                        {/* Major/Department Selection for Student */}
+                        {studentData.university && availableMajors.length > 0 && (
+                          <InputGroup
+                            icon={<Award size={18} />}
+                            label="Major / Department"
+                            type="select"
+                            value={studentData.major}
+                            onChange={(e) => setStudentData({ ...studentData, major: e.target.value })}
+                            required
+                            placeholder="Select your major / department"
+                            options={availableMajors}
+                          />
+                        )}
                         <InputGroup icon={<Calendar size={18} />} label="Graduation Year" type="number" value={studentData.graduation_year} onChange={(e) => setStudentData({ ...studentData, graduation_year: e.target.value })} required />
                         <FormError messages={studentErrors} />
                         <button type="submit" className="auth-btn" disabled={loading}>{loading ? "Creating..." : "Sign up as Student"}</button>
                       </form>
                     </motion.div>
                   )}
+                  
                   {selectedRole === "Company" && (
                     <motion.div key="company" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="form-scrollable">
                       <form onSubmit={handleCompanyRegister} className="input-stack">
@@ -761,9 +888,21 @@ const AuthPage = () => {
                         {companyData.sub_role === "company_manager" && (
                           <>
                             <InputGroup icon={<Building2 size={18} />} label="Company Name" type="text" value={companyData.company_name} onChange={(e) => setCompanyData({ ...companyData, company_name: e.target.value })} required />
-                            <div className="input-group"><textarea placeholder="Description" value={companyData.description} onChange={(e) => setCompanyData({ ...companyData, description: e.target.value })} required rows="2" style={{ background: "transparent", color: "white", width: "100%", border: "none", outline: "none", resize: "vertical" }} /><FileText size={18} className="icon" style={{ top: "10px" }} /></div>
-                            <div className="input-group"><select value={companyData.location} onChange={(e) => setCompanyData({ ...companyData, location: e.target.value })} required style={selectStyle}><option value="" style={optStyle}>Location (Wilaya)</option>{wilayas.map((w) => <option key={w} value={w} style={optStyle}>{w}</option>)}</select><MapPin size={18} className="icon" /></div>
-                            <div className="input-group"><select value={companyData.industry} onChange={(e) => setCompanyData({ ...companyData, industry: e.target.value })} required style={selectStyle}><option value="" style={optStyle}>Industry</option>{industries.map((ind) => <option key={ind} value={ind} style={optStyle}>{ind}</option>)}</select><Briefcase size={18} className="icon" /></div>
+                            <InputGroup icon={<FileText size={18} />} label="Description" type="textarea" value={companyData.description} onChange={(e) => setCompanyData({ ...companyData, description: e.target.value })} required isTextarea />
+                            <div className="input-group">
+                              <select value={companyData.location} onChange={(e) => setCompanyData({ ...companyData, location: e.target.value })} required style={selectStyle}>
+                                <option value="" style={optStyle}>Location (Wilaya)</option>
+                                {wilayas.map((w) => <option key={w} value={w} style={optStyle}>{w}</option>)}
+                              </select>
+                              <MapPin size={18} className="icon" />
+                            </div>
+                            <div className="input-group">
+                              <select value={companyData.industry} onChange={(e) => setCompanyData({ ...companyData, industry: e.target.value })} required style={selectStyle}>
+                                <option value="" style={optStyle}>Industry</option>
+                                {industries.map((ind) => <option key={ind} value={ind} style={optStyle}>{ind}</option>)}
+                              </select>
+                              <Briefcase size={18} className="icon" />
+                            </div>
                             <InputGroup icon={<Globe size={18} />} label="Website (optional)" type="url" value={companyData.website} onChange={(e) => setCompanyData({ ...companyData, website: e.target.value })} />
                           </>
                         )}
@@ -779,38 +918,138 @@ const AuthPage = () => {
                       </form>
                     </motion.div>
                   )}
+                  
                   {selectedRole === "Administration" && (
                     <motion.div key="admin" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="form-scrollable">
                       <form onSubmit={handleAdminRegister} className="input-stack">
-                        <h3 style={{ color: "white", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px" }}><Shield size={20} /> Administration Registration</h3>
+                        <h3 style={{ color: "white", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px" }}>
+                          <Shield size={20} /> Administration Registration
+                        </h3>
+                        
                         <InputGroup icon={<User size={18} />} label="Username" type="text" value={adminData.username} onChange={(e) => setAdminData({ ...adminData, username: e.target.value })} required />
                         <InputGroup icon={<Mail size={18} />} label="Email" type="email" value={adminData.email} onChange={(e) => setAdminData({ ...adminData, email: e.target.value })} required />
                         <InputGroup icon={<Lock size={18} />} label="Password" type="password" value={adminData.password} onChange={(e) => setAdminData({ ...adminData, password: e.target.value })} required />
                         <InputGroup icon={<Lock size={18} />} label="Confirm Password" type="password" value={adminData.confirm_password} onChange={(e) => setAdminData({ ...adminData, confirm_password: e.target.value })} required />
+                        
+                        {/* Role Selection */}
                         <div className="input-group">
-                          <select value={adminData.sub_role} onChange={(e) => setAdminData({ ...adminData, sub_role: e.target.value, dept_head_email: "", university_for_verification: "", full_name: "", wilaya: "", university: "" })} required style={selectStyle}>
+                          <select 
+                            value={adminData.sub_role} 
+                            onChange={(e) => {
+                              setAdminData({ 
+                                ...adminData, 
+                                sub_role: e.target.value, 
+                                dept_head_email: "", 
+                                university_for_verification: "", 
+                                major_for_verification: "",
+                                full_name: "", 
+                                wilaya: "", 
+                                university: "", 
+                                major: "" 
+                              });
+                              setAdminAvailableMajors([]);
+                              setCoDeptAvailableMajors([]);
+                            }} 
+                            required 
+                            style={selectStyle}
+                          >
                             <option value="" style={optStyle}>Select your role</option>
                             <option value="admin" style={optStyle}>Department Head</option>
                             <option value="co_dept_head" style={optStyle}>Co Department Head</option>
                           </select>
                           <Shield size={18} className="icon" />
                         </div>
+                        
+                        {/* ========== DEPARTMENT HEAD (admin) ========== */}
                         {adminData.sub_role === "admin" && (
                           <>
                             <InputGroup icon={<User size={18} />} label="Full Name" type="text" value={adminData.full_name} onChange={(e) => setAdminData({ ...adminData, full_name: e.target.value })} required />
-                            <div className="input-group"><select value={adminData.wilaya} onChange={(e) => setAdminData({ ...adminData, wilaya: e.target.value })} required style={selectStyle}><option value="" style={optStyle}>Select Wilaya</option>{wilayas.map((w) => <option key={w} value={w} style={optStyle}>{w}</option>)}</select><MapPin size={18} className="icon" /></div>
-                            <InputGroup icon={<BookOpen size={18} />} label="University" type="text" value={adminData.university} onChange={(e) => setAdminData({ ...adminData, university: e.target.value })} required />
+                            
+                            <div className="input-group">
+                              <select value={adminData.wilaya} onChange={(e) => setAdminData({ ...adminData, wilaya: e.target.value })} required style={selectStyle}>
+                                <option value="" style={optStyle}>Select Wilaya</option>
+                                {wilayas.map((w) => <option key={w} value={w} style={optStyle}>{w}</option>)}
+                              </select>
+                              <MapPin size={18} className="icon" />
+                            </div>
+                            
+                            {/* University Selection for Department Head */}
+                            <InputGroup
+                              icon={<BookOpen size={18} />}
+                              label="University"
+                              type="select"
+                              value={adminData.university}
+                              onChange={(e) => handleAdminUniversityChangeForHead(e.target.value)}
+                              required
+                              placeholder="Select your university"
+                              options={availableUniversities}
+                            />
+                            
+                            {/* Department/Faculty Selection for Department Head */}
+                            {adminData.university && adminAvailableMajors.length > 0 && (
+                              <InputGroup
+                                icon={<Award size={18} />}
+                                label="Department / Faculty"
+                                type="select"
+                                value={adminData.major}
+                                onChange={(e) => setAdminData({ ...adminData, major: e.target.value })}
+                                required
+                                placeholder="Select your department / faculty"
+                                options={adminAvailableMajors}
+                              />
+                            )}
                           </>
                         )}
+                        
+                        {/* ========== CO DEPARTMENT HEAD (co_dept_head) ========== */}
                         {adminData.sub_role === "co_dept_head" && (
                           <>
-                            <InputGroup icon={<Mail size={18} />} label="Department Head Email" type="email" value={adminData.dept_head_email} onChange={(e) => setAdminData({ ...adminData, dept_head_email: e.target.value })} placeholder="Email of the Department Head" required />
-                            <InputGroup icon={<BookOpen size={18} />} label="University (to verify)" type="text" value={adminData.university_for_verification} onChange={(e) => setAdminData({ ...adminData, university_for_verification: e.target.value })} placeholder="Enter the university name as registered" required />
-                            <div style={{ fontSize: "12px", color: "#9ca3af", marginTop: "-10px", marginBottom: "10px" }}>ⓘ Enter the exact university name of the Department Head</div>
+                            <InputGroup 
+                              icon={<Mail size={18} />} 
+                              label="Department Head Email" 
+                              type="email" 
+                              value={adminData.dept_head_email} 
+                              onChange={(e) => setAdminData({ ...adminData, dept_head_email: e.target.value })} 
+                              placeholder="Email of the Department Head" 
+                              required 
+                            />
+                            
+                            {/* University Selection for Co Department Head */}
+                            <InputGroup
+                              icon={<BookOpen size={18} />}
+                              label="University (to verify)"
+                              type="select"
+                              value={adminData.university_for_verification}
+                              onChange={(e) => handleCoDeptUniversityChange(e.target.value)}
+                              required
+                              placeholder="Select the university of the Department Head"
+                              options={availableUniversities}
+                            />
+                            
+                            {/* Department/Faculty Selection for Co Department Head */}
+                            {adminData.university_for_verification && coDeptAvailableMajors.length > 0 && (
+                              <InputGroup
+                                icon={<Award size={18} />}
+                                label="Department / Faculty (to verify)"
+                                type="select"
+                                value={adminData.major_for_verification}
+                                onChange={(e) => setAdminData({ ...adminData, major_for_verification: e.target.value })}
+                                required
+                                placeholder="Select the department of the Department Head"
+                                options={coDeptAvailableMajors}
+                              />
+                            )}
+                            
+                            <div style={{ fontSize: "12px", color: "#9ca3af", marginTop: "-10px", marginBottom: "10px" }}>
+                              ⓘ Select the exact university and department of the Department Head for verification
+                            </div>
                           </>
                         )}
+                        
                         <FormError messages={adminErrors} />
-                        <button type="submit" className="auth-btn" disabled={loading}>{loading ? "Creating..." : "Register as Admin"}</button>
+                        <button type="submit" className="auth-btn" disabled={loading}>
+                          {loading ? "Creating..." : "Register as Admin"}
+                        </button>
                       </form>
                     </motion.div>
                   )}
