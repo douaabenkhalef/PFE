@@ -1,4 +1,4 @@
-# backend/api/management/commands/create_super_admin.py
+
 
 from django.core.management.base import BaseCommand
 from django.core.management.base import CommandError
@@ -53,7 +53,7 @@ class Command(BaseCommand):
         self.stdout.write(f'   🔑 Username: {username}')
         self.stdout.write('   ' + '='*40 + '\n')
 
-        # ========== التحقق من وجود المستخدم مسبقاً ==========
+       
         existing_user = User.objects(email=email).first()
         
         if existing_user:
@@ -67,7 +67,7 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING(f'   Role: {existing_user.role}'))
                 self.stdout.write(self.style.WARNING(f'   Do you want to upgrade this user to Super Admin? (y/n)'))
                 
-                # طلب تأكيد من المستخدم
+                
                 confirm = input().lower()
                 if confirm != 'y':
                     self.stdout.write(self.style.ERROR('❌ Operation cancelled.'))
@@ -80,7 +80,7 @@ class Command(BaseCommand):
                 existing_user.status = True
                 existing_user.save()
                 
-                # التحقق من وجود SuperAdmin profile
+                
                 super_admin = SuperAdmin.objects(user=existing_user).first()
                 if not super_admin:
                     super_admin = SuperAdmin(
@@ -94,11 +94,11 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f'\n✅ User "{email}" upgraded to Super Admin successfully!'))
                 return
 
-        # ========== إنشاء مستخدم جديد ==========
+       
         self.stdout.write(self.style.SUCCESS('   Creating new user...'))
         
         try:
-            # إنشاء المستخدم
+            
             user = User(
                 username=username,
                 email=email,
