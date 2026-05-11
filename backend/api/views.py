@@ -7380,7 +7380,7 @@ def verify_2fa_code(request):
         if error:
             return Response({'success': False, 'error': error, 'code_invalid': True}, status=400)
 
-        if temp_data.get('action') != 'login_2fa':
+        if temp_data.get('action') not in ['login_2fa', 'super_admin_login']:
             return Response({'success': False, 'error': 'Invalid verification'}, status=400)
 
         user = User.objects(id=temp_data['user_id']).first()
