@@ -157,7 +157,7 @@ def verify_otp_code(email, code):
     return otp.data, None
 
 
-# api/otp_utils.py
+
 
 import secrets
 import random
@@ -206,7 +206,7 @@ def send_otp_email(email, code, action="inscription"):
         subject = "Réinitialisation de votre mot de passe - Code OTP"
         title = "🔐 Réinitialisation du mot de passe"
         message = "Vous avez demandé la réinitialisation de votre mot de passe."
-    elif action == "login_2fa":  # 🔥 أضف هذا الشرط الجديد
+    elif action == "login_2fa": 
         subject = "🔐 Code de vérification - Connexion à votre compte"
         title = "🔐 Code de vérification"
         message = "Voici votre code de vérification pour vous connecter à votre compte. Ce code est valable 15 minutes."
@@ -330,7 +330,7 @@ def verify_otp_code(email, code):
     return otp.data, None
 
 
-# api/email_utils.py - أضف هذه الدوال في نهاية الملف
+
 
 def send_recovery_email_confirmation(recipient, name, recovery_email):
     """
@@ -496,7 +496,7 @@ def send_password_reset_via_recovery_email(recipient, name, primary_email):
     return send_email(recipient, subject, html_content)
 
 
-# أضف هذه الدالة في نهاية ملف otp_utils.py
+
 
 def create_otp_for_password_change(user_id, target_email, primary_email=None):
     """Crée un OTP pour le changement de mot de passe"""
