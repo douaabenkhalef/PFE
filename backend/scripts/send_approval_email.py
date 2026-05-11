@@ -12,18 +12,18 @@ from api.email_utils import send_approval_email
 def approve_user_from_db(email):
     user = User.objects(email=email).first()
     if user:
-        # Vérifier si déjà approuvé
+        
         if user.status:
             print(f"ℹ️ Utilisateur {email} est déjà approuvé")
             reponse = input("Voulez-vous renvoyer l'email ? (o/n): ")
             if reponse.lower() != 'o':
                 return
         
-        # Mettre à jour le statut
+       
         user.status = True
         user.save()
         
-        # Envoyer l'email
+      
         send_approval_email(
             recipient=user.email,
             name=user.username,
