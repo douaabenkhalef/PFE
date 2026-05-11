@@ -3224,3 +3224,33 @@ body.light-mode .internship-info strong {
 body.light-mode .rep-label {
   color: #888 !important;
 }
+/* ===== SIMPLE FIX: جعل أزرار Get Started و About Us بنفس الحجم ===== */
+
+/* للأجهزة اللوحية والمحمولة */
+@media (max-width: 768px) {
+  .btn-primary,
+  .btn-outline {
+    min-width: 130px;
+    padding: 6px 16px;
+    font-size: 0.75rem;
+    text-align: center;
+  }
+}
+
+@media (max-width: 550px) {
+  .btn-primary,
+  .btn-outline {
+    min-width: 120px;
+    padding: 5px 12px;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .btn-primary,
+  .btn-outline {
+    min-width: 110px;
+    padding: 6px 10px;
+    font-size: 0.68rem;
+  }
+}

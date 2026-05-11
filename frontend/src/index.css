@@ -2,10 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== LIGHT MODE STYLES - ONLY APPLIES WHEN .light-mode IS ACTIVE ===== */
-/* هذه الأنماط لا تؤثر على dark mode لأنها تحت شرط وجود class light-mode */
-
-/* خلفية الصفحة */
 body.light-mode {
   background-color: #f0f0f5 !important;
 }
@@ -14,7 +10,6 @@ body.light-mode #root {
   background-color: #f0f0f5 !important;
 }
 
-/* جميع النصوص */
 body.light-mode p,
 body.light-mode h1,
 body.light-mode h2,
@@ -288,4 +283,642 @@ body.light-mode .border-white\/10 {
   body.light-mode .profile-tab-btn.active {
     color: #8D23D4 !important;
   }
+}
+/* ===== SITE NAME (UnivStage) LIGHT MODE - PURPLE ===== */
+
+/* الاسم في الوضع الفاتح - لون بنفسجي */
+body.light-mode .sd-site-name,
+body.light-mode .navbar-site-name,
+body.light-mode .site-name,
+body.light-mode .footer-brand-logo,
+body.light-mode [class*="site-name"] {
+  background: linear-gradient(90deg, #8D23D4, #6B21A5) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+
+/* طريقة أبسط - لون بنفسجي ثابت */
+body.light-mode .sd-site-name {
+  color: #8D23D4 !important;
+  background: none !important;
+  -webkit-text-fill-color: #8D23D4 !important;
+}
+/* استثناء صفحة ForgotPassword - تبقى كما هي في الوضع الفاتح */
+body.light-mode:not(.forgot-password-page) {
+  background-color: #f0f0f5 !important;
+}
+
+body.light-mode:not(.forgot-password-page) p,
+body.light-mode:not(.forgot-password-page) h1,
+body.light-mode:not(.forgot-password-page) h2,
+body.light-mode:not(.forgot-password-page) h3,
+body.light-mode:not(.forgot-password-page) span,
+body.light-mode:not(.forgot-password-page) div {
+  color: #1a1a2e !important;
+}
+/* ===== LIGHT MODE STYLES FOR SEARCH IN STUDENT & ADMIN PAGES ===== */
+
+/* تحسين شريط البحث في الوضع الفاتح لصفحات Student و Admin */
+body.light-mode .sd-search-bar,
+body.light-mode .search-bar,
+body.light-mode .admin-search-bar,
+body.light-mode [class*="search"] input,
+body.light-mode input[type="search"] {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #1a1a2e !important;
+}
+
+body.light-mode .sd-search-bar input,
+body.light-mode .search-bar input,
+body.light-mode .admin-search-bar input,
+body.light-mode [class*="search"] input,
+body.light-mode input[type="search"] {
+  background: transparent !important;
+  color: #1a1a2e !important;
+}
+
+body.light-mode .sd-search-bar input::placeholder,
+body.light-mode .search-bar input::placeholder,
+body.light-mode [class*="search"] input::placeholder {
+  color: #94a3b8 !important;
+}
+
+body.light-mode .sd-search-bar svg,
+body.light-mode .search-bar svg,
+body.light-mode [class*="search"] svg {
+  color: #8D23D4 !important;
+}
+
+/* تحسين نتائج البحث المنسدلة */
+body.light-mode .search-results-dropdown,
+body.light-mode .sd-search-dropdown,
+body.light-mode .search-dropdown {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+}
+
+body.light-mode .search-results-dropdown .result-item,
+body.light-mode .sd-search-dropdown div,
+body.light-mode .search-dropdown div {
+  color: #1a1a2e !important;
+  border-bottom-color: #f1f5f9 !important;
+}
+
+body.light-mode .search-results-dropdown .result-item:hover,
+body.light-mode .sd-search-dropdown div:hover,
+body.light-mode .search-dropdown div:hover {
+  background: #f8fafc !important;
+  color: #8D23D4 !important;
+}
+
+/* ===== LIGHT MODE FOR STUDENT DASHBOARD ===== */
+
+/* تحسين البطاقات في صفحة Student */
+body.light-mode .bg-slate-800\/50,
+body.light-mode .bg-slate-800\/60,
+body.light-mode .bg-slate-900\/50 {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+body.light-mode .bg-slate-800\/50 .text-white,
+body.light-mode .bg-slate-800\/60 .text-white,
+body.light-mode .bg-slate-900\/50 .text-white {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .bg-slate-800\/50 .text-slate-300,
+body.light-mode .bg-slate-800\/60 .text-slate-300,
+body.light-mode .bg-slate-900\/50 .text-slate-300 {
+  color: #64748b !important;
+}
+
+/* تحسين الأزرار في Student Dashboard */
+body.light-mode button.bg-purple-600,
+body.light-mode button.bg-purple-500,
+body.light-mode .bg-purple-600,
+body.light-mode .bg-purple-500 {
+  background: #8D23D4 !important;
+}
+
+body.light-mode button.bg-purple-600:hover,
+body.light-mode button.bg-purple-500:hover {
+  background: #6B21A5 !important;
+}
+
+body.light-mode button.bg-gray-700,
+body.light-mode button.bg-gray-600 {
+  background: #e2e8f0 !important;
+  color: #1a1a2e !important;
+}
+
+body.light-mode button.bg-gray-700:hover,
+body.light-mode button.bg-gray-600:hover {
+  background: #cbd5e1 !important;
+}
+
+/* تحسين الجداول في Student Dashboard */
+body.light-mode table,
+body.light-mode .data-table {
+  background: transparent !important;
+}
+
+body.light-mode th {
+  background: #f8fafc !important;
+  color: #1a1a2e !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+body.light-mode td {
+  color: #1a1a2e !important;
+  border-bottom-color: #f1f5f9 !important;
+}
+
+body.light-mode tr:hover td {
+  background: #f8fafc !important;
+}
+
+/* تحسين الفلاتر */
+body.light-mode select,
+body.light-mode .filter-select {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #1a1a2e !important;
+}
+
+body.light-mode select option {
+  background: #ffffff !important;
+  color: #1a1a2e !important;
+}
+
+/* ===== LIGHT MODE FOR ADMIN DASHBOARD ===== */
+
+/* تحسين الشريط الجانبي في Admin */
+body.light-mode .admin-sidebar,
+body.light-mode .w-64.bg-gradient-to-b {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-right: 1px solid #e2e8f0 !important;
+}
+
+body.light-mode .admin-sidebar .text-white,
+body.light-mode .w-64.bg-gradient-to-b .text-white {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .admin-sidebar .text-white\/50,
+body.light-mode .w-64.bg-gradient-to-b .text-white\/50 {
+  color: #64748b !important;
+}
+
+body.light-mode .admin-sidebar a:hover,
+body.light-mode .w-64.bg-gradient-to-b a:hover {
+  background: #f1f5f9 !important;
+  color: #8D23D4 !important;
+}
+
+/* تحسين الكاردات في Admin Dashboard */
+body.light-mode .admin-card,
+body.light-mode .stat-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.light-mode .admin-card .text-white,
+body.light-mode .stat-card .text-white {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .admin-card .text-slate-300,
+body.light-mode .stat-card .text-slate-300 {
+  color: #64748b !important;
+}
+
+/* تحسين نموذج الإدارة */
+body.light-mode .admin-form input,
+body.light-mode .admin-form textarea,
+body.light-mode .admin-form select {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #1a1a2e !important;
+}
+
+body.light-mode .admin-form input:focus,
+body.light-mode .admin-form textarea:focus,
+body.light-mode .admin-form select:focus {
+  border-color: #8D23D4 !important;
+  outline: none !important;
+}
+
+body.light-mode .admin-form label {
+  color: #1a1a2e !important;
+}
+
+/* تحسين الإشعارات في Admin */
+body.light-mode .notification-dropdown {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+body.light-mode .notification-dropdown .notification-item {
+  color: #1a1a2e !important;
+  border-bottom-color: #f1f5f9 !important;
+}
+
+body.light-mode .notification-dropdown .notification-item:hover {
+  background: #f8fafc !important;
+}
+
+/* تحسين شريط التنقل في Admin */
+body.light-mode .admin-navbar {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(8px) !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+body.light-mode .admin-navbar .text-white {
+  color: #1a1a2e !important;
+}
+
+/* ===== COMMON LIGHT MODE IMPROVEMENTS ===== */
+
+/* تحسين الحاويات */
+body.light-mode .container-glass,
+body.light-mode .card-glass {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(141, 35, 212, 0.15) !important;
+}
+
+/* تحسين التبويبات */
+body.light-mode .tab-active {
+  background: #8D23D4 !important;
+  color: #ffffff !important;
+}
+
+body.light-mode .tab-inactive {
+  background: #f1f5f9 !important;
+  color: #1a1a2e !important;
+}
+
+body.light-mode .tab-inactive:hover {
+  background: #e2e8f0 !important;
+}
+
+/* تحسين أيقونات الإشعارات */
+body.light-mode .notification-badge {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+/* تحسين شريط التقدم */
+body.light-mode .progress-bar {
+  background: #e2e8f0 !important;
+}
+
+body.light-mode .progress-fill {
+  background: linear-gradient(90deg, #8D23D4, #6B21A5) !important;
+}
+
+/* ===== RESPONSIVE LIGHT MODE FOR STUDENT & ADMIN ===== */
+
+@media (max-width: 768px) {
+  body.light-mode .sd-search-bar,
+  body.light-mode .search-bar,
+  body.light-mode .admin-search-bar {
+    background: #ffffff !important;
+  }
+  
+  body.light-mode .mobile-menu {
+    background: #ffffff !important;
+  }
+  
+  body.light-mode .mobile-menu a {
+    color: #1a1a2e !important;
+  }
+  
+  body.light-mode .mobile-menu a:hover {
+    color: #8D23D4 !important;
+  }
+}
+
+@media (max-width: 580px) {
+  body.light-mode .sd-search-bar,
+  body.light-mode .search-bar {
+    background: #ffffff !important;
+  }
+  
+  body.light-mode .search-results-dropdown {
+    background: #ffffff !important;
+  }
+}
+
+
+body.light-mode .forgot-password-container,
+body.light-mode .forgot-password-page {
+  background: #ffffff !important;
+}
+
+body.light-mode .forgot-password-container .bg-white\/10.backdrop-blur-lg,
+body.light-mode .forgot-password-page .bg-white\/10.backdrop-blur-lg {
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+
+body.light-mode .forgot-password-container .text-white,
+body.light-mode .forgot-password-page .text-white {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .forgot-password-container .text-white\/60,
+body.light-mode .forgot-password-container .text-white\/50,
+body.light-mode .forgot-password-container .text-white\/40,
+body.light-mode .forgot-password-page .text-white\/60,
+body.light-mode .forgot-password-page .text-white\/50,
+body.light-mode .forgot-password-page .text-white\/40 {
+  color: #555555 !important;
+}
+
+body.light-mode .forgot-password-container input,
+body.light-mode .forgot-password-page input {
+  background: transparent !important;
+  color: #1a1a2e !important;
+  border-bottom-color: rgba(141, 35, 212, 0.3) !important;
+}
+
+body.light-mode .forgot-password-container input::placeholder,
+body.light-mode .forgot-password-page input::placeholder {
+  color: #999999 !important;
+}
+/* ===== LIGHT MODE FOR FILTER BUTTON IN SEARCH (STUDENT & ADMIN) ===== */
+
+/* زر الفلتر الأساسي */
+body.light-mode button.filter-btn,
+body.light-mode .filter-button,
+body.light-mode button[aria-label="Filter"],
+body.light-mode button:has(.filter-icon),
+body.light-mode .sd-filter-btn,
+body.light-mode .admin-filter-btn {
+  background: #8D23D4 !important;
+  border: 1px solid #8D23D4 !important;
+  color: #1a1a2e !important;
+  transition: all 0.2s ease !important;
+}
+
+body.light-mode button.filter-btn:hover,
+body.light-mode .filter-button:hover,
+body.light-mode button[aria-label="Filter"]:hover,
+body.light-mode .sd-filter-btn:hover,
+body.light-mode .admin-filter-btn:hover {
+  background: #8D23D4 !important;
+  border-color: #8D23D4 !important;
+  color: #8D23D4 !important;
+}
+
+body.light-mode button.filter-btn.active,
+body.light-mode .filter-button.active,
+body.light-mode button.filter-btn[data-active="true"],
+body.light-mode .sd-filter-btn.active {
+  background: #8D23D4 !important;
+  border-color: #8D23D4 !important;
+  color: #8D23D4 !important
+}
+
+/* أيقونة الفلتر */
+body.light-mode button.filter-btn svg,
+body.light-mode .filter-button svg,
+body.light-mode button[aria-label="Filter"] svg,
+body.light-mode .sd-filter-btn svg,
+body.light-mode .admin-filter-btn svg {
+  color: #8D23D4 !important;
+}
+
+body.light-mode button.filter-btn.active svg,
+body.light-mode .filter-button.active svg,
+body.light-mode button.filter-btn[data-active="true"] svg {
+  color: #8D23D4 !important;
+}
+
+body.light-mode button.filter-btn:hover svg,
+body.light-mode .filter-button:hover svg {
+  color: #8D23D4 !important;
+}
+
+/* ===== LIGHT MODE FOR FILTER DROPDOWN / PANEL ===== */
+
+/* لوحة الفلتر المنسدلة */
+body.light-mode .filter-dropdown,
+body.light-mode .filter-panel,
+body.light-mode .sd-filter-panel,
+body.light-mode .admin-filter-panel {
+  background: #8D23D4 !important;
+  border: 1px solid #8D23D4 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* عناوين الفلتر */
+body.light-mode .filter-dropdown h3,
+body.light-mode .filter-panel h3,
+body.light-mode .filter-dropdown .filter-title,
+body.light-mode .filter-panel .filter-title {
+  color: #1a1a2e !important;
+  border-bottom-color: #8D23D4 !important;
+}
+
+/* خيارات الفلتر */
+body.light-mode .filter-option,
+body.light-mode .filter-dropdown label,
+body.light-mode .filter-panel label,
+body.light-mode .filter-checkbox,
+body.light-mode .filter-radio {
+  color: #1a1a2e !important;
+}
+
+body.light-mode .filter-option:hover,
+body.light-mode .filter-dropdown label:hover,
+body.light-mode .filter-panel label:hover {
+  background: #8D23D4 !important;
+  color: #8D23D4 !important;
+}
+
+/* مربعات الاختيار (checkbox) */
+body.light-mode .filter-checkbox input[type="checkbox"],
+body.light-mode .filter-option input[type="checkbox"] {
+  accent-color: #8D23D4 !important;
+}
+
+/* أزرار الراديو */
+body.light-mode .filter-radio input[type="radio"] {
+  accent-color: #8D23D4 !important;
+}
+
+/* قائمة منسدلة للفلتر */
+body.light-mode select.filter-select,
+body.light-mode .filter-dropdown select {
+  background: #8D23D4 !important;
+  border: 1px solid #8D23D4 !important;
+  color: #1a1a2e !important;
+}
+
+body.light-mode select.filter-select:focus,
+body.light-mode .filter-dropdown select:focus {
+  border-color: #8D23D4 !important;
+  outline: none !important;
+}
+
+/* أزرار تطبيق وإلغاء الفلتر */
+body.light-mode button.apply-filter-btn,
+body.light-mode button.filter-apply-btn {
+  background: #8D23D4 !important;
+  color: #8D23D4 !important;
+}
+
+body.light-mode button.apply-filter-btn:hover,
+body.light-mode button.filter-apply-btn:hover {
+  background: #6B21A5 !important;
+}
+
+body.light-mode button.clear-filter-btn,
+body.light-mode button.filter-clear-btn,
+body.light-mode button.reset-filter-btn {
+  background: transparent !important;
+  border: 1px solid #8D23D4 !important;
+  color: #1a1a2e !important;
+}
+
+body.light-mode button.clear-filter-btn:hover,
+body.light-mode button.filter-clear-btn:hover,
+body.light-mode button.reset-filter-btn:hover {
+  background: #8D23D4 !important;
+  border-color: #dc2626 !important;
+  color: #dc2626 !important;
+}
+
+/* ===== LIGHT MODE FOR ACTIVE FILTERS TAGS ===== */
+
+/* علامات الفلتر النشطة */
+body.light-mode .filter-tag,
+body.light-mode .active-filter-badge,
+body.light-mode .filter-chip {
+  background: #8D23D4 !important;
+  border: 1px solid #8D23D4 !important;
+  color: #1a1a2e !important;
+}
+
+body.light-mode .filter-tag:hover,
+body.light-mode .active-filter-badge:hover,
+body.light-mode .filter-chip:hover {
+  background: #8D23D4 !important;
+  border-color: #fca5a5 !important;
+  color: #dc2626 !important;
+}
+
+body.light-mode .filter-tag .remove-icon,
+body.light-mode .active-filter-badge svg,
+body.light-mode .filter-chip svg {
+  color: #8D23D4 !important;
+}
+
+body.light-mode .filter-tag:hover .remove-icon,
+body.light-mode .active-filter-badge:hover svg,
+body.light-mode .filter-chip:hover svg {
+  color: #dc2626 !important;
+}
+
+/* ===== LIGHT MODE FOR FILTER SECTIONS ===== */
+
+/* أقسام الفلتر */
+body.light-mode .filter-section {
+  border-bottom-color: #8D23D4 !important;
+}
+
+body.light-mode .filter-section-title {
+  color: #1a1a2e !important;
+  font-weight: 600 !important;
+}
+
+/* نطاق السعر / التاريخ */
+body.light-mode .filter-range-inputs input,
+body.light-mode .filter-date-inputs input {
+  background: #8D23D4 !important;
+  border: 1px solid #8D23D4 !important;
+  color: #1a1a2e !important;
+}
+
+body.light-mode .filter-range-inputs input:focus,
+body.light-mode .filter-date-inputs input:focus {
+  border-color: #8D23D4 !important;
+}
+
+/* ===== RESPONSIVE FILTER BUTTON IN LIGHT MODE ===== */
+
+@media (max-width: 768px) {
+  body.light-mode button.filter-btn,
+  body.light-mode .filter-button,
+  body.light-mode .sd-filter-btn {
+    background: #8D23D4 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  }
+  
+  body.light-mode .filter-dropdown,
+  body.light-mode .filter-panel {
+    background: #8D23D4 !important;
+    border: 1px solid #8D23D4 !important;
+  }
+}
+
+@media (max-width: 580px) {
+  body.light-mode button.filter-btn,
+  body.light-mode .filter-button {
+    padding: 8px 12px !important;
+  }
+  
+  body.light-mode .filter-dropdown,
+  body.light-mode .filter-panel {
+    width: 100% !important;
+    max-width: 320px !important;
+  }
+}
+
+/* ===== SPECIFIC CLASSES FOR FILTER BUTTONS (إذا كانت موجودة) ===== */
+
+/* زر الفلتر في صفحة البحث */
+body.light-mode .search-filter-btn,
+body.light-mode .filter-toggle-btn {
+  background: #8D23D4 !important;
+  border: 1px solid #8D23D4 !important;
+  border-radius: 8px !important;
+  padding: 8px 16px !important;
+  color: #1a1a2e !important;
+}
+
+body.light-mode .search-filter-btn:hover,
+body.light-mode .filter-toggle-btn:hover {
+  border-color: #8D23D4 !important;
+  color: #8D23D4 !important;
+}
+
+body.light-mode .search-filter-btn svg,
+body.light-mode .filter-toggle-btn svg {
+  color: #8D23D4 !important;
+}
+
+/* أيقونة الفلتر الصغيرة */
+body.light-mode .filter-icon-small {
+  color: #8D23D4 !important;
+}
+
+/* زر الفلتر في شريط البحث */
+body.light-mode .search-bar .filter-btn,
+body.light-mode .sd-search-bar .filter-btn {
+  background: transparent !important;
+  border-left: 1px solid #8D23D4 !important;
+}
+
+body.light-mode .search-bar .filter-btn:hover,
+body.light-mode .sd-search-bar .filter-btn:hover {
+  background: #8D23D4 !important;
+  color: #8D23D4 !important;
 }

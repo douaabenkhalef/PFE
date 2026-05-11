@@ -2407,3 +2407,32 @@ body.light-mode button.w-full.p-3.text-left:hover {
   }
   
 }
+/* ===== تثبيت صورة hero فقط ===== */
+
+/* منع الصورة من التحرك للأسفل */
+.sd-hero-container {
+  align-items: flex-start !important;
+}
+
+.sd-hero-image {
+  flex-shrink: 0 !important;
+  position: relative !important;
+  top: 0 !important;
+}
+
+/* السماح لمحتوى النص (بما فيه نتائج البحث) بالتمدد دون التأثير على الصورة */
+.sd-hero-content {
+  flex: 1 !important;
+}
+@media (max-width: 768px) {
+  .sd-hero-container {
+    flex-direction: row !important;
+    align-items: flex-start !important;
+  }
+  
+  .sd-hero-image {
+    width: 45% !important;
+    align-self: flex-start !important;
+    margin-top: 0 !important;
+  }
+}
