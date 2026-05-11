@@ -12,13 +12,13 @@ def send_email(recipient, subject, html_content, text_content=None, attachments=
     Envoie un email via SendGrid
     """
     try:
-        # Get SendGrid configuration from environment
+        
         sg_api_key = config('SENDGRID_API_KEY')
         from_email = config('FROM_EMAIL')
         from_name = config('FROM_NAME', default='University Stage')
         frontend_url = config('FRONTEND_URL', default='http://localhost:5173')
         
-        # Create email
+       
         message = Mail(
             from_email=f"{from_name} <{from_email}>",
             to_emails=recipient,
@@ -26,11 +26,11 @@ def send_email(recipient, subject, html_content, text_content=None, attachments=
             html_content=html_content
         )
         
-        # Add plain text version if provided
+       
         if text_content:
             message.text_content = text_content
         
-        # Add attachments if any
+       
         if attachments:
             for filename, file_content, content_type in attachments:
                 encoded = b64.b64encode(file_content).decode()
@@ -42,13 +42,13 @@ def send_email(recipient, subject, html_content, text_content=None, attachments=
                 )
                 message.add_attachment(attachment)
         
-        # Send email
+        
         sg = SendGridAPIClient(sg_api_key)
         response = sg.send(message)
         
         print(f"✅ Email envoyé à {recipient} - Sujet: {subject} - Status: {response.status_code}")
         
-        # Also print OTP code if present (for debugging)
+       
         match = re.search(r'<strong>(\d{6})</strong>', html_content)
         if match:
             print(f"📧 CODE OTP: {match.group(1)}")
@@ -57,7 +57,7 @@ def send_email(recipient, subject, html_content, text_content=None, attachments=
         
     except Exception as e:
         print(f" Erreur envoi email à {recipient}: {str(e)}")
-        # Fallback to simulation mode for debugging
+       
         print("\n" + "="*60)
         print(f"📧 [SIMULATION] Email à : {recipient}")
         print(f"📧 Sujet : {subject}")

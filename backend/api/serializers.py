@@ -190,7 +190,7 @@ class InternshipOfferSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(read_only=True)
     company_name = serializers.SerializerMethodField()
 
-    # New field for the offer image
+    
     image_url = serializers.SerializerMethodField()
 
     def get_company_name(self, obj):
@@ -395,12 +395,12 @@ class UserSerializer(serializers.Serializer):
     is_university_email = serializers.BooleanField()
     created_at = serializers.DateTimeField(read_only=True)
     
-    # Expose the new profile fields added in recent work
+  
     bio = serializers.CharField(allow_blank=True, required=False)
     phone = serializers.CharField(allow_blank=True, required=False)
     profile_picture = serializers.CharField(allow_blank=True, required=False)
     
-    # Root level company name to match login payload
+    
     company_name = serializers.SerializerMethodField()
     
     student_profile = serializers.SerializerMethodField()
@@ -409,7 +409,7 @@ class UserSerializer(serializers.Serializer):
     def get_company_name(self, obj):
         if obj.role == 'company':
             from .models import Company
-            # Use pending_company_id for hiring managers
+            
             if obj.sub_role == 'hiring_manager' and obj.pending_company_id:
                 company = Company.objects(id=obj.pending_company_id).first()
             else:
@@ -422,7 +422,7 @@ class UserSerializer(serializers.Serializer):
     def get_company_profile(self, obj):
         if obj.role == 'company':
             from .models import Company
-            # Use pending_company_id for hiring managers
+            
             if obj.sub_role == 'hiring_manager' and obj.pending_company_id:
                 company = Company.objects(id=obj.pending_company_id).first()
             else:

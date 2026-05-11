@@ -297,8 +297,7 @@ def login(request):
         return Response({'success': False, 'errors': {'non_field_errors': ['Account pending approval.']}},
                         status=status.HTTP_403_FORBIDDEN)
 
-    # ========== SUPER ADMIN LOGIN ==========
-    # Super Admin - OTP required for each login
+    
     if user.is_super_admin or user.role == 'super_admin':
         temp_data = {
             'action': 'super_admin_login',
@@ -308,7 +307,7 @@ def login(request):
         code = create_otp_verification(email, temp_data)
         send_otp_email(email, code, "login_2fa")
         
-        # طباعة الكود في الكونسول للتصحيح
+        
         print(f"\n🔐 SUPER ADMIN LOGIN")
         print(f"   Email: {email}")
         print(f"   OTP Code: {code}")
@@ -391,7 +390,7 @@ def initiate_signup(request):
         role = request.data.get('role')
         clean_data = {k: v for k, v in request.data.items() if k != 'role'}
 
-        # ============ VALIDATION DU RÔLE ============
+       
         if role == 'student':
             serializer = StudentRegistrationSerializer(data=clean_data)
         elif role == 'company':
@@ -404,9 +403,9 @@ def initiate_signup(request):
                 'errors': {'role': ['❌ Invalid role. Please select Student, Company, or Administration.']}
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # ============ VALIDATION DU SERIALIZER ============
+       
         if not serializer.is_valid():
-            # Renvoyer les erreurs du serializer directement
+            
             return Response({
                 'success': False, 
                 'errors': serializer.errors
@@ -416,21 +415,21 @@ def initiate_signup(request):
         email = data['email']
         username = data['username']
 
-        # ============ VÉRIFICATION EMAIL EXISTANT ============
+       
         if User.objects(email=email).first():
             return Response({
                 'success': False, 
                 'errors': {'email': ['❌ This email is already in use. Please use a different email or login.']}
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # ============ VÉRIFICATION USERNAME EXISTANT ============
+      
         if User.objects(username=username).first():
             return Response({
                 'success': False, 
                 'errors': {'username': ['❌ This username is already taken. Please choose another username.']}
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # ============ VALIDATION EMAIL ÉTUDIANT ============
+       
         if role == 'student':
             if 'univ' not in email.lower() or '.dz' not in email.lower():
                 return Response({
@@ -448,7 +447,7 @@ def initiate_signup(request):
                     }
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-        # ============ VALIDATION COMPANY MANAGER ============
+        
         if role == 'company' and data.get('sub_role') == 'company_manager':
             required_fields = ['company_name', 'description', 'location', 'industry']
             missing = [f for f in required_fields if not data.get(f)]
@@ -464,7 +463,7 @@ def initiate_signup(request):
                     errors[field] = [f'❌ {field_names.get(field, field)} is required for Company Manager.']
                 return Response({'success': False, 'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ============ VALIDATION HIRING MANAGER ============
+        
         if role == 'company' and data.get('sub_role') == 'hiring_manager':
             manager_email = data.get('company_manager_email')
             company_name = data.get('company_name_for_hiring')
@@ -485,7 +484,7 @@ def initiate_signup(request):
                     }
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Vérifier si l'email du manager existe
+            
             manager_user = User.objects(
                 email=manager_email,
                 role='company',
@@ -501,7 +500,7 @@ def initiate_signup(request):
                     }
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Récupérer l'entreprise du manager
+           
             manager_company = Company.objects(user=manager_user).first()
             if not manager_company:
                 return Response({
@@ -511,7 +510,7 @@ def initiate_signup(request):
                     }
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Vérifier si le nom de l'entreprise correspond
+           
             if manager_company.company_name.lower() != company_name.lower():
                 return Response({
                     'success': False, 
@@ -524,7 +523,7 @@ def initiate_signup(request):
                     }
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-        # ============ VALIDATION DEPARTMENT HEAD ============
+        
         if role == 'admin' and data.get('sub_role') == 'admin':
             required_fields = ['full_name', 'wilaya', 'university']
             missing = [f for f in required_fields if not data.get(f)]
@@ -540,7 +539,7 @@ def initiate_signup(request):
                 return Response({'success': False, 'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
             
             
-        # ============ VALIDATION CO DEPARTMENT HEAD ============
+       
         if role == 'admin' and data.get('sub_role') == 'co_dept_head':
             dept_head_email = data.get('dept_head_email')
             university_name = data.get('university_for_verification')
@@ -561,7 +560,7 @@ def initiate_signup(request):
                     }
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Vérifier si l'email du Department Head existe
+            
             dept_head_user = User.objects(
                 email=dept_head_email,
                 role='admin',
@@ -577,7 +576,7 @@ def initiate_signup(request):
                     }
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Récupérer le profil admin du Department Head
+            
             dept_head_admin = Admin.objects(user=dept_head_user).first()
             if not dept_head_admin:
                 return Response({
@@ -587,7 +586,7 @@ def initiate_signup(request):
                     }
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Vérifier si le nom de l'université correspond
+            
             if dept_head_admin.university.lower() != university_name.lower():
                 return Response({
                     'success': False, 
@@ -600,12 +599,13 @@ def initiate_signup(request):
                     }
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-        # ============ CRÉATION OTP ============
-        # 🔥 ON ARRIVE ICI SEULEMENT SI TOUTES LES VALIDATIONS SONT RÉUSSIES
+        
+
+        
         temp_data = {'role': role, 'data': data}
         code = create_otp_verification(email, temp_data)
         
-        # Toujours retourner succès (l'email peut échouer mais on garde le code dans la console)
+        
         print(f"\n🔐 ===== NEW SIGNUP =====\n📧 Email: {email}\n📝 Role: {role}\n🔑 OTP Code: {code}\n{'='*30}\n")
         
         try:
@@ -732,7 +732,7 @@ def complete_signup(request):
                     'sub_role': 'company_manager',
                 }, status=201)
 
-            else:  # hiring_manager
+            else:  
                 manager_user = User.objects(
                     email=data['company_manager_email'],
                     role='company',
@@ -813,7 +813,7 @@ def complete_signup(request):
                     'sub_role': 'admin',
                 }, status=201)
 
-            else:  # co_dept_head
+            else:  
                 dept_head_user = User.objects(
                     email=data['dept_head_email'],
                     role='admin',
@@ -917,10 +917,7 @@ def reset_password(request):
 @api_view(['POST'])
 @jwt_authenticated
 def change_password(request):
-    """
-    Change password for the currently authenticated user.
-    Body: { current_password, new_password }
-    """
+   
     current_password = request.data.get('current_password', '').strip()
     new_password     = request.data.get('new_password', '').strip()
 
@@ -1064,22 +1061,22 @@ def apply_to_offer(request, offer_id):
     )
     application.save()
 
-    # ✅ إرسال إيميل للطالب
+    
     send_application_confirmation_student(student.user.email, student.full_name, offer.title)
     
     company = offer.company
     if company and company.user:
-        # ✅ إرسال إيميل للشركة
+        
         send_application_notification_company(company.user.email, offer.title, student.full_name)
         
-        # ✅ إضافة إشعار لـ Company Manager
+        
         Notification.objects.create(
             recipient=company.user,
             message=f"📋 New application received for '{offer.title}' from {student.full_name}.",
             related_id=str(application.id)
         )
         
-        # ✅ إضافة إشعار لجميع Hiring Managers
+        
         hiring_managers = User.objects(
             role='company',
             sub_role='hiring_manager',
@@ -1158,7 +1155,7 @@ def generate_custom_cv(request):
         if not student:
             return Response({'error': 'Student profile not found'}, status=404)
 
-        # ── DATA RETRIEVAL (unchanged) ────────────────────────────────────
+        
         full_name        = data.get('full_name',        student.full_name)
         email            = data.get('email',            request.user.email)
         university       = data.get('university',       student.university)
@@ -1281,7 +1278,7 @@ def generate_custom_cv(request):
             alignment=TA_CENTER,
         )
 
-        # ── HELPERS ──────────────────────────────────────────────────────
+        
         def hr(thickness=0.6, color=C_RULE, space_before=4, space_after=4):
             return HRFlowable(
                 width=PAGE_W,
@@ -1298,10 +1295,10 @@ def generate_custom_cv(request):
                 hr(thickness=1.2, color=C_BLACK, space_before=1, space_after=6),
             ]
 
-        # ── STORY ────────────────────────────────────────────────────────
+        
         story = []
 
-        # ── 1. HEADER ────────────────────────────────────────────────────
+        # ── HEADER ────────────────────────────────────────────────────
         story.append(Paragraph(full_name, S_NAME))
 
         role_label = (
@@ -1318,7 +1315,7 @@ def generate_custom_cv(request):
 
         story.append(hr(thickness=1.8, color=C_BLACK, space_before=8, space_after=2))
 
-        # ── 2. PROFILE / SUMMARY ─────────────────────────────────────────
+        # ── PROFILE / SUMMARY ─────────────────────────────────────────
         story += section_header("Profile")
 
         if objective and objective.strip():
@@ -1332,7 +1329,7 @@ def generate_custom_cv(request):
             )
         story.append(Paragraph(summary_text, S_BODY))
 
-        # ── 3. EDUCATION ─────────────────────────────────────────────────
+        # ──  EDUCATION ─────────────────────────────────────────────────
         story += section_header("Education")
 
         edu_left = [
@@ -1357,7 +1354,7 @@ def generate_custom_cv(request):
         ]))
         story.append(edu_table)
 
-        # ── 4. EXPERIENCE ────────────────────────────────────────────────
+        # ──  EXPERIENCE ────────────────────────────────────────────────
         story += section_header("Experience")
 
         real_experience = [
@@ -1402,7 +1399,7 @@ def generate_custom_cv(request):
                 ]))
                 story.append(exp_table)
 
-                # thin separator between entries (not after the last one)
+                
                 if idx < len(real_experience) - 1:
                     story.append(
                         hr(thickness=0.4, color=C_RULE, space_before=2, space_after=6)
@@ -1416,7 +1413,7 @@ def generate_custom_cv(request):
                 )
             )
 
-        # ── 5. SKILLS ────────────────────────────────────────────────────
+        # ── SKILLS ────────────────────────────────────────────────────
         clean_skills = [s.strip() for s in (skills or []) if str(s).strip()]
 
         if clean_skills:
@@ -1441,7 +1438,7 @@ def generate_custom_cv(request):
                 ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
                 ('GRID',          (0, 0), (-1, -1), 0, C_WHITE),
             ]
-            # Grey background only for non-empty cells
+           
             for r_idx, row in enumerate(skill_rows):
                 for c_idx, cell in enumerate(row):
                     if cell.text:
@@ -1453,7 +1450,7 @@ def generate_custom_cv(request):
             skills_table.setStyle(TableStyle(tag_style))
             story.append(skills_table)
 
-        # ── 6. LANGUAGES ─────────────────────────────────────────────────
+        # ── LANGUAGES ─────────────────────────────────────────────────
         real_languages = [
             lang for lang in (languages or [])
             if isinstance(lang, dict) and lang.get('name', '').strip()
@@ -1482,22 +1479,22 @@ def generate_custom_cv(request):
                     ('RIGHTPADDING',  (0, 0), (-1, -1), 0),
                     ('TOPPADDING',    (0, 0), (-1, -1), 3),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-                    # thin line between rows (skip last row)
+                    
                     ('LINEBELOW', (0, 0), (-1, -2), 0.4, C_RULE),
                 ]))
                 story.append(lang_table)
 
-        # ── 7. FOOTER ────────────────────────────────────────────────────
+        # ──  FOOTER ────────────────────────────────────────────────────
         story.append(Spacer(1, 0.6 * cm))
         story.append(hr(thickness=0.6, color=C_RULE, space_before=0, space_after=4))
         story.append(
             Paragraph(f"{full_name}  —  Curriculum Vitae", S_FOOTER)
         )
 
-        # ── BUILD ────────────────────────────────────────────────────────
+      
         doc.build(story)
 
-        # ── RESPONSE (unchanged) ─────────────────────────────────────────
+        
         pdf_content = buffer.getvalue()
         buffer.close()
 
@@ -1557,7 +1554,7 @@ def student_profile(request):
     })
 
 
-# ==================== COMPANY (core endpoints - yours) ====================
+# ==================== COMPANY  ====================
 
 @api_view(['GET'])
 @jwt_authenticated
@@ -1646,7 +1643,7 @@ def create_offer(request):
     if isinstance(skills, str):
         skills = [s.strip() for s in skills.split(',') if s.strip()]
 
-    # Handle image upload
+    
     image_file = request.FILES.get('image')
 
     offer = InternshipOffer(
@@ -1661,7 +1658,7 @@ def create_offer(request):
         start_date=timezone.make_aware(start_date),
         deadline=timezone.make_aware(deadline),
         is_active=request.data.get('is_active', True),
-        image=image_file,                # ← saved into GridFS
+        image=image_file,               
     )
     offer.save()
 
@@ -1697,7 +1694,7 @@ def create_offer(request):
 
 @api_view(['GET'])
 def serve_offer_image(request, offer_id):
-    """Stream the offer's image from GridFS"""
+   
     try:
         offer = InternshipOffer.objects(id=offer_id).first()
         if not offer or not offer.image:
@@ -1799,7 +1796,7 @@ def update_offer(request, offer_id):
         if duplicate and str(duplicate.id) != offer_id:
             return Response({'success': False, 'message': 'An offer with this title already exists.'}, status=400)
 
-    # Handle image update
+   
     if 'image' in request.FILES:
         offer.image = request.FILES['image']
 
@@ -1846,13 +1843,13 @@ def delete_offer(request, offer_id):
 
     title = offer.title
 
-    # Delete image from GridFS if present
+    
     if offer.image:
         try:
-            # The image field is a FileField backed by GridFS; deleting the file directly cleans up
-            offer.image.delete()  # MongoEngine FileField has a delete() method
+            
+            offer.image.delete() 
         except Exception as e:
-            # Log and continue
+            
             print(f"Warning: could not delete image for offer {offer_id}: {e}")
 
     offer.delete()
@@ -1895,9 +1892,7 @@ def company_applications(request):
     return Response({'success': True, 'applications': serializer.data})
 
 
-# api/views.py - تعديل دالة respond_to_application
 
-# api/views.py
 
 @api_view(['POST'])
 @jwt_authenticated
@@ -1930,7 +1925,7 @@ def respond_to_application(request, application_id):
         if new_status not in ['accepted', 'rejected']:
             return Response({'error': 'Status must be "accepted" or "rejected"'}, status=400)
 
-        # ========== حالة الرفض ==========
+       
         if new_status == 'rejected':
             reason = request.data.get('rejection_reason', '').strip()
             if not reason:
@@ -1951,14 +1946,14 @@ def respond_to_application(request, application_id):
                 }
             )
             
-            # إشعار للطالب
+            
             Notification.objects.create(
                 recipient=app.student.user,
                 message=f"❌ Votre candidature pour '{app.offer.title}' a été refusée par {company.company_name}.",
                 related_id=str(app.id)
             )
             
-            # ✅ إشعار لـ Company Manager
+          
             if company.user:
                 Notification.objects.create(
                     recipient=company.user,
@@ -1966,7 +1961,7 @@ def respond_to_application(request, application_id):
                     related_id=str(app.id)
                 )
             
-            # ✅ إشعار لجميع Hiring Managers (ما عدا من قام بالإجراء)
+           
             hiring_managers = User.objects(
                 role='company',
                 sub_role='hiring_manager',
@@ -1984,8 +1979,8 @@ def respond_to_application(request, application_id):
             app.save()
             return Response({'success': True, 'message': f'Application rejected successfully.'})
 
-        # ========== حالة القبول ==========
-        else:  # new_status == 'accepted'
+       
+        else:  
             app.company_notes = request.data.get('notes', '')
             app.status = 'accepted_by_company'
             app.company_response_date = datetime.now()
@@ -2003,7 +1998,7 @@ def respond_to_application(request, application_id):
                 }
             )
 
-            # ========== 1. إشعار للطالب ==========
+            
             Notification.objects.create(
                 recipient=app.student.user,
                 message=f"✅ Félicitations ! Votre candidature pour '{app.offer.title}' a été acceptée par {company.company_name}. En attente de validation par votre université.",
@@ -2011,7 +2006,7 @@ def respond_to_application(request, application_id):
             )
             print(f"✅ Notification envoyée à l'étudiant {app.student.user.email}")
             
-            # ========== 2. إشعار لـ Company Manager ==========
+           
             if company.user and str(company.user.id) != str(request.user.id):
                 Notification.objects.create(
                     recipient=company.user,
@@ -2020,7 +2015,7 @@ def respond_to_application(request, application_id):
                 )
                 print(f"✅ Notification envoyée au Company Manager {company.user.email}")
             
-            # ========== 3. إشعار لجميع Hiring Managers (ما عدا من قام بالإجراء) ==========
+            
             hiring_managers = User.objects(
                 role='company',
                 sub_role='hiring_manager',
@@ -2036,7 +2031,7 @@ def respond_to_application(request, application_id):
                     )
                     print(f"✅ Notification envoyée au Hiring Manager {hm.email}")
             
-            # ========== 4. إشعار لـ Department Head ==========
+            
             student_university = app.student.university
             dept_heads = Admin.objects(university=student_university)
             
@@ -2049,7 +2044,7 @@ def respond_to_application(request, application_id):
                     )
                     print(f"✅ Notification envoyée au Department Head {admin.user.email}")
             
-            # ========== 5. إشعار لـ Co Department Head ==========
+            
             co_dept_users = User.objects(
                 role='admin',
                 sub_role='co_dept_head',
@@ -2071,7 +2066,7 @@ def respond_to_application(request, application_id):
             if not found_co_dept:
                 print(f"⚠️ Aucun Co Department Head trouvé pour l'université {student_university}")
             
-            # ========== 6. Envoi des emails ==========
+            
             send_company_response_email(app.student.user.email, app.offer.title, new_status)
             
             dept_head_email = dept_heads.first().user.email if dept_heads else None
@@ -2093,12 +2088,12 @@ def respond_to_application(request, application_id):
         print(f"❌ Erreur: {str(e)}")
         traceback.print_exc()
         return Response({'error': str(e)}, status=500)
-    # Dans views.py - Ajouter cet endpoint
+    
 @api_view(['GET'])
 @jwt_authenticated
 @role_required(allowed_roles=['admin'], allowed_sub_roles=['co_dept_head'])
 def get_co_dept_pending_conventions(request):
-    """Récupère les conventions en attente de validation pour le Co Department Head"""
+   
     try:
         co_dept = Admin.objects(user=request.user).first()
         if not co_dept:
@@ -2112,7 +2107,7 @@ def get_co_dept_pending_conventions(request):
             status='accepted_by_company'
         ).count()
         
-        # Récupérer les détails des conventions en attente
+        
         pending_applications = Application.objects(
             student__in=student_ids,
             status='accepted_by_company'
@@ -2140,19 +2135,19 @@ def get_co_dept_pending_conventions(request):
 @jwt_authenticated
 @role_required(allowed_roles=['admin'])
 def get_pending_convention_notifications(request):
-    """Récupère les notifications de conventions en attente de validation"""
+    
     try:
         notifications = Notification.objects(
             recipient=request.user,
-            related_id__ne=None,  # Qui ont un related_id
+            related_id__ne=None,  
             is_read=False
         ).order_by('-created_at')
         
-        # Filtrer celles qui sont des conventions en attente
+        
         pending = []
         for notif in notifications:
             if 'attente de validation' in notif.message.lower() or 'nouvelle convention' in notif.message.lower():
-                # Récupérer la candidature associée
+               
                 application = Application.objects(id=notif.related_id).first()
                 if application and application.status == 'accepted_by_company':
                     pending.append({
@@ -2174,7 +2169,7 @@ def get_pending_convention_notifications(request):
 @jwt_authenticated
 @role_required(allowed_roles=['admin'], allowed_sub_roles=['admin', 'co_dept_head'])
 def get_pending_conventions_count(request):
-    """Récupère le nombre de conventions en attente de validation (pour Dept Head et Co Dept Head)"""
+   
     try:
         admin_profile = Admin.objects(user=request.user).first()
         if not admin_profile:
@@ -2197,7 +2192,7 @@ def get_pending_conventions_count(request):
 @jwt_authenticated
 @role_required(allowed_roles=['admin'], allowed_sub_roles=['co_dept_head'])
 def get_co_dept_pending_conventions_count(request):
-    """Récupère le nombre de conventions en attente de validation pour le Co Department Head"""
+   
     try:
         co_dept = Admin.objects(user=request.user).first()
         if not co_dept:
@@ -2544,7 +2539,7 @@ def get_skills_tags(request):
 @jwt_authenticated
 @role_required(allowed_roles=['student'])
 def download_application_cv_student(request, application_id):
-    """Download CV for a specific application (student view)"""
+    
     try:
         from gridfs import GridFS
         from mongoengine.connection import get_db
@@ -2559,18 +2554,18 @@ def download_application_cv_student(request, application_id):
         if not application:
             return Response({'error': 'Application not found'}, status=404)
         
-        # التحقق من أن الطلب يخص هذا الطالب
+        
         if str(application.student.id) != str(student.id):
             return Response({'error': 'Unauthorized'}, status=403)
         
         if not application.cv_file:
             return Response({'error': 'No CV file attached'}, status=404)
         
-        # قراءة الملف من GridFS
+ 
         db = get_db()
         fs = GridFS(db)
         
-        # الحصول على GridFS ID
+     
         if hasattr(application.cv_file, 'grid_id'):
             file_id = application.cv_file.grid_id
         else:
@@ -2578,7 +2573,7 @@ def download_application_cv_student(request, application_id):
         
         file_obj = fs.get(file_id)
         
-        # ✅ إرسال الملف مع إعدادات لعرضه بشكل صحيح
+        
         response = HttpResponse(file_obj.read(), content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="cv_{application_id}.pdf"'
         response['X-Content-Type-Options'] = 'nosniff'
@@ -2603,7 +2598,7 @@ def list_companies(request):
     try:
         companies_with_data = []
         
-        # جلب جميع CompanyProfile
+        
         all_profiles = CompanyProfile.objects()
         
         print(f"📊 Number of CompanyProfile found: {all_profiles.count()}")
@@ -2611,24 +2606,24 @@ def list_companies(request):
         for profile in all_profiles:
             print(f"🔍 Processing profile: company_id={profile.company_id}")
             
-            # البحث عن الشركة
+            
             company = Company.objects(id=profile.company_id).first()
             
             if company:
                 print(f"✅ Found company: {company.company_name}")
                 
-                # جلب العروض
+                
                 offers = InternshipOffer.objects(company=company)
                 active_offers = offers.filter(is_active=True).count()
                 total_offers = offers.count()
                 
-                # حساب عدد التطبيقات
+               
                 students_applied = 0
                 for offer in offers:
                     apps = Application.objects(offer=offer)
                     students_applied += apps.count()
                 
-                # بناء البيانات
+                
                 company_data = {
                     'id': str(company.id),
                     'company_name': profile.name or company.company_name,
@@ -2641,7 +2636,7 @@ def list_companies(request):
                     'email': profile.contact_email or (company.user.email if company.user else ''),
                     'phone': profile.phone or getattr(company, 'phone', ''),
                     'active_offers': active_offers,
-                    'total_offers': total_offers,  # إضافة total_offers
+                    'total_offers': total_offers,  
                     'students_applied': students_applied,
                     'has_profile': True
                 }
@@ -2651,7 +2646,7 @@ def list_companies(request):
             else:
                 print(f"⚠️ No company found for profile: {profile.company_id}")
         
-        # إذا لم يتم العثور على شركات، جلب الشركات العادية كـ fallback
+         
         if len(companies_with_data) == 0:
             print("📊 No CompanyProfile found, fetching regular companies...")
             
@@ -2684,12 +2679,12 @@ def list_companies(request):
                         'has_profile': False
                     })
         
-        # 🔥 الترتيب حسب عدد العروض النشطة (الأعلى أولاً)
+        
         companies_with_data.sort(key=lambda x: x['active_offers'], reverse=True)
         
         print(f"📊 Total companies to display: {len(companies_with_data)}")
         
-        # عرض جميع الشركات (الترتيب سيكون حسب العروض)
+        
         return Response(companies_with_data)
         
     except Exception as e:
@@ -3588,7 +3583,7 @@ def check_user_exists(request):
         return Response({'exists': False, 'error': str(e)})
 
 
-# ==================== CONVENTION / PDF GENERATION ====================
+# ==================== CONVENTION  ====================
 
 def generate_internship_agreement_pdf(application, admin_user):
     from reportlab.lib.pagesizes import A4
@@ -3751,7 +3746,7 @@ def generate_internship_agreement_pdf(application, admin_user):
     birth_date = getattr(student, 'birth_date', None)
     birth_str = birth_date.strftime('%d/%m/%Y') if birth_date else '___/___/______'
 
-    # CORRECTION ICI : extraire nom et prénom avant la f-string
+   
     name_parts = student_name.split() if student_name else []
     last_name = name_parts[-1] if name_parts else '____________________'
     first_name = ' '.join(name_parts[:-1]) if len(name_parts) > 1 else '____________________'
@@ -4090,7 +4085,7 @@ def generate_convention_pdf_template(application):
     story.append(Paragraph(f"Fait à Alger, le {today}", normal_style))
     story.append(Spacer(1, 0.5*cm))
     
-    # Article 1
+   
     story.append(Paragraph("Article 1 : L'ÉTABLISSEMENT DE FORMATION", heading_style))
     story.append(Paragraph(f"""
     <b>Nom :</b> {application.student.university}<br/>
@@ -4100,7 +4095,7 @@ def generate_convention_pdf_template(application):
     """, normal_style))
     story.append(Spacer(1, 0.3*cm))
     
-    # Article 2
+    
     story.append(Paragraph("Article 2 : L'ORGANISME D'ACCUEIL", heading_style))
     company = application.offer.company
     company_phone = getattr(company, 'phone', None) or getattr(company, 'telephone', None) or 'Non renseigné'
@@ -4119,7 +4114,7 @@ def generate_convention_pdf_template(application):
     """, normal_style))
     story.append(Spacer(1, 0.3*cm))
     
-    # Article 3
+    
     story.append(Paragraph("Article 3 : LE STAGIAIRE", heading_style))
     full_name_parts = application.student.full_name.split()
     first_name = full_name_parts[0] if full_name_parts else ''
@@ -4136,7 +4131,7 @@ def generate_convention_pdf_template(application):
     """, normal_style))
     story.append(Spacer(1, 0.3*cm))
     
-    # Article 4
+    
     story.append(Paragraph("Article 4 : SUJET DE STAGE", heading_style))
     start_date = application.offer.start_date.strftime('%d/%m/%Y') if application.offer.start_date else "À déterminer"
     
@@ -4165,7 +4160,7 @@ def generate_convention_pdf_template(application):
     """, normal_style))
     story.append(Spacer(1, 0.3*cm))
     
-    # Article 5
+    
     story.append(Paragraph("Article 5 : ENCADREMENT DU STAGIAIRE", heading_style))
     story.append(Paragraph("""
     <b>Par l'établissement de formation :</b><br/>
@@ -4181,7 +4176,7 @@ def generate_convention_pdf_template(application):
     """, normal_style))
     story.append(Spacer(1, 0.5*cm))
     
-    # Article 6 - Signatures
+    
     story.append(Paragraph("Article 6 : Signatures", heading_style))
     story.append(Spacer(1, 0.5*cm))
     
@@ -5140,7 +5135,7 @@ def dept_head_validated_validations(request):
 @jwt_authenticated
 @role_required(allowed_roles=['admin'], allowed_sub_roles=['co_dept_head'])
 def co_dept_validated_validations(request):
-    """Récupère les conventions déjà validées par le Co Department Head"""
+   
     try:
         co_dept = Admin.objects(user=request.user).first()
         if not co_dept:
@@ -5321,12 +5316,12 @@ def get_university_users_status(request):
         return Response({'success': False, 'error': str(e)}, status=500)
 
 
-# ==================== MISC ====================
+
 
 @api_view(['GET'])
 @jwt_authenticated
 def get_current_user(request):
-    """Return the current authenticated user's personal info, including bio, phone, and avatar"""
+   
     try:
         user = request.user
         user_data = {
@@ -5341,13 +5336,13 @@ def get_current_user(request):
             'created_at': user.created_at.strftime('%d/%m/%Y') if user.created_at else None,
         }
 
-        # Profile picture URL (user avatar)
+        
         profile_picture_url = None
         if user.profile_picture:
             profile_picture_url = f"/api/my-profile/user/avatar/{user.profile_picture}/"
         user_data['profile_picture_url'] = profile_picture_url
 
-        # Permissions
+        
         permissions = get_user_permissions(user)
         if permissions:
             user_data['permissions'] = {
@@ -5357,7 +5352,7 @@ def get_current_user(request):
                 'can_manage_university_profile': permissions.can_manage_university_profile,
             }
 
-        # Role-specific extra
+        
         if user.role == 'student':
             student = Student.objects(user=user).first()
             if student:
@@ -5379,7 +5374,7 @@ def get_current_user(request):
         return Response({'success': False, 'error': str(e)}, status=500)
 
 
-# ==================== YOUR UNIVERSITY / COMPANY PROFILE ENDPOINTS ====================
+# ====================  UNIVERSITY / COMPANY PROFILE  ====================
 
 @api_view(['GET', 'POST'])
 @jwt_authenticated
@@ -5482,7 +5477,7 @@ def university_profile(request):
         return Response({'success': False, 'error': str(e)}, status=500)
 
 
-# api/views.py - تحديث دالة get_company_profile
+
 
 @api_view(['GET', 'POST'])
 @jwt_authenticated
@@ -5496,11 +5491,11 @@ def get_company_profile(request):
 
         company_id = str(company.id)
 
-        # ✅ التأكد من وجود CompanyProfile
+        
         try:
             profile = CompanyProfile.objects.get(company_id=company_id)
         except CompanyProfile.DoesNotExist:
-            # إنشاء CompanyProfile جديد إذا لم يكن موجوداً
+            
             profile = CompanyProfile(
                 company_id=company_id,
                 name=company.company_name or '',
@@ -5519,7 +5514,7 @@ def get_company_profile(request):
             print(f"✅ Created new CompanyProfile for company: {company.company_name}")
 
         if request.method == 'GET':
-            # 🔥 التحقق من صلاحية التعديل
+           
             can_edit = False
             if user.sub_role == 'company_manager':
                 can_edit = True
@@ -5547,10 +5542,9 @@ def get_company_profile(request):
                 }
             })
 
-        # POST method - تحديث الملف الشخصي
-        # 🔥 التحقق من صلاحية التعديل
+        
         if user.sub_role == 'company_manager':
-            pass  # Company Manager can edit
+            pass  
         elif user.sub_role == 'hiring_manager':
             perms = get_user_permissions(user)
             if not (perms and perms.can_manage_company_profile):
@@ -5563,7 +5557,7 @@ def get_company_profile(request):
 
         data = request.data
 
-        # تحديث الحقول
+        
         if 'name' in data:
             profile.name = data['name']
         if 'description' in data:
@@ -5607,13 +5601,13 @@ def update_company_profile(request):
     return get_company_profile(request)
 
 
-# ==================== FRIEND'S MY PROFILE ENDPOINTS (RENAMED) ====================
+# ====================  MY PROFILE  ====================
 
 @api_view(['GET'])
 @jwt_authenticated
 @role_required(allowed_roles=['company'])
 def get_my_company_info(request):
-    """Personal company info for the logged-in user (friend's original get_company_profile)"""
+   
     try:
         company = _get_user_company(request.user)
         if not company:
@@ -5664,7 +5658,7 @@ def get_my_company_info(request):
 @jwt_authenticated
 @role_required(allowed_roles=['company'])
 def update_my_company_info(request):
-    """Update personal company info (friend's original update_company_profile)"""
+   
     try:
         company = _get_user_company(request.user)
         if not company:
@@ -5700,7 +5694,7 @@ def update_my_company_info(request):
 @role_required(allowed_roles=['company'])
 @parser_classes([MultiPartParser, FormParser])
 def upload_my_company_logo(request):
-    """Upload company logo (friend's original upload_company_logo)"""
+   
     try:
         from gridfs import GridFS
         from mongoengine.connection import get_db
@@ -5760,7 +5754,7 @@ def upload_my_company_logo(request):
 
 @api_view(['GET'])
 def serve_my_company_logo(request, file_id):
-    """Serves company logo from GridFS"""
+    
     try:
         from gridfs import GridFS
         from mongoengine.connection import get_db
@@ -5782,7 +5776,7 @@ def serve_my_company_logo(request, file_id):
 @api_view(['GET'])
 @jwt_authenticated
 def get_company_manager_info(request):
-    """Return company manager for a given company name (friend's original get_company_manager)"""
+    
     company_name = request.query_params.get('company', '')
     if not company_name:
         return Response({'success': False, 'error': 'Company name required'}, status=400)
@@ -5815,12 +5809,12 @@ def get_company_manager_info(request):
         return Response({'success': False, 'error': str(e)}, status=500)
 
 
-# ==================== USER PERSONAL PROFILE ENDPOINTS (NEW) ====================
+# ==================== USER PERSONAL PROFILE  ====================
 
 @api_view(['PUT'])
 @jwt_authenticated
 def update_my_user_info(request):
-    """Update personal user info (bio, phone)"""
+    
     try:
         user = request.user
         data = request.data
@@ -5842,7 +5836,7 @@ def update_my_user_info(request):
 @role_required(allowed_roles=['company', 'student', 'admin'])
 @parser_classes([MultiPartParser, FormParser])
 def upload_user_avatar(request):
-    """Upload user profile picture"""
+    
     try:
         from gridfs import GridFS
         from mongoengine.connection import get_db
@@ -5901,7 +5895,7 @@ def upload_user_avatar(request):
 
 @api_view(['GET'])
 def serve_user_avatar(request, file_id):
-    """Serve user avatar from GridFS"""
+   
     try:
         from gridfs import GridFS
         from mongoengine.connection import get_db
@@ -5918,13 +5912,13 @@ def serve_user_avatar(request, file_id):
         return HttpResponse(status=404)
 
 
-# ==================== FRIEND'S STUDENT PROFILE / CV / 2FA / CHAT ====================
+# ==================== STUDENT PROFILE / CV / 2FA / CHAT ====================
 
 @api_view(['GET'])
 @jwt_authenticated
 @role_required(allowed_roles=['student'])
 def get_student_public_profile(request, student_id=None):
-    """Récupère le profil public d'un étudiant (visible par tous)"""
+    
     try:
         if student_id:
             student = Student.objects(id=student_id).first()
@@ -6011,7 +6005,7 @@ def get_student_public_profile(request, student_id=None):
 @jwt_authenticated
 @role_required(allowed_roles=['student'])
 def get_my_profile(request):
-    """Récupère le profil complet de l'étudiant connecté"""
+   
     try:
         student = Student.objects(user=request.user).first()
         if not student:
@@ -6074,7 +6068,7 @@ def get_my_profile(request):
 @jwt_authenticated
 @role_required(allowed_roles=['student'])
 def update_my_profile(request):
-    """Met à jour le profil de l'étudiant connecté"""
+   
     try:
         student = Student.objects(user=request.user).first()
         if not student:
@@ -6168,7 +6162,7 @@ def update_my_profile(request):
 @role_required(allowed_roles=['student'])
 @parser_classes([MultiPartParser, FormParser])
 def upload_profile_picture(request):
-    """Upload la photo de profil de l'étudiant"""
+    
     try:
         from gridfs import GridFS
         from mongoengine.connection import get_db
@@ -6234,7 +6228,7 @@ def upload_profile_picture(request):
 @api_view(['GET'])
 @jwt_authenticated
 def get_profile_by_username(request, username):
-    """Récupère le profil public d'un étudiant par son username"""
+   
     try:
         user_obj = User.objects(username=username, role='student').first()
         if not user_obj:
@@ -6289,7 +6283,7 @@ def get_profile_by_username(request, username):
 
 @api_view(['GET'])
 def serve_profile_picture(request, file_id):
-    """Sert l'image de profil depuis GridFS"""
+    
     try:
         from gridfs import GridFS
         from mongoengine.connection import get_db
@@ -6314,7 +6308,7 @@ def serve_profile_picture(request, file_id):
 @jwt_authenticated
 @role_required(allowed_roles=['student'])
 def get_my_cv(request):
-    """Récupère le CV actuel et l'historique des CVs de l'étudiant"""
+    
     try:
         student = Student.objects(user=request.user).first()
         if not student:
@@ -6368,7 +6362,7 @@ def get_my_cv(request):
 @role_required(allowed_roles=['student'])
 @parser_classes([MultiPartParser, FormParser])
 def upload_cv(request):
-    """Upload un nouveau CV pour l'étudiant"""
+    
     try:
         from gridfs import GridFS
         from mongoengine.connection import get_db
@@ -6470,7 +6464,7 @@ def upload_cv(request):
 @jwt_authenticated
 @role_required(allowed_roles=['student'])
 def delete_cv(request):
-    """Supprime le CV actuel de l'étudiant"""
+    
     try:
         from gridfs import GridFS
         from mongoengine.connection import get_db
@@ -6504,7 +6498,7 @@ def delete_cv(request):
 @api_view(['POST'])
 @jwt_authenticated
 def enable_2fa(request):
-    """Enable two-factor authentication"""
+    
     try:
         user = request.user
         user.two_fa_enabled = True
@@ -6517,7 +6511,7 @@ def enable_2fa(request):
 @api_view(['POST'])
 @jwt_authenticated
 def disable_2fa(request):
-    """Disable two-factor authentication"""
+   
     try:
         user = request.user
         user.two_fa_enabled = False
@@ -6530,7 +6524,7 @@ def disable_2fa(request):
 @api_view(['POST'])
 @jwt_authenticated
 def add_recovery_email(request):
-    """Add recovery email with OTP verification"""
+    
     try:
         recovery_email = request.data.get('recovery_email')
         if not recovery_email:
@@ -6574,7 +6568,7 @@ def add_recovery_email(request):
 @api_view(['DELETE'])
 @jwt_authenticated
 def remove_recovery_email(request):
-    """Remove recovery email and send confirmation"""
+    
     try:
         user = request.user
 
@@ -6602,7 +6596,7 @@ def remove_recovery_email(request):
 @api_view(['GET'])
 @jwt_authenticated
 def security_status(request):
-    """Get security status"""
+   
     try:
         user = request.user
         return Response({
@@ -6618,7 +6612,7 @@ def security_status(request):
 @jwt_authenticated
 @role_required(allowed_roles=['student'])
 def download_current_cv(request):
-    """Télécharge le CV actuel de l'étudiant"""
+    
     try:
         from gridfs import GridFS
         from mongoengine.connection import get_db
@@ -6655,7 +6649,7 @@ def download_current_cv(request):
 @jwt_authenticated
 @role_required(allowed_roles=['student'])
 def download_cv_history(request, cv_id):
-    """Télécharge un CV de l'historique"""
+    
     try:
         from gridfs import GridFS
         from mongoengine.connection import get_db
@@ -6689,7 +6683,7 @@ def download_cv_history(request, cv_id):
 @api_view(['POST'])
 @jwt_authenticated
 def verify_recovery_email(request):
-    """Verify recovery email with OTP and save it"""
+   
     try:
         email = request.data.get('email')
         code = request.data.get('code')
@@ -6736,10 +6730,7 @@ def verify_recovery_email(request):
 
 @api_view(['POST'])
 def forgot_password_with_recovery(request):
-    """
-    Forgot password with recovery email support.
-    If user has recovery email, send OTP there instead of primary email.
-    """
+   
     email = request.data.get('email')
     if not email:
         return Response({'success': False, 'message': 'Email required'}, status=400)
@@ -6798,9 +6789,7 @@ def forgot_password_with_recovery(request):
 @api_view(['POST'])
 @jwt_authenticated
 def initiate_password_change(request):
-    """
-    Étape 1: Envoie un OTP pour changer le mot de passe
-    """
+    
     try:
         user = request.user
 
@@ -6838,10 +6827,7 @@ def initiate_password_change(request):
 @api_view(['POST'])
 @jwt_authenticated
 def verify_and_change_password(request):
-    """
-    Étape 2: Vérifie l'OTP et change le mot de passe
-    Body: { code, new_password, confirm_password }
-    """
+    
     try:
         code = request.data.get('code', '').strip()
         new_password = request.data.get('new_password', '').strip()
@@ -6905,12 +6891,12 @@ def verify_and_change_password(request):
         return Response({'success': False, 'error': str(e)}, status=500)
 
 
-# ==================== CHAT ENDPOINTS (friend's) ====================
+# ==================== CHAT  ====================
 
 @api_view(['GET'])
 @jwt_authenticated
 def get_student_chat_groups(request):
-    """Récupère les groupes de chat pour un étudiant (ses internships)"""
+   
     try:
         student = Student.objects(user=request.user).first()
         if not student:
@@ -6944,7 +6930,7 @@ def get_student_chat_groups(request):
 @api_view(['GET'])
 @jwt_authenticated
 def get_company_chat_groups(request):
-    """Récupère les groupes de chat pour une entreprise"""
+   
     try:
         company = _get_user_company(request.user)
         if not company:
@@ -6976,7 +6962,7 @@ def get_company_chat_groups(request):
 @api_view(['GET'])
 @jwt_authenticated
 def get_university_chat_groups(request, university):
-    """Récupère les groupes de chat pour une université"""
+    
     try:
         groups = []
 
@@ -6999,7 +6985,7 @@ def get_university_chat_groups(request, university):
 @api_view(['POST'])
 @jwt_authenticated
 def create_chat_group(request):
-    """Crée un nouveau groupe de chat"""
+    
     try:
         name = request.data.get('name')
         if not name:
@@ -7022,7 +7008,7 @@ def create_chat_group(request):
 @api_view(['GET'])
 @jwt_authenticated
 def get_chat_users_students(request):
-    """Récupère les utilisateurs pour chat privé (étudiants du même stage)"""
+    
     try:
         student = Student.objects(user=request.user).first()
         if not student:
@@ -7066,7 +7052,7 @@ def get_chat_users_students(request):
 @api_view(['GET'])
 @jwt_authenticated
 def get_chat_users_company(request):
-    """Récupère les utilisateurs pour chat privé (hiring managers de la même entreprise)"""
+    
     try:
         company = _get_user_company(request.user)
         if not company:
@@ -7099,7 +7085,7 @@ def get_chat_users_company(request):
 @api_view(['GET'])
 @jwt_authenticated
 def get_chat_users_university(request, university):
-    """Récupère les utilisateurs pour chat privé (membres de la même université)"""
+    
     try:
         admins = Admin.objects(university=university)
 
@@ -7124,7 +7110,7 @@ def get_chat_users_university(request, university):
 @jwt_authenticated
 @role_required(allowed_roles=['student'])
 def get_accepted_internships(request):
-    """Récupère les stages acceptés par l'étudiant pour les groupes de chat"""
+   
     try:
         student = Student.objects(user=request.user).first()
         if not student:
@@ -7156,7 +7142,7 @@ def get_accepted_internships(request):
 @jwt_authenticated
 @role_required(allowed_roles=['student'])
 def get_student_contacts(request):
-    """Récupère les contacts pour chat privé (co dept heads, company reps)"""
+    
     try:
         student = Student.objects(user=request.user).first()
         if not student:
@@ -7206,7 +7192,7 @@ def get_student_contacts(request):
 @api_view(['POST'])
 @jwt_authenticated
 def enable_email_2fa(request):
-    """تفعيل 2FA عبر البريد الإلكتروني"""
+    
     try:
         user = request.user
         user.two_fa_enabled = True
@@ -7219,7 +7205,7 @@ def enable_email_2fa(request):
 @api_view(['POST'])
 @jwt_authenticated
 def disable_email_2fa(request):
-    """تعطيل 2FA عبر البريد الإلكتروني"""
+    
     try:
         user = request.user
         user.two_fa_enabled = False
@@ -7231,7 +7217,7 @@ def disable_email_2fa(request):
 
 @api_view(['POST'])
 def send_login_otp(request):
-    """إرسال OTP إلى البريد الإلكتروني عند تسجيل الدخول"""
+    
     try:
         email = request.data.get('email')
         if not email:
@@ -7266,7 +7252,7 @@ def send_login_otp(request):
 
 @api_view(['POST'])
 def verify_login_otp(request):
-    """التحقق من OTP وإكمال تسجيل الدخول"""
+    
     try:
         email = request.data.get('email')
         code = request.data.get('code')
@@ -7294,10 +7280,10 @@ def verify_login_otp(request):
             'admin': '/admin/dashboard',
         }
 
-        # Build user_data with username and correct company_name
+        
         user_data = {
             'id': str(user.id),
-            'username': user.username,          # add username
+            'username': user.username,          
             'email': user.email,
             'role': user.role,
             'sub_role': user.sub_role,
@@ -7309,7 +7295,7 @@ def verify_login_otp(request):
                 user_data['full_name'] = student.full_name
                 user_data['university'] = student.university
         elif user.role == 'company':
-            # Use the helper to get the correct company (works for both company_manager and hiring_manager)
+           
             company = _get_user_company(user)
             if company:
                 user_data['company_name'] = company.company_name
@@ -7333,7 +7319,7 @@ def verify_login_otp(request):
 
 @api_view(['POST'])
 def send_2fa_code(request):
-    """إرسال كود 2FA إلى البريد الإلكتروني"""
+    
     try:
         email = request.data.get('email')
         if not email:
@@ -7367,7 +7353,7 @@ def send_2fa_code(request):
 
 @api_view(['POST'])
 def verify_2fa_code(request):
-    """التحقق من كود 2FA وإكمال تسجيل الدخول"""
+    
     try:
         email = request.data.get('email')
         code = request.data.get('code')
@@ -7395,10 +7381,10 @@ def verify_2fa_code(request):
             'admin': '/admin/dashboard',
         }
 
-        # Build user_data with username and correct company_name
+      
         user_data = {
             'id': str(user.id),
-            'username': user.username,          # add username
+            'username': user.username,         
             'email': user.email,
             'role': user.role,
             'sub_role': user.sub_role,
@@ -7410,7 +7396,7 @@ def verify_2fa_code(request):
                 user_data['full_name'] = student.full_name
                 user_data['university'] = student.university
         elif user.role == 'company':
-            # Use the helper to get the correct company (works for both company_manager and hiring_manager)
+           
             company = _get_user_company(user)
             if company:
                 user_data['company_name'] = company.company_name
@@ -7436,7 +7422,7 @@ def verify_2fa_code(request):
 @api_view(['GET'])
 @jwt_authenticated
 def get_2fa_status(request):
-    """get 2fa"""
+    
     try:
         user = request.user
         return Response({
@@ -7453,10 +7439,7 @@ def get_2fa_status(request):
 @jwt_authenticated
 @role_required(allowed_roles=['company'])
 def top_company_offers(request):
-    """
-    Return the top 5 offers of the company, sorted by application count.
-    Each offer includes 'applicants_count' and 'image_url'.
-    """
+    
     company = _get_user_company(request.user)
     if not company:
         return Response({'success': False, 'message': 'Company not found.'}, status=404)
@@ -7498,9 +7481,7 @@ def top_company_offers(request):
 @jwt_authenticated
 @role_required(allowed_roles=['student'])
 def get_offer_applicants_count(request, offer_id):
-    """
-    Get the number of applicants for a specific internship offer
-    """
+   
     try:
         from .models import InternshipOffer, Application
         
@@ -7512,7 +7493,7 @@ def get_offer_applicants_count(request, offer_id):
         if not offer:
             return Response({'success': False, 'error': 'Offer not found'}, status=404)
         
-        # حساب عدد المتقدمين لهذا العرض
+        
         applicants_count = Application.objects(offer=offer).count()
         
         return Response({
@@ -7524,23 +7505,23 @@ def get_offer_applicants_count(request, offer_id):
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
 
-# Dans views.py, ajouter :
+
 @api_view(['GET'])
 @jwt_authenticated
 def get_private_conversations(request):
-    """Get all users the current user has had private conversations with"""
+   
     try:
         from .models import PrivateChatMessage
         from mongoengine.queryset.visitor import Q
         
         user = request.user
         
-        # Récupérer tous les IDs uniques des utilisateurs avec qui l'utilisateur a discuté
+        
         user_ids = set()
         
-        # Utiliser Q objects pour une meilleure requête
+        
         try:
-            # Récupérer tous les messages uniques
+            
             all_messages = PrivateChatMessage.objects(
                 Q(sender_id=str(user.id)) | Q(receiver_id=str(user.id))
             ).only('sender_id', 'receiver_id')
@@ -7561,10 +7542,10 @@ def get_private_conversations(request):
                 if not other_user:
                     continue
                 
-                # Récupérer le dernier message avec une requête plus simple
+               
                 last_msg = None
                 try:
-                    # Requête plus simple et robuste
+                    
                     msgs = PrivateChatMessage.objects(
                         sender_id=str(user.id),
                         receiver_id=uid
@@ -7581,7 +7562,7 @@ def get_private_conversations(request):
                 except Exception as e:
                     print(f"Erreur récupération dernier message: {e}")
                 
-                # Compter les messages non lus
+                
                 unread_count = 0
                 try:
                     unread_count = PrivateChatMessage.objects(
@@ -7592,7 +7573,7 @@ def get_private_conversations(request):
                 except Exception as e:
                     print(f"Erreur comptage messages non lus: {e}")
                 
-                # Obtenir le nom complet
+                
                 full_name = other_user.username
                 if other_user.role == 'admin':
                     admin = Admin.objects(user=other_user).first()
@@ -7620,7 +7601,7 @@ def get_private_conversations(request):
                 print(f"Erreur traitement conversation pour {uid}: {e}")
                 continue
         
-        # Trier par date du dernier message
+        
         conversations.sort(key=lambda x: x['last_message_time'] or '', reverse=True)
         
         return Response({'success': True, 'conversations': conversations})
@@ -7633,7 +7614,7 @@ def get_private_conversations(request):
 @api_view(['GET'])
 @jwt_authenticated
 def get_private_chat_history(request, user_id):
-    """Get chat history between current user and another user"""
+   
     try:
         from .models import PrivateChatMessage
         
@@ -7643,7 +7624,7 @@ def get_private_chat_history(request, user_id):
         if not other_user:
             return Response({'success': False, 'error': 'User not found'}, status=404)
         
-        # Récupérer tous les messages entre les deux utilisateurs
+        
         messages = []
         try:
             messages = PrivateChatMessage.objects(
@@ -7657,7 +7638,7 @@ def get_private_chat_history(request, user_id):
         except Exception as e:
             print(f"Erreur récupération messages: {e}")
         
-        # Marquer les messages non lus comme lus
+        
         try:
             PrivateChatMessage.objects(
                 sender_id=user_id,
@@ -7667,7 +7648,7 @@ def get_private_chat_history(request, user_id):
         except Exception as e:
             print(f"Erreur mise à jour messages lus: {e}")
         
-        # Obtenir le nom complet
+       
         full_name = other_user.username
         if other_user.role == 'admin':
             admin = Admin.objects(user=other_user).first()
@@ -7697,7 +7678,7 @@ def get_private_chat_history(request, user_id):
                 'from_user_name': full_name if msg.sender_id == user_id else None
             })
         
-        # Compter les messages non lus
+        
         unread_count = PrivateChatMessage.objects(
             sender_id=user_id,
             receiver_id=str(current_user.id),
@@ -7726,10 +7707,7 @@ def get_private_chat_history(request, user_id):
 @jwt_authenticated
 @role_required(allowed_roles=['student'])
 def get_all_offers_applicants_counts(request):
-    """
-    Get applicants counts for multiple offers
-    Query param: offer_ids - comma separated list of offer IDs
-    """
+    
     try:
         from .models import InternshipOffer, Application
         
@@ -7757,10 +7735,7 @@ def get_all_offers_applicants_counts(request):
 
 @api_view(['GET'])
 def get_public_offer_applicants_count(request, offer_id):
-    """
-    Public endpoint to get the number of applicants for a specific internship offer
-    No authentication required
-    """
+    
     try:
         from .models import InternshipOffer, Application
         
@@ -7783,13 +7758,11 @@ def get_public_offer_applicants_count(request, offer_id):
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
 
-# أضف هذه الدالة في views.py (بدون مصادقة)
+
 
 @api_view(['GET'])
 def public_search_offers(request):
-    """
-    Public endpoint to search offers - no authentication required
-    """
+    
     today_start = timezone.make_aware(datetime.combine(timezone.now().date(), datetime.min.time()))
     offers = InternshipOffer.objects(is_active=True, deadline__gte=today_start)
 
@@ -7850,7 +7823,7 @@ def public_search_offers(request):
 
 @api_view(['GET'])
 def get_public_company_profile(request, company_id):
-    """Get public company profile by ID - no authentication required"""
+   
     try:
         from .models import Company, CompanyProfile
 
@@ -7858,7 +7831,7 @@ def get_public_company_profile(request, company_id):
         if not company:
             return Response({'success': False, 'error': 'Company not found'}, status=404)
 
-        # جلب البيانات من CompanyProfile، وإنشاء سجل افتراضي إذا لم يكن موجوداً
+       
         profile = CompanyProfile.objects(company_id=company_id).first()
         if not profile:
             profile = CompanyProfile(
@@ -7889,7 +7862,7 @@ def get_public_company_profile(request, company_id):
 
 @api_view(['GET'])
 def public_offers_by_company(request, company_id):
-    """Get offers for a specific company by its ID - no authentication required"""
+    
     try:
         company = Company.objects(id=company_id).first()
         if not company:
@@ -7930,7 +7903,7 @@ def public_offers_by_company(request, company_id):
 
 @api_view(['POST'])
 def super_admin_login(request):
-    """تسجيل دخول Super Admin مع إرسال OTP"""
+    
     try:
         email = request.data.get('email')
         password = request.data.get('password')
@@ -7938,21 +7911,21 @@ def super_admin_login(request):
         if not email or not password:
             return Response({'success': False, 'error': 'Email and password required'}, status=400)
 
-        # البحث عن المستخدم
+        
         user = User.objects(email=email, is_super_admin=True).first()
         
         if not user:
             return Response({'success': False, 'error': 'Invalid credentials'}, status=401)
 
-        # التحقق من كلمة المرور
+        
         if not user.check_password(password):
             return Response({'success': False, 'error': 'Invalid credentials'}, status=401)
 
-        # التحقق من حالة الحساب
+       
         if not user.status:
             return Response({'success': False, 'error': 'Account is not active'}, status=403)
 
-        # إرسال OTP
+        
         temp_data = {
             'action': 'super_admin_login',
             'user_id': str(user.id),
@@ -7961,13 +7934,13 @@ def super_admin_login(request):
         
         code = create_otp_verification(email, temp_data)
         
-        # إرسال البريد الإلكتروني
+        
         try:
             send_otp_email(email, code, "login_2fa")
         except Exception as e:
             print(f"⚠️ Error sending OTP email: {e}")
         
-        print(f"🔐 Super Admin OTP for {email}: {code}")  # للتصحيح
+        print(f"🔐 Super Admin OTP for {email}: {code}")  
 
         return Response({
             'success': True,
@@ -7983,7 +7956,7 @@ def super_admin_login(request):
 
 @api_view(['POST'])
 def super_admin_verify_otp(request):
-    """التحقق من OTP وإكمال تسجيل الدخول"""
+    
     try:
         email = request.data.get('email')
         code = request.data.get('code')
@@ -7991,7 +7964,7 @@ def super_admin_verify_otp(request):
         if not email or not code:
             return Response({'success': False, 'error': 'Email and code required'}, status=400)
 
-        # التحقق من OTP
+        
         temp_data, error = verify_otp_code(email, code)
 
         if error:
@@ -8000,18 +7973,18 @@ def super_admin_verify_otp(request):
         if temp_data.get('action') != 'super_admin_login':
             return Response({'success': False, 'error': 'Invalid verification'}, status=400)
 
-        # الحصول على المستخدم
+        
         user = User.objects(id=temp_data['user_id']).first()
         if not user or not user.is_super_admin:
             return Response({'success': False, 'error': 'User not found or not super admin'}, status=404)
 
-        # تحديث آخر تسجيل دخول
+        
         super_admin = SuperAdmin.objects(user=user).first()
         if super_admin:
             super_admin.last_login = datetime.now()
             super_admin.save()
 
-        # إنشاء التوكن
+        
         token = create_token(user)
 
         return Response({
@@ -8034,7 +8007,7 @@ def super_admin_verify_otp(request):
 
 @api_view(['POST'])
 def super_admin_resend_otp(request):
-    """إعادة إرسال OTP"""
+   
     try:
         email = request.data.get('email')
         
@@ -8069,19 +8042,19 @@ def super_admin_resend_otp(request):
         return Response({'success': False, 'error': str(e)}, status=500)
 
 
-# ==================== SUPER ADMIN DASHBOARD & MANAGEMENT ====================
+# ==================== SUPER ADMIN DASHBOARD AND MANAGEMENT ====================
 
 @api_view(['GET'])
 @jwt_authenticated
 def super_admin_dashboard(request):
-    """لوحة تحكم Super Admin - يجب أن يكون المستخدم Super Admin"""
+    
     try:
         user = request.user
         
         if not user.is_super_admin:
             return Response({'success': False, 'error': 'Access denied. Super Admin only.'}, status=403)
 
-        # الحصول على الإحصائيات العامة
+        
         total_users = User.objects().count()
         total_students = Student.objects().count()
         total_companies = Company.objects().count()
@@ -8090,7 +8063,7 @@ def super_admin_dashboard(request):
         total_applications = Application.objects().count()
         total_notifications = Notification.objects().count()
         
-        # إحصائيات إضافية
+       
         active_users = User.objects(status=True).count()
         pending_users = User.objects(status=False).count()
         active_offers = InternshipOffer.objects(is_active=True).count()
@@ -8098,7 +8071,7 @@ def super_admin_dashboard(request):
         accepted_applications = Application.objects(status='accepted_by_company').count()
         validated_applications = Application.objects(status='validated_by_co_dept').count()
         
-        # الشركات حسب الصناعة
+        
         companies_by_industry = []
         industries = Company.objects().distinct('industry')
         for industry in industries[:20]:
@@ -8108,7 +8081,7 @@ def super_admin_dashboard(request):
                     'count': Company.objects(industry=industry).count()
                 })
         
-        # العروض حسب النوع
+        
         offers_by_type = []
         for offer_type in ['PFE', 'ouvrier', 'technicien', 'été']:
             offers_by_type.append({
@@ -8116,7 +8089,7 @@ def super_admin_dashboard(request):
                 'count': InternshipOffer.objects(internship_type=offer_type).count()
             })
         
-        # إنشاء سجل النشاط
+       
         try:
             from .activity_logger import log_activity
             log_activity(
@@ -8168,20 +8141,20 @@ def super_admin_dashboard(request):
 @api_view(['GET'])
 @jwt_authenticated
 def super_admin_get_users(request):
-    """الحصول على جميع المستخدمين مع إمكانية الفلترة"""
+    
     try:
         user = request.user
         if not user.is_super_admin:
             return Response({'success': False, 'error': 'Access denied'}, status=403)
 
-        # معاملات الفلترة
+       
         role = request.query_params.get('role', '')
         status_filter = request.query_params.get('status', '')
         search = request.query_params.get('search', '')
         page = int(request.query_params.get('page', 1))
         page_size = int(request.query_params.get('page_size', 50))
 
-        # بناء الاستعلام
+        
         query = {}
         if role:
             query['role'] = role
@@ -8212,7 +8185,7 @@ def super_admin_get_users(request):
                 'last_activity': u.last_activity.strftime('%Y-%m-%d %H:%M:%S') if u.last_activity else None,
             }
             
-            # معلومات إضافية حسب الدور
+           
             if u.role == 'student':
                 student = Student.objects(user=u).first()
                 if student:
@@ -8249,7 +8222,7 @@ def super_admin_get_users(request):
 @api_view(['GET', 'PUT', 'DELETE'])
 @jwt_authenticated
 def super_admin_manage_user(request, user_id):
-    """إدارة مستخدم معين (عرض، تعديل، حذف)"""
+   
     try:
         super_user = request.user
         if not super_user.is_super_admin:
@@ -8259,12 +8232,12 @@ def super_admin_manage_user(request, user_id):
         if not target_user:
             return Response({'success': False, 'error': 'User not found'}, status=404)
 
-        # لا يمكن حذف أو تعديل الـ Super Admin نفسه من هنا
+       
         if target_user.is_super_admin and str(target_user.id) != str(super_user.id):
             return Response({'success': False, 'error': 'Cannot modify another super admin'}, status=403)
 
         if request.method == 'GET':
-            # عرض تفاصيل المستخدم
+           
             user_data = {
                 'id': str(target_user.id),
                 'username': target_user.username,
@@ -8279,7 +8252,7 @@ def super_admin_manage_user(request, user_id):
                 'profile_picture': target_user.profile_picture,
             }
             
-            # معلومات إضافية
+            
             if target_user.role == 'student':
                 student = Student.objects(user=target_user).first()
                 if student:
@@ -8318,7 +8291,7 @@ def super_admin_manage_user(request, user_id):
             return Response({'success': True, 'user': user_data})
 
         elif request.method == 'PUT':
-            # تعديل المستخدم
+            
             data = request.data
             
             if 'status' in data:
@@ -8328,7 +8301,7 @@ def super_admin_manage_user(request, user_id):
                 target_user.sub_role = data['sub_role']
             
             if 'username' in data:
-                # التحقق من عدم وجود اسم مستخدم مكرر
+                
                 existing = User.objects(username=data['username']).first()
                 if existing and str(existing.id) != user_id:
                     return Response({'success': False, 'error': 'Username already exists'}, status=400)
@@ -8345,7 +8318,7 @@ def super_admin_manage_user(request, user_id):
             
             target_user.save()
             
-            # تسجيل النشاط
+            
             try:
                 from .activity_logger import log_activity
                 log_activity(
@@ -8362,15 +8335,15 @@ def super_admin_manage_user(request, user_id):
             return Response({'success': True, 'message': 'User updated successfully'})
 
         elif request.method == 'DELETE':
-            # حذف المستخدم
+           
             if str(target_user.id) == str(super_user.id):
                 return Response({'success': False, 'error': 'Cannot delete yourself'}, status=400)
             
-            # حذف البيانات المرتبطة
+            
             if target_user.role == 'student':
                 Student.objects(user=target_user).delete()
             elif target_user.role == 'company':
-                # حذف الشركة والعروض المرتبطة بها
+               
                 company = Company.objects(user=target_user).first()
                 if company:
                     InternshipOffer.objects(company=company).delete()
@@ -8378,7 +8351,7 @@ def super_admin_manage_user(request, user_id):
             elif target_user.role == 'admin':
                 Admin.objects(user=target_user).delete()
             
-            # حذف المستخدم
+           
             target_user.delete()
             
             return Response({'success': True, 'message': 'User deleted successfully'})
@@ -8392,7 +8365,7 @@ def super_admin_manage_user(request, user_id):
 @api_view(['GET'])
 @jwt_authenticated
 def super_admin_get_companies(request):
-    """الحصول على جميع الشركات"""
+   
     try:
         user = request.user
         if not user.is_super_admin:
@@ -8407,7 +8380,7 @@ def super_admin_get_companies(request):
             for offer in InternshipOffer.objects(company=company):
                 applications_count += Application.objects(offer=offer).count()
             
-            # جلب الملف الشخصي للشركة إذا وجد
+            
             company_profile = CompanyProfile.objects(company_id=str(company.id)).first()
             
             result.append({
@@ -8435,7 +8408,7 @@ def super_admin_get_companies(request):
 @api_view(['GET', 'DELETE'])
 @jwt_authenticated
 def super_admin_manage_company(request, company_id):
-    """إدارة شركة معينة (عرض، حذف)"""
+   
     try:
         user = request.user
         if not user.is_super_admin:
@@ -8475,16 +8448,15 @@ def super_admin_manage_company(request, company_id):
             })
 
         elif request.method == 'DELETE':
-            # حذف الشركة وجميع البيانات المرتبطة
-            # حذف العروض
+            
             for offer in InternshipOffer.objects(company=company):
                 Application.objects(offer=offer).delete()
                 offer.delete()
             
-            # حذف الملف الشخصي
+            
             CompanyProfile.objects(company_id=str(company.id)).delete()
             
-            # حذف المستخدم المرتبط
+            
             if company.user:
                 company.user.delete()
             
@@ -8501,13 +8473,13 @@ def super_admin_manage_company(request, company_id):
 @api_view(['GET'])
 @jwt_authenticated
 def super_admin_get_universities(request):
-    """الحصول على جميع الجامعات"""
+   
     try:
         user = request.user
         if not user.is_super_admin:
             return Response({'success': False, 'error': 'Access denied'}, status=403)
 
-        # الحصول على الجامعات من Admins
+        
         admins = Admin.objects()
         universities_dict = {}
         
@@ -8522,19 +8494,19 @@ def super_admin_get_universities(request):
                 }
             universities_dict[uni]['admins_count'] += 1
         
-        # حساب عدد الطلاب لكل جامعة
+       
         students = Student.objects()
         for student in students:
             uni = student.university
             if uni in universities_dict:
                 universities_dict[uni]['students_count'] += 1
             
-            # حساب عدد الطلبات
+            
             apps = Application.objects(student=student)
             if uni in universities_dict:
                 universities_dict[uni]['applications_count'] += apps.count()
         
-        # الحصول على الملفات الشخصية للجامعات
+        
         university_profiles = UniversityProfile.objects()
         for profile in university_profiles:
             if profile.university in universities_dict:
@@ -8555,7 +8527,7 @@ def super_admin_get_universities(request):
 @api_view(['GET'])
 @jwt_authenticated
 def super_admin_get_offers(request):
-    """الحصول على جميع عروض التدريب"""
+   
     try:
         user = request.user
         if not user.is_super_admin:
@@ -8592,7 +8564,7 @@ def super_admin_get_offers(request):
 @api_view(['GET'])
 @jwt_authenticated
 def super_admin_get_applications(request):
-    """الحصول على جميع طلبات التقديم"""
+   
     try:
         user = request.user
         if not user.is_super_admin:
@@ -8628,25 +8600,25 @@ def super_admin_get_applications(request):
 @api_view(['GET'])
 @jwt_authenticated
 def super_admin_get_stats(request):
-    """الحصول على إحصائيات مفصلة للنظام"""
+    
     try:
         user = request.user
         if not user.is_super_admin:
             return Response({'success': False, 'error': 'Access denied'}, status=403)
 
-        # إحصائيات المستخدمين
+        
         users_by_role = {
             'student': User.objects(role='student').count(),
             'company': User.objects(role='company').count(),
             'admin': User.objects(role='admin').count(),
         }
         
-        # إحصائيات التطبيقات حسب الحالة
+       
         applications_by_status = {}
         for status in ['pending', 'accepted_by_company', 'rejected_by_company', 'validated_by_co_dept', 'rejected_by_co_dept']:
             applications_by_status[status] = Application.objects(status=status).count()
         
-        # آخر 10 مستخدمين مسجلين
+        
         recent_users = []
         for u in User.objects().order_by('-created_at').limit(10):
             recent_users.append({
@@ -8657,7 +8629,7 @@ def super_admin_get_stats(request):
                 'created_at': u.created_at.strftime('%Y-%m-%d %H:%M:%S') if u.created_at else None
             })
         
-        # آخر 10 طلبات
+       
         recent_applications = []
         for app in Application.objects().order_by('-applied_at').limit(10):
             recent_applications.append({
@@ -8668,7 +8640,7 @@ def super_admin_get_stats(request):
                 'applied_at': app.applied_at.strftime('%Y-%m-%d %H:%M:%S') if app.applied_at else None
             })
         
-        # آخ 5 أيام نشاط
+        
         from datetime import timedelta
         daily_stats = []
         for i in range(5):
@@ -8708,7 +8680,7 @@ def super_admin_get_stats(request):
 
 @api_view(['POST'])
 def verify_super_admin_otp(request):
-    """التحقق من OTP لـ Super Admin"""
+    
     try:
         email = request.data.get('email')
         code = request.data.get('code')
@@ -8728,7 +8700,7 @@ def verify_super_admin_otp(request):
         if not user or not user.is_super_admin:
             return Response({'success': False, 'error': 'User not found or not super admin'}, status=404)
 
-        # تحديث آخر تسجيل دخول
+        
         super_admin_obj = SuperAdmin.objects(user=user).first()
         if super_admin_obj:
             super_admin_obj.last_login = datetime.now()

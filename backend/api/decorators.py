@@ -14,7 +14,7 @@ def jwt_authenticated(view_func):
                 'success': False
             }, status=status.HTTP_401_UNAUTHORIZED)
         
-        # Vérifier que l'utilisateur est actif
+       
         if not request.user.status:
             return Response({
                 'error': 'Account is not active',
@@ -24,7 +24,7 @@ def jwt_authenticated(view_func):
         return view_func(request, *args, **kwargs)
     return wrapped_view
 
-# backend/api/decorators.py - تحديث دالة role_required
+
 
 def role_required(allowed_roles=None, allowed_sub_roles=None):
     """Décorateur pour vérifier les rôles - supporte super_admin"""
@@ -37,7 +37,7 @@ def role_required(allowed_roles=None, allowed_sub_roles=None):
                     'success': False
                 }, status=status.HTTP_401_UNAUTHORIZED)
             
-            # Super Admin peut tout faire
+           
             if request.user.is_super_admin:
                 return view_func(request, *args, **kwargs)
             

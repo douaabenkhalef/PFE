@@ -1,8 +1,8 @@
-# backend/api/middleware.py
+
 import jwt
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
-from datetime import datetime  # 🔥 AJOUTER CETTE IMPORTATION
+from datetime import datetime  
 
 class JWTAuthenticationMiddleware(MiddlewareMixin):
     """
@@ -49,7 +49,7 @@ class LastActivityMiddleware(MiddlewareMixin):
         if hasattr(request, 'user') and request.user and hasattr(request.user, 'id'):
             try:
                 from .models import User
-                from datetime import datetime  # 🔥 IMPORTANT
+                from datetime import datetime  
                 user = User.objects(id=str(request.user.id)).first()
                 if user:
                     last_activity = user.last_activity or datetime.now()

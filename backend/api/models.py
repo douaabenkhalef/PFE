@@ -3,7 +3,6 @@ from datetime import datetime
 import bcrypt
 
 
-# ==================== PERMISSION MODEL (DOIT ÊTRE AVANT USER) ====================
 
 class UserPermission(Document):
     """
@@ -13,7 +12,7 @@ class UserPermission(Document):
     
     user_id = StringField(required=True, unique=True)
     
-    # ============ PERMISSIONS HIRING MANAGER ============
+   
     can_manage_applications = BooleanField(default=True)
     can_manage_hiring_managers = BooleanField(default=False)
     can_create_offer = BooleanField(default=True)
@@ -21,7 +20,7 @@ class UserPermission(Document):
     can_delete_offer = BooleanField(default=True)
     can_manage_company_profile = BooleanField(default=False)
     
-    # ============ PERMISSIONS CO DEPT HEAD ============
+    
     can_manage_conventions = BooleanField(default=True)
     can_manage_co_dept_heads = BooleanField(default=False)
     can_add_signature = BooleanField(default=True)
@@ -35,7 +34,7 @@ class UserPermission(Document):
         return f"Permissions for user {self.user_id}"
 
 
-# ==================== USER MODEL ====================
+
 
 
 
@@ -80,13 +79,13 @@ class User(Document):
         """Vérifie si l'utilisateur est en ligne (activité dans les 5 dernières minutes)"""
         if not self.last_activity:
             return False
-        return (datetime.now() - self.last_activity).seconds < 300  # 5 minutes
+        return (datetime.now() - self.last_activity).seconds < 300  
     
     def __str__(self):
         return f"{self.email} - {self.role}"
 
 
-# ==================== COMPANY MODEL ====================
+
 
 class Company(Document):
     meta = {'collection': 'companies'}
@@ -108,7 +107,7 @@ class Company(Document):
         return self.company_name
 
 
-# ==================== STUDENT MODEL ====================
+
 
 class Student(Document):
     meta = {'collection': 'students'}
@@ -128,7 +127,7 @@ class Student(Document):
     placed_company = ReferenceField(Company, null=True, reverse_delete_rule=3)
     placement_date = DateTimeField(null=True)
     created_at = DateTimeField(default=datetime.now)
-    # Ajouter ces champs dans la classe Student
+    
     bio = StringField(max_length=500, default='')
     phone = StringField(max_length=20, default='')
     profile_picture = StringField(blank=True, default='')
@@ -147,7 +146,7 @@ class Student(Document):
         return self.full_name
 
 
-# ==================== INTERNSHIP OFFER MODEL ====================
+
 
 class InternshipOffer(Document):
     meta = {'collection': 'offers'}
@@ -170,7 +169,7 @@ class InternshipOffer(Document):
         return f"{self.title} - {self.company.company_name}"
 
 
-# ==================== APPLICATION MODEL ====================
+
 
 class Application(Document):
     meta = {'collection': 'applications'}
@@ -201,7 +200,7 @@ class Application(Document):
     convention_pdf = FileField(blank=True)       
     co_dept_id = StringField(blank=True)
     
-    # ============ CHAMPS POUR LES SIGNATURES ============
+    
     university_signature = StringField(blank=True, default='')
     university_signature_date = DateTimeField(null=True)
     university_signed_by = StringField(blank=True)
@@ -219,7 +218,7 @@ class Application(Document):
         default='pending'
     )
     
-    # ============ CHAMPS POUR LE CACHET (TAMPON) ============
+   
     university_stamp = StringField(blank=True, default='')
     university_stamp_date = DateTimeField(null=True)
     stamp_added_by = StringField(blank=True)
@@ -231,7 +230,7 @@ class Application(Document):
     def __str__(self):
         return f"{self.student.full_name} - {self.offer.title}"
 
-# ==================== NOTIFICATION MODEL ====================
+
 
 class Notification(Document):
     meta = {'collection': 'notifications'}
@@ -246,7 +245,7 @@ class Notification(Document):
         return f"Notification for {self.recipient.email}: {self.message[:20]}"
 
 
-# ==================== INTERNSHIP AGREEMENT MODEL ====================
+
 
 class InternshipAgreement(Document):
     meta = {'collection': 'agreements'}
@@ -265,7 +264,7 @@ class InternshipAgreement(Document):
         return f"Convention - {self.student_name} - {self.company_name}"
 
 
-# ==================== ADMIN MODEL ====================
+
 
 class Admin(Document):
     meta = {'collection': 'admins'}
@@ -281,7 +280,7 @@ class Admin(Document):
 
 
 
-# ==================== OTP VERIFICATION MODEL ====================
+
 
 class OTPVerification(Document):
     """Stocke les codes OTP temporaires pour la vérification d'email"""
@@ -301,7 +300,7 @@ class OTPVerification(Document):
         return f"{self.email} - {self.code} - Valid: {self.is_valid()}"
 
 
-# ==================== PENDING APPROVAL MODEL ====================
+
 
 class PendingApproval(Document):
     """
@@ -340,7 +339,7 @@ class PendingApproval(Document):
         return f"{self.username} - {self.role}/{self.sub_role} - {self.verification_status}"
 
 
-# ==================== ACTIVITY LOG MODEL ====================
+
 
 class ActivityLog(Document):
     
@@ -431,7 +430,7 @@ class PrivateChatMessage(Document):
         return f"{self.sender_name} -> {self.receiver_name}: {self.message[:50]}"
 
 
-# ===========UNIVERSITY PROFILE======================
+
 class UniversityProfile(Document):
    
     meta = {'collection': 'university_profiles'}
@@ -459,7 +458,7 @@ class UniversityProfile(Document):
         return f"UniversityProfile: {self.university}"
     
 
-    # ==================== COMPANY PROFILE MODEL ====================
+   
  
 class CompanyProfile(Document):
     
@@ -521,7 +520,7 @@ class GroupChatMessage(Document):
     def __str__(self):
         return f"{self.sender_name} in {self.group_id}: {self.message[:50]}"
 
-# api/models.py - أضف هذه الفئة في نهاية الملف
+
 
 class SuperAdmin(Document):
     """

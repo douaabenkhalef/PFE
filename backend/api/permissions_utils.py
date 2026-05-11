@@ -1,4 +1,4 @@
-# backend/api/permissions_utils.py
+
 from .models import User, UserPermission
 from datetime import datetime
 
@@ -17,7 +17,7 @@ def create_default_permissions(user):
     try:
         if user.role == 'company':
             if user.sub_role == 'company_manager':
-                # Company Manager a toutes les permissions
+                
                 perm = UserPermission(
                     user_id=str(user.id),
                     can_manage_applications=True,
@@ -27,8 +27,8 @@ def create_default_permissions(user):
                     can_delete_offer=True,
                     can_manage_company_profile=True
                 )
-            else:  # hiring_manager
-                # Hiring Manager a les permissions de base
+            else:  
+                
                 perm = UserPermission(
                     user_id=str(user.id),
                     can_manage_applications=True,
@@ -39,8 +39,8 @@ def create_default_permissions(user):
                     can_manage_company_profile=False
                 )
         elif user.role == 'admin':
-            if user.sub_role == 'admin':  # Department Head
-                # Department Head a toutes les permissions
+            if user.sub_role == 'admin':  
+               
                 perm = UserPermission(
                     user_id=str(user.id),
                     can_manage_conventions=True,
@@ -49,8 +49,8 @@ def create_default_permissions(user):
                     can_add_stamp=True,
                     can_manage_university_profile=True
                 )
-            else:  # co_dept_head
-                # Co Department Head a les permissions de base
+            else:  
+                
                 perm = UserPermission(
                     user_id=str(user.id),
                     can_manage_conventions=True,
