@@ -1,4 +1,4 @@
-# backend/api/consumers.py
+
 import json
 import re
 import base64
@@ -740,7 +740,7 @@ class InternshipGroupChatConsumer(AsyncWebsocketConsumer):
         
         await self.accept()
         
-        # تحميل الرسائل السابقة من قاعدة البيانات
+        
         messages = await self.get_recent_messages()
         await self.send(text_data=json.dumps({
             'type': 'history',
@@ -783,7 +783,7 @@ class InternshipGroupChatConsumer(AsyncWebsocketConsumer):
             
             full_name = await self.get_user_full_name(self.user)
             
-            # حفظ الرسالة في قاعدة البيانات
+        
             await self.save_message(self.user, message, self.internship_id)
             
             await self.channel_layer.group_send(
@@ -851,13 +851,13 @@ class InternshipGroupChatConsumer(AsyncWebsocketConsumer):
         try:
             print(f"🔍 Checking access for ID: {internship_id}")
             
-            # ========== الطريقة الأولى: البحث كـ Application مباشرة ==========
+            
             try:
                 app_id = ObjectId(internship_id)
                 application = Application.objects(id=app_id, student=student).first()
                 if application:
                     print(f"✅ Found application directly by Application ID!")
-                    # تغيير internship_id إلى offer_id الصحيح للغرفة
+                    
                     correct_offer_id = str(application.offer.id)
                     if correct_offer_id != self.internship_id:
                         print(f"🔄 Updating room from {self.internship_id} to {correct_offer_id}")
@@ -867,7 +867,7 @@ class InternshipGroupChatConsumer(AsyncWebsocketConsumer):
             except:
                 pass
             
-            # ========== الطريقة الثانية: البحث كـ Offer ==========
+            
             try:
                 offer_id = ObjectId(internship_id)
                 application = Application.objects(
@@ -881,7 +881,7 @@ class InternshipGroupChatConsumer(AsyncWebsocketConsumer):
             except:
                 pass
             
-            # ========== الطريقة الثالثة: البحث النصي ==========
+            
             all_apps = Application.objects(student=student)
             print(f"📋 Student has {all_apps.count()} applications")
             
@@ -889,7 +889,7 @@ class InternshipGroupChatConsumer(AsyncWebsocketConsumer):
                 if app.offer:
                     print(f"   - App ID: {app.id}, Offer ID: {app.offer.id}, Status: {app.status}")
                     
-                    # مقارنة مع Application ID
+                   
                     if str(app.id) == str(internship_id):
                         print(f"✅ Found match via Application ID!")
                         correct_offer_id = str(app.offer.id)
@@ -899,7 +899,7 @@ class InternshipGroupChatConsumer(AsyncWebsocketConsumer):
                             self.room_group_name = f'internship_chat_{self.internship_id}'
                         return True
                     
-                    # مقارنة مع Offer ID
+                    
                     if str(app.offer.id) == str(internship_id):
                         print(f"✅ Found match via Offer ID!")
                         return True
@@ -968,7 +968,7 @@ class CompanyGroupChatConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
         
-        # السماح فقط لموظفي الشركة (company_manager و hiring_manager)
+        
         if user.role != 'company':
             print(f"❌ Company chat: User role {user.role} not allowed, closing connection")
             await self.close()
