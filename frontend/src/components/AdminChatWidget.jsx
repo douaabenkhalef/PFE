@@ -1,4 +1,4 @@
-// frontend/src/components/AdminChatWidget.jsx
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   MessageCircle, X, Send, Minimize2, Users, 
@@ -16,7 +16,7 @@ const authHeaders = () => ({
 
 const token = () => localStorage.getItem('access_token');
 
-// Message item component (نفس السابق)
+
 const MessageItem = ({ message, isOwn, showAvatar, senderName }) => {
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
@@ -81,7 +81,7 @@ const MessageItem = ({ message, isOwn, showAvatar, senderName }) => {
   );
 };
 
-// Chat window component (نفس السابق ولكن بدون group)
+
 const ChatWindow = ({ 
   conversation, 
   onBack, 
@@ -124,7 +124,7 @@ const ChatWindow = ({
     const accessToken = token();
     if (!accessToken) return;
 
-    // فقط محادثات خاصة
+    
     const wsUrl = `${WS_BASE}/ws/private-chat/?token=${accessToken}`;
 
     const socket = new WebSocket(wsUrl);
@@ -379,7 +379,7 @@ const ChatWindow = ({
   );
 };
 
-// Conversation list item (private chats only)
+
 const ConversationItem = ({ conversation, isActive, onClick, lastMessage }) => {
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
@@ -437,7 +437,7 @@ const ConversationItem = ({ conversation, isActive, onClick, lastMessage }) => {
   );
 };
 
-// Team member item
+
 const AdminMemberItem = ({ member, onClick, isCurrentUser }) => {
   const roleLabel = member.sub_role === 'admin' ? 'Department Head' : 'Co Department Head';
   
@@ -467,7 +467,7 @@ const AdminMemberItem = ({ member, onClick, isCurrentUser }) => {
   );
 };
 
-// Search input
+
 const SearchInput = ({ value, onChange, placeholder }) => (
   <div className="relative">
     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
@@ -481,7 +481,7 @@ const SearchInput = ({ value, onChange, placeholder }) => (
   </div>
 );
 
-// Main AdminChatWidget component
+
 const AdminChatWidget = ({ university, onClose: externalOnClose }) => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -561,7 +561,7 @@ const AdminChatWidget = ({ university, onClose: externalOnClose }) => {
   const loadAllConversations = useCallback(async () => {
     setLoading(true);
     try {
-      // فقط المحادثات الخاصة، بدون مجموعة الجامعة
+      
       const privateConversations = await loadExistingConversations();
       setConversations([...privateConversations]);
     } catch (err) {
@@ -636,7 +636,7 @@ const AdminChatWidget = ({ university, onClose: externalOnClose }) => {
   };
 
   const handleStartPrivateChat = async (member) => {
-    if (member.id === user?.id) return; // لا يمكن الدردشة مع النفس
+    if (member.id === user?.id) return; 
     
     const existingConv = conversations.find(c => c.type === 'private' && c.user_id === member.id);
     if (existingConv) {
