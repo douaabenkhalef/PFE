@@ -113,7 +113,7 @@ class Command(BaseCommand):
             
             self.stdout.write(self.style.SUCCESS(f'   ✅ User created with ID: {user.id}'))
 
-            # إنشاء سجل Super Admin
+            
             self.stdout.write('   Creating Super Admin profile...')
             
             super_admin = SuperAdmin(
@@ -126,7 +126,7 @@ class Command(BaseCommand):
             
             self.stdout.write(self.style.SUCCESS(f'   ✅ Super Admin profile created with ID: {super_admin.id}'))
 
-            # ========== عرض معلومات المستخدم ==========
+            
             self.stdout.write(self.style.SUCCESS('\n' + '='*50))
             self.stdout.write(self.style.SUCCESS('✅ SUPER ADMIN CREATED SUCCESSFULLY!'))
             self.stdout.write(self.style.SUCCESS('='*50))
