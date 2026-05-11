@@ -45,7 +45,7 @@ class User(Document):
     username = StringField(required=True, unique=True, max_length=50)
     email = EmailField(required=True, unique=True)
     password_hash = StringField(required=True, max_length=128)
-    role = StringField(required=True, choices=['student', 'company', 'admin'])
+    role = StringField(required=True, choices=['student', 'company', 'admin', 'super_admin'])
     sub_role = StringField(default='')
     status = BooleanField(default=False)
     rejected = BooleanField(default=False)
@@ -54,6 +54,7 @@ class User(Document):
     updated_at = DateTimeField(default=datetime.now)
     two_fa_enabled = BooleanField(default=False)
     recovery_email = EmailField(blank=True, null=True)
+    is_super_admin = BooleanField(default=False)
     
     
     bio = StringField(max_length=500, default='')
@@ -520,3 +521,19 @@ class GroupChatMessage(Document):
     def __str__(self):
         return f"{self.sender_name} in {self.group_id}: {self.message[:50]}"
 
+# api/models.py - أضف هذه الفئة في نهاية الملف
+
+class SuperAdmin(Document):
+    """
+    Modèle pour le Super Admin avec des permissions absolues sur tout le système
+    """
+    meta = {'collection': 'super_admins'}
+    
+    user = ReferenceField(User, required=True, unique=True, reverse_delete_rule=2)
+    full_name = StringField(required=True, max_length=100)
+    email = StringField(required=True, unique=True)
+    created_at = DateTimeField(default=datetime.now)
+    last_login = DateTimeField(null=True)
+    
+    def __str__(self):
+        return f"Super Admin: {self.full_name} - {self.email}"

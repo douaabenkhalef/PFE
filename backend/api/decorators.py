@@ -24,8 +24,10 @@ def jwt_authenticated(view_func):
         return view_func(request, *args, **kwargs)
     return wrapped_view
 
+# backend/api/decorators.py - تحديث دالة role_required
+
 def role_required(allowed_roles=None, allowed_sub_roles=None):
-    """Décorateur pour vérifier les rôles"""
+    """Décorateur pour vérifier les rôles - supporte super_admin"""
     def decorator(view_func):
         @wraps(view_func)
         def wrapped_view(request, *args, **kwargs):
@@ -34,6 +36,10 @@ def role_required(allowed_roles=None, allowed_sub_roles=None):
                     'error': 'Authentication required',
                     'success': False
                 }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # Super Admin peut tout faire
+            if request.user.is_super_admin:
+                return view_func(request, *args, **kwargs)
             
             if allowed_roles and request.user.role not in allowed_roles:
                 return Response({

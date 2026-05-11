@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // 🔥 دالة تسجيل الدخول مع دعم 2FA
+  // 🔥 دالة تسجيل الدخول مع دعم 2FA و Super Admin OTP
   const login = async (email, password) => {
     setLoading(true);
     try {
@@ -63,13 +63,20 @@ export const AuthProvider = ({ children }) => {
       console.log("📥 Login response:", response);
       
       if (response.success) {
-        // 🔥 إذا كان المستخدم يحتاج إلى 2FA
+        // 🔥 إذا كان المستخدم يحتاج إلى 2FA العادي
         if (response.requires_2fa) {
           setRequires2FA(true);
           setPending2FAEmail(response.email);
           // إرسال الكود تلقائياً
           await authAPI.send2FACode(email);
           return { success: true, requires_2fa: true, email: response.email };
+        }
+        
+        // 🔥 إذا كان المستخدم يحتاج إلى OTP (Super Admin)
+        if (response.requires_otp) {
+          setRequires2FA(true);
+          setPending2FAEmail(response.email);
+          return { success: true, requires_otp: true, email: response.email };
         }
         
         // تسجيل الدخول العادي
@@ -120,6 +127,8 @@ export const AuthProvider = ({ children }) => {
           } else {
             redirectUrl = "/co-dept-head/dashboard";
           }
+        } else if (response.user.role === 'super_admin') {
+          redirectUrl = "/super-admin/dashboard";
         }
         
         return { success: true, redirectUrl };
@@ -149,7 +158,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 🔥 التحقق من كود 2FA
+  // 🔥 التحقق من كود 2FA (يدعم أيضاً Super Admin)
   const verify2FACode = async (email, code) => {
     setLoading(true);
     try {
@@ -206,6 +215,8 @@ export const AuthProvider = ({ children }) => {
           } else {
             redirectUrl = "/co-dept-head/dashboard";
           }
+        } else if (response.user.role === 'super_admin') {
+          redirectUrl = "/super-admin/dashboard";
         }
         
         return { success: true, redirectUrl };

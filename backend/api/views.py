@@ -21,6 +21,7 @@ from django.core.files.base import ContentFile
 from mongoengine.connection import get_db
 
 from .models import (
+    SuperAdmin,
     User, Student, Company, Admin, InternshipOffer, Application,
     OTPVerification, PendingApproval, Notification, ActivityLog, UserPermission,
     CompanyProfile, UniversityProfile, ChatMessage, PrivateChatMessage,
@@ -296,6 +297,30 @@ def login(request):
         return Response({'success': False, 'errors': {'non_field_errors': ['Account pending approval.']}},
                         status=status.HTTP_403_FORBIDDEN)
 
+    # ========== SUPER ADMIN LOGIN ==========
+    # Super Admin - OTP required for each login
+    if user.is_super_admin or user.role == 'super_admin':
+        temp_data = {
+            'action': 'super_admin_login',
+            'user_id': str(user.id),
+            'email': email
+        }
+        code = create_otp_verification(email, temp_data)
+        send_otp_email(email, code, "login_2fa")
+        
+        # طباعة الكود في الكونسول للتصحيح
+        print(f"\n🔐 SUPER ADMIN LOGIN")
+        print(f"   Email: {email}")
+        print(f"   OTP Code: {code}")
+        print(f"   User ID: {user.id}\n")
+        
+        return Response({
+            'success': True,
+            'requires_otp': True,
+            'message': 'Verification code sent to your email',
+            'email': email
+        })
+
     if user.two_fa_enabled:
         temp_data = {
             'action': 'login_2fa',
@@ -317,6 +342,7 @@ def login(request):
         'student': '/student/dashboard',
         'company': '/company/dashboard',
         'admin': '/admin/dashboard',
+        'super_admin': '/super-admin/dashboard',
     }
     
     user_data = {
@@ -344,6 +370,12 @@ def login(request):
         if admin:
             user_data['full_name'] = admin.full_name
             user_data['university'] = admin.university
+    elif user.role == 'super_admin':
+        super_admin_obj = SuperAdmin.objects(user=user).first()
+        if super_admin_obj:
+            user_data['full_name'] = super_admin_obj.full_name
+        else:
+            user_data['full_name'] = user.username
 
     return Response({
         'success': True,
@@ -352,8 +384,6 @@ def login(request):
         'user': user_data,
         'redirect_url': redirect_urls.get(user.role, '/dashboard'),
     })
-
-
 @api_view(['POST'])
 def initiate_signup(request):
     import traceback
@@ -7894,4 +7924,837 @@ def public_offers_by_company(request, company_id):
 
         return Response({'success': True, 'offers': result})
     except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+# ==================== SUPER ADMIN AUTH ====================
+
+@api_view(['POST'])
+def super_admin_login(request):
+    """تسجيل دخول Super Admin مع إرسال OTP"""
+    try:
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        if not email or not password:
+            return Response({'success': False, 'error': 'Email and password required'}, status=400)
+
+        # البحث عن المستخدم
+        user = User.objects(email=email, is_super_admin=True).first()
+        
+        if not user:
+            return Response({'success': False, 'error': 'Invalid credentials'}, status=401)
+
+        # التحقق من كلمة المرور
+        if not user.check_password(password):
+            return Response({'success': False, 'error': 'Invalid credentials'}, status=401)
+
+        # التحقق من حالة الحساب
+        if not user.status:
+            return Response({'success': False, 'error': 'Account is not active'}, status=403)
+
+        # إرسال OTP
+        temp_data = {
+            'action': 'super_admin_login',
+            'user_id': str(user.id),
+            'email': email
+        }
+        
+        code = create_otp_verification(email, temp_data)
+        
+        # إرسال البريد الإلكتروني
+        try:
+            send_otp_email(email, code, "login_2fa")
+        except Exception as e:
+            print(f"⚠️ Error sending OTP email: {e}")
+        
+        print(f"🔐 Super Admin OTP for {email}: {code}")  # للتصحيح
+
+        return Response({
+            'success': True,
+            'requires_otp': True,
+            'message': 'Verification code sent to your email',
+            'email': email
+        })
+
+    except Exception as e:
+        print(f"❌ Error in super_admin_login: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+def super_admin_verify_otp(request):
+    """التحقق من OTP وإكمال تسجيل الدخول"""
+    try:
+        email = request.data.get('email')
+        code = request.data.get('code')
+
+        if not email or not code:
+            return Response({'success': False, 'error': 'Email and code required'}, status=400)
+
+        # التحقق من OTP
+        temp_data, error = verify_otp_code(email, code)
+
+        if error:
+            return Response({'success': False, 'error': error, 'code_invalid': True}, status=400)
+
+        if temp_data.get('action') != 'super_admin_login':
+            return Response({'success': False, 'error': 'Invalid verification'}, status=400)
+
+        # الحصول على المستخدم
+        user = User.objects(id=temp_data['user_id']).first()
+        if not user or not user.is_super_admin:
+            return Response({'success': False, 'error': 'User not found or not super admin'}, status=404)
+
+        # تحديث آخر تسجيل دخول
+        super_admin = SuperAdmin.objects(user=user).first()
+        if super_admin:
+            super_admin.last_login = datetime.now()
+            super_admin.save()
+
+        # إنشاء التوكن
+        token = create_token(user)
+
+        return Response({
+            'success': True,
+            'message': 'Login successful',
+            'token': token,
+            'user': {
+                'id': str(user.id),
+                'email': user.email,
+                'role': 'super_admin',
+                'full_name': super_admin.full_name if super_admin else user.username
+            },
+            'redirect_url': '/super-admin/dashboard'
+        })
+
+    except Exception as e:
+        print(f"❌ Error in super_admin_verify_otp: {str(e)}")
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+def super_admin_resend_otp(request):
+    """إعادة إرسال OTP"""
+    try:
+        email = request.data.get('email')
+        
+        if not email:
+            return Response({'success': False, 'error': 'Email required'}, status=400)
+
+        user = User.objects(email=email, is_super_admin=True).first()
+        if not user:
+            return Response({'success': False, 'error': 'User not found'}, status=404)
+
+        temp_data = {
+            'action': 'super_admin_login',
+            'user_id': str(user.id),
+            'email': email
+        }
+        
+        code = create_otp_verification(email, temp_data)
+        
+        try:
+            send_otp_email(email, code, "login_2fa")
+        except Exception as e:
+            print(f"⚠️ Error sending OTP email: {e}")
+        
+        print(f"🔐 Super Admin OTP resent for {email}: {code}")
+
+        return Response({
+            'success': True,
+            'message': 'Verification code resent to your email'
+        })
+
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+# ==================== SUPER ADMIN DASHBOARD & MANAGEMENT ====================
+
+@api_view(['GET'])
+@jwt_authenticated
+def super_admin_dashboard(request):
+    """لوحة تحكم Super Admin - يجب أن يكون المستخدم Super Admin"""
+    try:
+        user = request.user
+        
+        if not user.is_super_admin:
+            return Response({'success': False, 'error': 'Access denied. Super Admin only.'}, status=403)
+
+        # الحصول على الإحصائيات العامة
+        total_users = User.objects().count()
+        total_students = Student.objects().count()
+        total_companies = Company.objects().count()
+        total_admins = Admin.objects().count()
+        total_offers = InternshipOffer.objects().count()
+        total_applications = Application.objects().count()
+        total_notifications = Notification.objects().count()
+        
+        # إحصائيات إضافية
+        active_users = User.objects(status=True).count()
+        pending_users = User.objects(status=False).count()
+        active_offers = InternshipOffer.objects(is_active=True).count()
+        pending_applications = Application.objects(status='pending').count()
+        accepted_applications = Application.objects(status='accepted_by_company').count()
+        validated_applications = Application.objects(status='validated_by_co_dept').count()
+        
+        # الشركات حسب الصناعة
+        companies_by_industry = []
+        industries = Company.objects().distinct('industry')
+        for industry in industries[:20]:
+            if industry:
+                companies_by_industry.append({
+                    'industry': industry,
+                    'count': Company.objects(industry=industry).count()
+                })
+        
+        # العروض حسب النوع
+        offers_by_type = []
+        for offer_type in ['PFE', 'ouvrier', 'technicien', 'été']:
+            offers_by_type.append({
+                'type': offer_type,
+                'count': InternshipOffer.objects(internship_type=offer_type).count()
+            })
+        
+        # إنشاء سجل النشاط
+        try:
+            from .activity_logger import log_activity
+            log_activity(
+                user=user,
+                action_type='super_admin_access',
+                target_type='dashboard',
+                target_id='',
+                target_name='Super Admin Dashboard',
+                details={'action': 'dashboard_view'}
+            )
+        except:
+            pass
+
+        return Response({
+            'success': True,
+            'stats': {
+                'users': {
+                    'total': total_users,
+                    'active': active_users,
+                    'pending': pending_users,
+                    'students': total_students,
+                    'companies': total_companies,
+                    'admins': total_admins
+                },
+                'offers': {
+                    'total': total_offers,
+                    'active': active_offers,
+                    'by_type': offers_by_type
+                },
+                'applications': {
+                    'total': total_applications,
+                    'pending': pending_applications,
+                    'accepted': accepted_applications,
+                    'validated': validated_applications
+                },
+                'notifications': total_notifications,
+                'companies_by_industry': companies_by_industry
+            }
+        })
+
+    except Exception as e:
+        print(f"❌ Error in super_admin_dashboard: {str(e)}")
+        traceback.print_exc()
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+# ==================== SUPER ADMIN USER MANAGEMENT ====================
+
+@api_view(['GET'])
+@jwt_authenticated
+def super_admin_get_users(request):
+    """الحصول على جميع المستخدمين مع إمكانية الفلترة"""
+    try:
+        user = request.user
+        if not user.is_super_admin:
+            return Response({'success': False, 'error': 'Access denied'}, status=403)
+
+        # معاملات الفلترة
+        role = request.query_params.get('role', '')
+        status_filter = request.query_params.get('status', '')
+        search = request.query_params.get('search', '')
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 50))
+
+        # بناء الاستعلام
+        query = {}
+        if role:
+            query['role'] = role
+        if status_filter == 'active':
+            query['status'] = True
+        elif status_filter == 'inactive':
+            query['status'] = False
+        if search:
+            query['$or'] = [
+                {'username': {'$regex': search, '$options': 'i'}},
+                {'email': {'$regex': search, '$options': 'i'}}
+            ]
+
+        users = User.objects(**query).skip((page - 1) * page_size).limit(page_size)
+        total = User.objects(**query).count()
+
+        result = []
+        for u in users:
+            user_data = {
+                'id': str(u.id),
+                'username': u.username,
+                'email': u.email,
+                'role': u.role,
+                'sub_role': u.sub_role,
+                'status': u.status,
+                'is_super_admin': u.is_super_admin,
+                'created_at': u.created_at.strftime('%Y-%m-%d %H:%M:%S') if u.created_at else None,
+                'last_activity': u.last_activity.strftime('%Y-%m-%d %H:%M:%S') if u.last_activity else None,
+            }
+            
+            # معلومات إضافية حسب الدور
+            if u.role == 'student':
+                student = Student.objects(user=u).first()
+                if student:
+                    user_data['full_name'] = student.full_name
+                    user_data['university'] = student.university
+                    user_data['major'] = student.major
+                    user_data['is_placed'] = student.is_placed
+            elif u.role == 'company':
+                company = Company.objects(user=u).first()
+                if company:
+                    user_data['company_name'] = company.company_name
+                    user_data['industry'] = company.industry
+            elif u.role == 'admin':
+                admin = Admin.objects(user=u).first()
+                if admin:
+                    user_data['full_name'] = admin.full_name
+                    user_data['university'] = admin.university
+            
+            result.append(user_data)
+
+        return Response({
+            'success': True,
+            'users': result,
+            'total': total,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': (total + page_size - 1) // page_size
+        })
+
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@jwt_authenticated
+def super_admin_manage_user(request, user_id):
+    """إدارة مستخدم معين (عرض، تعديل، حذف)"""
+    try:
+        super_user = request.user
+        if not super_user.is_super_admin:
+            return Response({'success': False, 'error': 'Access denied'}, status=403)
+
+        target_user = User.objects(id=user_id).first()
+        if not target_user:
+            return Response({'success': False, 'error': 'User not found'}, status=404)
+
+        # لا يمكن حذف أو تعديل الـ Super Admin نفسه من هنا
+        if target_user.is_super_admin and str(target_user.id) != str(super_user.id):
+            return Response({'success': False, 'error': 'Cannot modify another super admin'}, status=403)
+
+        if request.method == 'GET':
+            # عرض تفاصيل المستخدم
+            user_data = {
+                'id': str(target_user.id),
+                'username': target_user.username,
+                'email': target_user.email,
+                'role': target_user.role,
+                'sub_role': target_user.sub_role,
+                'status': target_user.status,
+                'is_super_admin': target_user.is_super_admin,
+                'created_at': target_user.created_at.strftime('%Y-%m-%d %H:%M:%S') if target_user.created_at else None,
+                'bio': getattr(target_user, 'bio', ''),
+                'phone': getattr(target_user, 'phone', ''),
+                'profile_picture': target_user.profile_picture,
+            }
+            
+            # معلومات إضافية
+            if target_user.role == 'student':
+                student = Student.objects(user=target_user).first()
+                if student:
+                    user_data['student_profile'] = {
+                        'full_name': student.full_name,
+                        'wilaya': student.wilaya,
+                        'skills': student.skills,
+                        'university': student.university,
+                        'major': student.major,
+                        'education_level': student.education_level,
+                        'graduation_year': student.graduation_year,
+                        'is_placed': student.is_placed,
+                        'github': student.github,
+                        'portfolio': student.portfolio
+                    }
+            elif target_user.role == 'company':
+                company = Company.objects(user=target_user).first()
+                if company:
+                    user_data['company_profile'] = {
+                        'company_name': company.company_name,
+                        'description': company.description,
+                        'location': company.location,
+                        'industry': company.industry,
+                        'website': company.website,
+                        'verified': company.verified
+                    }
+            elif target_user.role == 'admin':
+                admin = Admin.objects(user=target_user).first()
+                if admin:
+                    user_data['admin_profile'] = {
+                        'full_name': admin.full_name,
+                        'wilaya': admin.wilaya,
+                        'university': admin.university
+                    }
+
+            return Response({'success': True, 'user': user_data})
+
+        elif request.method == 'PUT':
+            # تعديل المستخدم
+            data = request.data
+            
+            if 'status' in data:
+                target_user.status = data['status']
+            
+            if 'sub_role' in data:
+                target_user.sub_role = data['sub_role']
+            
+            if 'username' in data:
+                # التحقق من عدم وجود اسم مستخدم مكرر
+                existing = User.objects(username=data['username']).first()
+                if existing and str(existing.id) != user_id:
+                    return Response({'success': False, 'error': 'Username already exists'}, status=400)
+                target_user.username = data['username']
+            
+            if 'email' in data:
+                existing = User.objects(email=data['email']).first()
+                if existing and str(existing.id) != user_id:
+                    return Response({'success': False, 'error': 'Email already exists'}, status=400)
+                target_user.email = data['email']
+            
+            if 'password' in data and data['password']:
+                target_user.set_password(data['password'])
+            
+            target_user.save()
+            
+            # تسجيل النشاط
+            try:
+                from .activity_logger import log_activity
+                log_activity(
+                    user=super_user,
+                    action_type='super_admin_update_user',
+                    target_type='user',
+                    target_id=user_id,
+                    target_name=target_user.username,
+                    details={'updated_fields': list(data.keys())}
+                )
+            except:
+                pass
+            
+            return Response({'success': True, 'message': 'User updated successfully'})
+
+        elif request.method == 'DELETE':
+            # حذف المستخدم
+            if str(target_user.id) == str(super_user.id):
+                return Response({'success': False, 'error': 'Cannot delete yourself'}, status=400)
+            
+            # حذف البيانات المرتبطة
+            if target_user.role == 'student':
+                Student.objects(user=target_user).delete()
+            elif target_user.role == 'company':
+                # حذف الشركة والعروض المرتبطة بها
+                company = Company.objects(user=target_user).first()
+                if company:
+                    InternshipOffer.objects(company=company).delete()
+                    company.delete()
+            elif target_user.role == 'admin':
+                Admin.objects(user=target_user).delete()
+            
+            # حذف المستخدم
+            target_user.delete()
+            
+            return Response({'success': True, 'message': 'User deleted successfully'})
+
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+# ==================== SUPER ADMIN COMPANY MANAGEMENT ====================
+
+@api_view(['GET'])
+@jwt_authenticated
+def super_admin_get_companies(request):
+    """الحصول على جميع الشركات"""
+    try:
+        user = request.user
+        if not user.is_super_admin:
+            return Response({'success': False, 'error': 'Access denied'}, status=403)
+
+        companies = Company.objects().order_by('-created_at')
+        
+        result = []
+        for company in companies:
+            offers_count = InternshipOffer.objects(company=company).count()
+            applications_count = 0
+            for offer in InternshipOffer.objects(company=company):
+                applications_count += Application.objects(offer=offer).count()
+            
+            # جلب الملف الشخصي للشركة إذا وجد
+            company_profile = CompanyProfile.objects(company_id=str(company.id)).first()
+            
+            result.append({
+                'id': str(company.id),
+                'company_name': company.company_name,
+                'user_id': str(company.user.id) if company.user else None,
+                'email': company.user.email if company.user else None,
+                'description': company.description,
+                'location': company.location,
+                'industry': company.industry,
+                'website': company.website,
+                'verified': company.verified,
+                'offers_count': offers_count,
+                'applications_count': applications_count,
+                'has_profile': company_profile is not None,
+                'created_at': company.created_at.strftime('%Y-%m-%d %H:%M:%S') if hasattr(company, 'created_at') and company.created_at else None
+            })
+
+        return Response({'success': True, 'companies': result})
+
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET', 'DELETE'])
+@jwt_authenticated
+def super_admin_manage_company(request, company_id):
+    """إدارة شركة معينة (عرض، حذف)"""
+    try:
+        user = request.user
+        if not user.is_super_admin:
+            return Response({'success': False, 'error': 'Access denied'}, status=403)
+
+        company = Company.objects(id=company_id).first()
+        if not company:
+            return Response({'success': False, 'error': 'Company not found'}, status=404)
+
+        if request.method == 'GET':
+            offers = InternshipOffer.objects(company=company)
+            applications = []
+            for offer in offers:
+                for app in Application.objects(offer=offer):
+                    applications.append({
+                        'id': str(app.id),
+                        'student_name': app.student.full_name if app.student else None,
+                        'offer_title': offer.title,
+                        'status': app.status,
+                        'applied_at': app.applied_at.strftime('%Y-%m-%d %H:%M:%S') if app.applied_at else None
+                    })
+
+            return Response({
+                'success': True,
+                'company': {
+                    'id': str(company.id),
+                    'company_name': company.company_name,
+                    'description': company.description,
+                    'location': company.location,
+                    'industry': company.industry,
+                    'website': company.website,
+                    'verified': company.verified,
+                    'email': company.user.email if company.user else None,
+                    'offers_count': offers.count(),
+                    'applications': applications
+                }
+            })
+
+        elif request.method == 'DELETE':
+            # حذف الشركة وجميع البيانات المرتبطة
+            # حذف العروض
+            for offer in InternshipOffer.objects(company=company):
+                Application.objects(offer=offer).delete()
+                offer.delete()
+            
+            # حذف الملف الشخصي
+            CompanyProfile.objects(company_id=str(company.id)).delete()
+            
+            # حذف المستخدم المرتبط
+            if company.user:
+                company.user.delete()
+            
+            company.delete()
+            
+            return Response({'success': True, 'message': 'Company deleted successfully'})
+
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+# ==================== SUPER ADMIN UNIVERSITY MANAGEMENT ====================
+
+@api_view(['GET'])
+@jwt_authenticated
+def super_admin_get_universities(request):
+    """الحصول على جميع الجامعات"""
+    try:
+        user = request.user
+        if not user.is_super_admin:
+            return Response({'success': False, 'error': 'Access denied'}, status=403)
+
+        # الحصول على الجامعات من Admins
+        admins = Admin.objects()
+        universities_dict = {}
+        
+        for admin in admins:
+            uni = admin.university
+            if uni not in universities_dict:
+                universities_dict[uni] = {
+                    'name': uni,
+                    'admins_count': 0,
+                    'students_count': 0,
+                    'applications_count': 0
+                }
+            universities_dict[uni]['admins_count'] += 1
+        
+        # حساب عدد الطلاب لكل جامعة
+        students = Student.objects()
+        for student in students:
+            uni = student.university
+            if uni in universities_dict:
+                universities_dict[uni]['students_count'] += 1
+            
+            # حساب عدد الطلبات
+            apps = Application.objects(student=student)
+            if uni in universities_dict:
+                universities_dict[uni]['applications_count'] += apps.count()
+        
+        # الحصول على الملفات الشخصية للجامعات
+        university_profiles = UniversityProfile.objects()
+        for profile in university_profiles:
+            if profile.university in universities_dict:
+                universities_dict[profile.university]['has_profile'] = True
+                universities_dict[profile.university]['profile_name'] = profile.name
+                universities_dict[profile.university]['logo'] = profile.logo
+        
+        result = list(universities_dict.values())
+
+        return Response({'success': True, 'universities': result})
+
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+# ==================== SUPER ADMIN OFFERS MANAGEMENT ====================
+
+@api_view(['GET'])
+@jwt_authenticated
+def super_admin_get_offers(request):
+    """الحصول على جميع عروض التدريب"""
+    try:
+        user = request.user
+        if not user.is_super_admin:
+            return Response({'success': False, 'error': 'Access denied'}, status=403)
+
+        offers = InternshipOffer.objects().order_by('-created_at')
+        
+        result = []
+        for offer in offers:
+            applications_count = Application.objects(offer=offer).count()
+            
+            result.append({
+                'id': str(offer.id),
+                'title': offer.title,
+                'company_name': offer.company_name,
+                'company_id': str(offer.company.id) if offer.company else None,
+                'wilaya': offer.wilaya,
+                'internship_type': offer.internship_type,
+                'duration': offer.duration,
+                'is_active': offer.is_active,
+                'applications_count': applications_count,
+                'created_at': offer.created_at.strftime('%Y-%m-%d %H:%M:%S') if offer.created_at else None,
+                'deadline': offer.deadline.strftime('%Y-%m-%d') if offer.deadline else None
+            })
+
+        return Response({'success': True, 'offers': result})
+
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+# ==================== SUPER ADMIN APPLICATIONS MANAGEMENT ====================
+
+@api_view(['GET'])
+@jwt_authenticated
+def super_admin_get_applications(request):
+    """الحصول على جميع طلبات التقديم"""
+    try:
+        user = request.user
+        if not user.is_super_admin:
+            return Response({'success': False, 'error': 'Access denied'}, status=403)
+
+        status_filter = request.query_params.get('status', '')
+        
+        if status_filter:
+            applications = Application.objects(status=status_filter).order_by('-applied_at')
+        else:
+            applications = Application.objects().order_by('-applied_at')
+        
+        result = []
+        for app in applications:
+            result.append({
+                'id': str(app.id),
+                'student_name': app.student.full_name if app.student else None,
+                'student_email': app.student.user.email if app.student and app.student.user else None,
+                'offer_title': app.offer.title if app.offer else None,
+                'company_name': app.offer.company.company_name if app.offer and app.offer.company else None,
+                'status': app.status,
+                'applied_at': app.applied_at.strftime('%Y-%m-%d %H:%M:%S') if app.applied_at else None,
+            })
+
+        return Response({'success': True, 'applications': result})
+
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+# ==================== SUPER ADMIN STATS ====================
+
+@api_view(['GET'])
+@jwt_authenticated
+def super_admin_get_stats(request):
+    """الحصول على إحصائيات مفصلة للنظام"""
+    try:
+        user = request.user
+        if not user.is_super_admin:
+            return Response({'success': False, 'error': 'Access denied'}, status=403)
+
+        # إحصائيات المستخدمين
+        users_by_role = {
+            'student': User.objects(role='student').count(),
+            'company': User.objects(role='company').count(),
+            'admin': User.objects(role='admin').count(),
+        }
+        
+        # إحصائيات التطبيقات حسب الحالة
+        applications_by_status = {}
+        for status in ['pending', 'accepted_by_company', 'rejected_by_company', 'validated_by_co_dept', 'rejected_by_co_dept']:
+            applications_by_status[status] = Application.objects(status=status).count()
+        
+        # آخر 10 مستخدمين مسجلين
+        recent_users = []
+        for u in User.objects().order_by('-created_at').limit(10):
+            recent_users.append({
+                'id': str(u.id),
+                'username': u.username,
+                'email': u.email,
+                'role': u.role,
+                'created_at': u.created_at.strftime('%Y-%m-%d %H:%M:%S') if u.created_at else None
+            })
+        
+        # آخر 10 طلبات
+        recent_applications = []
+        for app in Application.objects().order_by('-applied_at').limit(10):
+            recent_applications.append({
+                'id': str(app.id),
+                'student_name': app.student.full_name if app.student else None,
+                'offer_title': app.offer.title if app.offer else None,
+                'status': app.status,
+                'applied_at': app.applied_at.strftime('%Y-%m-%d %H:%M:%S') if app.applied_at else None
+            })
+        
+        # آخ 5 أيام نشاط
+        from datetime import timedelta
+        daily_stats = []
+        for i in range(5):
+            date = datetime.now() - timedelta(days=i)
+            date_start = datetime(date.year, date.month, date.day, 0, 0, 0)
+            date_end = date_start + timedelta(days=1)
+            
+            new_users = User.objects(created_at__gte=date_start, created_at__lt=date_end).count()
+            new_applications = Application.objects(applied_at__gte=date_start, applied_at__lt=date_end).count()
+            
+            daily_stats.append({
+                'date': date.strftime('%Y-%m-%d'),
+                'new_users': new_users,
+                'new_applications': new_applications
+            })
+
+        return Response({
+            'success': True,
+            'stats': {
+                'total_users': User.objects().count(),
+                'users_by_role': users_by_role,
+                'total_offers': InternshipOffer.objects().count(),
+                'total_applications': Application.objects().count(),
+                'applications_by_status': applications_by_status,
+                'total_notifications': Notification.objects().count(),
+                'total_companies': Company.objects().count(),
+                'total_universities': Admin.objects().distinct('university').count(),
+                'recent_users': recent_users,
+                'recent_applications': recent_applications,
+                'daily_stats': daily_stats
+            }
+        })
+
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+def verify_super_admin_otp(request):
+    """التحقق من OTP لـ Super Admin"""
+    try:
+        email = request.data.get('email')
+        code = request.data.get('code')
+
+        if not email or not code:
+            return Response({'success': False, 'error': 'Email and code required'}, status=400)
+
+        temp_data, error = verify_otp_code(email, code)
+
+        if error:
+            return Response({'success': False, 'error': error, 'code_invalid': True}, status=400)
+
+        if temp_data.get('action') != 'super_admin_login':
+            return Response({'success': False, 'error': 'Invalid verification'}, status=400)
+
+        user = User.objects(id=temp_data['user_id']).first()
+        if not user or not user.is_super_admin:
+            return Response({'success': False, 'error': 'User not found or not super admin'}, status=404)
+
+        # تحديث آخر تسجيل دخول
+        super_admin_obj = SuperAdmin.objects(user=user).first()
+        if super_admin_obj:
+            super_admin_obj.last_login = datetime.now()
+            super_admin_obj.save()
+
+        token = create_token(user)
+
+        user_data = {
+            'id': str(user.id),
+            'username': user.username,
+            'email': user.email,
+            'role': 'super_admin',
+            'sub_role': 'super_admin',
+        }
+        
+        if super_admin_obj:
+            user_data['full_name'] = super_admin_obj.full_name
+
+        return Response({
+            'success': True,
+            'message': 'Login successful',
+            'token': token,
+            'user': user_data,
+            'redirect_url': '/super-admin/dashboard'
+        })
+
+    except Exception as e:
+        print(f"❌ Error in verify_super_admin_otp: {str(e)}")
         return Response({'success': False, 'error': str(e)}, status=500)

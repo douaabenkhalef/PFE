@@ -201,5 +201,20 @@ path('student/offers/applicants-counts/', views.get_all_offers_applicants_counts
 
 
 
+    # ==================== SUPER ADMIN ====================
+    path('super-admin/dashboard/', views.super_admin_dashboard, name='super-admin-dashboard'),
+    path('super-admin/login/', views.super_admin_login, name='super-admin-login'),
+    path('super-admin/verify-otp/', views.super_admin_verify_otp, name='super-admin-verify-otp'),
+    path('super-admin/resend-otp/', views.super_admin_resend_otp, name='super-admin-resend-otp'),
+    path('super-admin/users/', views.super_admin_get_users, name='super-admin-users'),
+    path('super-admin/users/<str:user_id>/', views.super_admin_manage_user, name='super-admin-user'),
+    path('super-admin/companies/', views.super_admin_get_companies, name='super-admin-companies'),
+    path('super-admin/companies/<str:company_id>/', views.super_admin_manage_company, name='super-admin-company'),
+    path('super-admin/universities/', views.super_admin_get_universities, name='super-admin-universities'),
+    path('super-admin/offers/', views.super_admin_get_offers, name='super-admin-offers'),
+    path('super-admin/applications/', views.super_admin_get_applications, name='super-admin-applications'),
+    path('super-admin/stats/', views.super_admin_get_stats, name='super-admin-stats'),
+    path('auth/verify-super-admin-otp/', views.verify_super_admin_otp, name='verify-super-admin-otp'),
+
     
 ]

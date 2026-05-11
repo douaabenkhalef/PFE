@@ -30,6 +30,7 @@ import AdminMyProfile from './page/AdminMyProfile';
 import AboutUs from './page/AboutUs';
 import UniversityTeam from './page/UniversityTeam';
 import CompanyPublicView from './page/CompanyPublicView';
+import SuperAdminDashboard from './page/SuperAdminDashboard';
 import './App.css';
 
 // Composant qui applique la langue sauvegardée
@@ -171,6 +172,13 @@ useEffect(() => {
                 <AdminMyProfile />
               </ProtectedRoute>
             } />
+
+            {/* Super Admin Route */}
+<Route path="/super-admin/dashboard" element={
+  <ProtectedRoute allowedRoles={['super_admin']}>
+    <SuperAdminDashboard />
+  </ProtectedRoute>
+} />
             
             {/* Common Routes */}
             <Route path="/university/team" element={

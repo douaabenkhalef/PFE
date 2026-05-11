@@ -460,8 +460,11 @@ const AuthPage = () => {
     try {
       const result = await login(loginData.email, loginData.password);
       
+      console.log("Login result:", result);
+      
       if (result.success) {
-        if (result.requires_2fa) {
+        // 🔥 شرط واحد لـ 2FA و Super Admin OTP
+        if (result.requires_2fa || result.requires_otp) {
           setPending2FAEmail(result.email);
           setShow2FAModal(true);
           setOtp2FACode(['', '', '', '', '', '']);
