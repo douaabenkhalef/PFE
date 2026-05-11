@@ -9,13 +9,13 @@
     
     <script>
       (function() {
-        // فقط تطبيق light mode إذا كان محفوظاً
+        
         const savedMode = localStorage.getItem('darkMode');
         if (savedMode === 'false') {
           document.body.classList.add('light-mode');
         }
         
-        // الاستماع لتغييرات الوضع
+        
         window.addEventListener('themeChange', function(e) {
           if (e.detail && e.detail.isDark === false) {
             document.body.classList.add('light-mode');
@@ -24,7 +24,7 @@
           }
         });
         
-        // مراقبة تغييرات localStorage
+        
         window.addEventListener('storage', function(e) {
           if (e.key === 'darkMode') {
             if (e.newValue === 'false') {
@@ -37,7 +37,7 @@
       })();
     </script>
     
-    <!-- لا توجد أي styles هنا حتى لا تؤثر على dark mode -->
+   
     
   </head>
   <body>
