@@ -905,12 +905,12 @@ body.light-mode .filter-toggle-btn svg {
   color: #8D23D4 !important;
 }
 
-/* أيقونة الفلتر الصغيرة */
+
 body.light-mode .filter-icon-small {
   color: #8D23D4 !important;
 }
 
-/* زر الفلتر في شريط البحث */
+
 body.light-mode .search-bar .filter-btn,
 body.light-mode .sd-search-bar .filter-btn {
   background: transparent !important;
