@@ -31,7 +31,7 @@ def test_mongo_connection():
     print(f' Base de données: {db_name}')
     
     try:
-        # Tenter la connexion
+       
         client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
         client.admin.command('ping')
         print(' Connexion MongoDB réussie!')
