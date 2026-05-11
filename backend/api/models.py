@@ -79,7 +79,7 @@ class User(Document):
         """Vérifie si l'utilisateur est en ligne (activité dans les 5 dernières minutes)"""
         if not self.last_activity:
             return False
-        return (datetime.now() - self.last_activity).seconds < 300  # 5 minutes
+        return (datetime.now() - self.last_activity).seconds < 300  
     
     def __str__(self):
         return f"{self.email} - {self.role}"
