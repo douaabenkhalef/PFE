@@ -13,7 +13,7 @@ import UserAvatar from '../components/UserAvatar';
 const BASE_URL = 'https://pfe-l31r.onrender.com/api';
 const BACKEND  = 'https://pfe-l31r.onrender.com';
 const imgUrl   = (url) => { if (!url) return null; if (url.startsWith('http')) return url; return `${BACKEND}${url}`; };
-const TYPES    = ['PFE', 'worker', 'technician', 'summer'];
+const TYPES    = ['PFE', 'ouvrier', 'technicien', 'été'];
 const WILAYAS  = [
   'Adrar','Chlef','Laghouat','Oum El Bouaghi','Batna','Béjaïa','Biskra','Béchar','Blida','Bouira',
   'Tamanrasset','Tébessa','Tlemcen','Tiaret','Tizi Ouzou','Alger','Djelfa','Jijel','Sétif','Saïda',
