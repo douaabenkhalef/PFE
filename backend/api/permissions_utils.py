@@ -4,8 +4,19 @@ from datetime import datetime
 def get_user_permissions(user):
     """Récupère les permissions d'un utilisateur"""
     try:
+        # 1. Vérifier la référence directe sur l'objet user
         if user.permissions:
             return user.permissions
+        
+        # 2. Chercher dans la collection par user_id (sécurité si la référence est cassée)
+        existing_perm = UserPermission.objects(user_id=str(user.id)).first()
+        if existing_perm:
+            # Réparer la référence si elle était cassée
+            user.permissions = existing_perm
+            user.save()
+            return existing_perm
+        
+        # 3. Seulement créer des permissions par défaut si aucune n'existe en DB
         return create_default_permissions(user)
     except Exception as e:
         print(f"Erreur récupération permissions: {e}")
@@ -16,7 +27,7 @@ def create_default_permissions(user):
     try:
         if user.role == 'company':
             if user.sub_role == 'company_manager':
-                # Company Manager a TOUTES les permissions
+                
                 perm = UserPermission(
                     user_id=str(user.id),
                     can_manage_applications=True,
@@ -26,19 +37,20 @@ def create_default_permissions(user):
                     can_delete_offer=True,
                     can_manage_company_profile=True
                 )
-            else:  # hiring_manager
-                # Hiring Manager a des permissions limitées (modify = True par défaut)
+            else:  
+                
                 perm = UserPermission(
                     user_id=str(user.id),
                     can_manage_applications=True,
                     can_manage_hiring_managers=False,
                     can_create_offer=True,
-                    can_modify_offer=True,    # AJOUTÉ: permet la modification
-                    can_delete_offer=False,   # RESTREINT: suppression désactivée par défaut
+                    can_modify_offer=True,
+                    can_delete_offer=True,
                     can_manage_company_profile=False
                 )
         elif user.role == 'admin':
-            if user.sub_role == 'admin':
+            if user.sub_role == 'admin':  
+               
                 perm = UserPermission(
                     user_id=str(user.id),
                     can_manage_conventions=True,
@@ -47,7 +59,8 @@ def create_default_permissions(user):
                     can_add_stamp=True,
                     can_manage_university_profile=True
                 )
-            else:  # co_dept_head
+            else:  
+                
                 perm = UserPermission(
                     user_id=str(user.id),
                     can_manage_conventions=True,
@@ -91,24 +104,6 @@ def update_user_permissions(user_id, permissions_data):
 def check_permission(user, permission_name):
     """Vérifie si un utilisateur a une permission spécifique"""
     try:
-        # Super Admin a toutes les permissions
-        if user.is_super_admin:
-            return True
-        
-        # Company Manager a toutes les permissions company
-        if user.role == 'company' and user.sub_role == 'company_manager':
-            if permission_name in ['can_manage_applications', 'can_manage_hiring_managers', 
-                                    'can_create_offer', 'can_modify_offer', 'can_delete_offer', 
-                                    'can_manage_company_profile']:
-                return True
-        
-        # Admin (Department Head) a toutes les permissions admin
-        if user.role == 'admin' and user.sub_role == 'admin':
-            if permission_name in ['can_manage_conventions', 'can_manage_co_dept_heads',
-                                    'can_add_signature', 'can_add_stamp', 'can_manage_university_profile']:
-                return True
-        
-        # Sinon, vérifier les permissions stockées
         perm = get_user_permissions(user)
         if perm and hasattr(perm, permission_name):
             return getattr(perm, permission_name)

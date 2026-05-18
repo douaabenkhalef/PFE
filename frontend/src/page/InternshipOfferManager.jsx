@@ -13,9 +13,15 @@ import UserAvatar from '../components/UserAvatar';
 const BASE_URL = 'https://pfe-l31r.onrender.com/api';
 const BACKEND  = 'https://pfe-l31r.onrender.com';
 const imgUrl   = (url) => { if (!url) return null; if (url.startsWith('http')) return url; return `${BACKEND}${url}`; };
-const TYPES    = ['PFE', 'ouvrier', 'technicien', 'été'];
+// Les valeurs doivent correspondre exactement aux choix du modèle backend
+const TYPES = [
+  { value: 'PFE',        label: 'PFE' },
+  { value: 'ouvrier',    label: 'Ouvrier' },
+  { value: 'technicien', label: 'Technicien' },
+  { value: 'été',        label: 'Stage d\'été' },
+];
 const WILAYAS  = [
-  'adrar','Chlef','Laghouat','Oum El Bouaghi','Batna','Béjaïa','Biskra','Béchar','Blida','Bouira',
+  'Adrar','Chlef','Laghouat','Oum El Bouaghi','Batna','Béjaïa','Biskra','Béchar','Blida','Bouira',
   'Tamanrasset','Tébessa','Tlemcen','Tiaret','Tizi Ouzou','Alger','Djelfa','Jijel','Sétif','Saïda',
   'Skikda','Sidi Bel Abbès','Annaba','Guelma','Constantine','Médéa','Mostaganem',"M'Sila",'Mascara',
   'Ouargla','Oran','El Bayadh','Illizi','Bordj Bou Arreridj','Boumerdès','El Tarf','Tindouf',
@@ -81,7 +87,7 @@ function OfferForm({ initial, onSubmit, submitLabel, submitting }) {
         <label className="block text-xs text-slate-400 mb-1 font-medium">Internship Type <span className="text-red-400">*</span></label>
         <select className={inp} value={f.internship_type} onChange={set('internship_type')} required>
           <option value="">-- Select Type --</option>
-          {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+          {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
       </div>
       <div>
@@ -145,6 +151,13 @@ export default function InternshipOfferManager() {
   const [fActive, setFActive] = useState('');
 
   const isCompanyManager = user?.sub_role === 'company_manager';
+  const [userPermissions, setUserPermissions] = useState(null);
+
+  // Le company_manager peut TOUJOURS modifier/supprimer/créer.
+  // Le hiring_manager dépend de ses permissions définies par le manager.
+  const canModify = isCompanyManager || (userPermissions?.can_modify_offer === true);
+  const canDelete = isCompanyManager || (userPermissions?.can_delete_offer === true);
+  const canCreate = isCompanyManager || (userPermissions?.can_create_offer === true);
 
   const auth = () => ({
     'Content-Type': 'application/json',
@@ -174,6 +187,16 @@ export default function InternshipOfferManager() {
   useEffect(() => {
     if (activeTab === 'list') loadOffers();
   }, [activeTab]);
+
+  // Charger les permissions pour le hiring_manager
+  useEffect(() => {
+    if (!isCompanyManager) {
+      fetch(`${BASE_URL}/company/my-permissions/`, { headers: auth() })
+        .then(r => r.json())
+        .then(data => { if (data.success) setUserPermissions(data.permissions); })
+        .catch(() => {});
+    }
+  }, [isCompanyManager]);
 
   const handleCreate = async (f) => {
     setSubmitting(true); setMsg(null);
@@ -359,24 +382,28 @@ export default function InternshipOfferManager() {
             >
               All Offers
             </button>
-            <button
-              onClick={() => setActiveTab('create')}
-              className={`pb-2 px-4 text-sm font-semibold transition ${
-                activeTab === 'create' ? 'text-purple-400 border-b-2 border-purple-400' : 'text-white/60 hover:text-white'
-              }`}
-            >
-              Create Offer
-            </button>
+            {canCreate && (
+              <button
+                onClick={() => setActiveTab('create')}
+                className={`pb-2 px-4 text-sm font-semibold transition ${
+                  activeTab === 'create' ? 'text-purple-400 border-b-2 border-purple-400' : 'text-white/60 hover:text-white'
+                }`}
+              >
+                Create Offer
+              </button>
+            )}
           </div>
 
           {activeTab === 'list' && (
             <>
               <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
                 <h1 className="text-2xl font-bold text-white">All Internship Offers</h1>
-                <button onClick={() => setActiveTab('create')}
-                  className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
-                  <Plus size={15} /> New Offer
-                </button>
+                {canCreate && (
+                  <button onClick={() => setActiveTab('create')}
+                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                    <Plus size={15} /> New Offer
+                  </button>
+                )}
               </div>
               <form onSubmit={(e) => { e.preventDefault(); loadOffers(search, fType, fActive); }} className="flex gap-3 mb-6 flex-wrap items-end">
                 <div className="relative flex-1 min-w-[200px]">
@@ -385,7 +412,7 @@ export default function InternshipOfferManager() {
                 </div>
                 <select className={`${inp} w-40`} value={fType} onChange={(e) => setFType(e.target.value)}>
                   <option value="">All Types</option>
-                  {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                  {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
                 <select className={`${inp} w-36`} value={fActive} onChange={(e) => setFActive(e.target.value)}>
                   <option value="">All Statuses</option>
@@ -437,8 +464,8 @@ export default function InternshipOfferManager() {
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-3">
                                 <button onClick={() => viewOffer(o.id)} title="View" className="text-indigo-400 hover:text-indigo-300 transition"><Eye size={16} /></button>
-                                <button onClick={() => openEdit(o)} title="Edit" className="text-yellow-400 hover:text-yellow-300 transition"><Pencil size={16} /></button>
-                                <button onClick={() => handleDelete(o)} title="Delete" className="text-red-400 hover:text-red-300 transition"><Trash2 size={16} /></button>
+                                {canModify && <button onClick={() => openEdit(o)} title="Edit" className="text-yellow-400 hover:text-yellow-300 transition"><Pencil size={16} /></button>}
+                                {canDelete && <button onClick={() => handleDelete(o)} title="Delete" className="text-red-400 hover:text-red-300 transition"><Trash2 size={16} /></button>}
                               </div>
                             </td>
                           </tr>
@@ -501,8 +528,8 @@ export default function InternshipOfferManager() {
               </div>
             )}
             <div className="flex gap-3 pt-2 flex-wrap">
-              <button onClick={() => { setModal(null); openEdit(modal); }} className="flex items-center gap-2 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-300 px-4 py-2 rounded-lg text-sm transition"><Pencil size={14} /> Edit</button>
-              <button onClick={() => { setModal(null); handleDelete(modal); }} className="flex items-center gap-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 px-4 py-2 rounded-lg text-sm transition"><Trash2 size={14} /> Delete</button>
+              {canModify && <button onClick={() => { setModal(null); openEdit(modal); }} className="flex items-center gap-2 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-300 px-4 py-2 rounded-lg text-sm transition"><Pencil size={14} /> Edit</button>}
+              {canDelete && <button onClick={() => { setModal(null); handleDelete(modal); }} className="flex items-center gap-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 px-4 py-2 rounded-lg text-sm transition"><Trash2 size={14} /> Delete</button>}
             </div>
           </div>
         </div>
