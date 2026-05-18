@@ -1,22 +1,12 @@
+
 from .models import User, UserPermission
 from datetime import datetime
 
 def get_user_permissions(user):
     """Récupère les permissions d'un utilisateur"""
     try:
-        # 1. Vérifier la référence directe sur l'objet user
         if user.permissions:
             return user.permissions
-        
-        # 2. Chercher dans la collection par user_id (sécurité si la référence est cassée)
-        existing_perm = UserPermission.objects(user_id=str(user.id)).first()
-        if existing_perm:
-            # Réparer la référence si elle était cassée
-            user.permissions = existing_perm
-            user.save()
-            return existing_perm
-        
-        # 3. Seulement créer des permissions par défaut si aucune n'existe en DB
         return create_default_permissions(user)
     except Exception as e:
         print(f"Erreur récupération permissions: {e}")

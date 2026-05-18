@@ -1755,8 +1755,8 @@ def update_offer(request, offer_id):
     if not company:
         return Response({'success': False, 'message': 'Company profile not found.'}, status=404)
     
-    # company_manager peut TOUJOURS modifier les offres (pas de vérification de permission)
-    # hiring_manager doit avoir can_modify_offer=True (défini par le company_manager)
+    # company_manager peut TOUJOURS modifier les offres
+    # hiring_manager doit avoir can_modify_offer=True
     if request.user.sub_role != 'company_manager':
         perms = get_user_permissions(request.user)
         if not perms or not perms.can_modify_offer:
@@ -1770,40 +1770,67 @@ def update_offer(request, offer_id):
     if not offer:
         return Response({'success': False, 'message': 'Offer not found or does not belong to your company.'}, status=404)
 
-    for field in ['title', 'description', 'wilaya', 'duration', 'is_active']:
-        if field in request.data:
-            setattr(offer, field, request.data[field])
+    # Mettre à jour les champs texte
+    text_fields = ['title', 'description', 'wilaya', 'duration']
+    for field in text_fields:
+        if field in request.data and request.data[field] is not None:
+            setattr(offer, field, request.data[field].strip())
 
+    # Mettre à jour le statut
+    if 'is_active' in request.data:
+        is_active_val = request.data['is_active']
+        if isinstance(is_active_val, str):
+            offer.is_active = is_active_val.lower() == 'true'
+        else:
+            offer.is_active = bool(is_active_val)
+
+    # Mettre à jour le type de stage
     if 'internship_type' in request.data:
-        if request.data['internship_type'] not in ['PFE', 'ouvrier', 'technicien', 'été']:
+        internship_type = request.data['internship_type']
+        if internship_type not in ['PFE', 'ouvrier', 'technicien', 'été']:
             return Response({'success': False, 'message': 'Invalid internship_type'}, status=400)
-        offer.internship_type = request.data['internship_type']
+        offer.internship_type = internship_type
 
-    if 'start_date' in request.data:
+    # Mettre à jour les dates
+    if 'start_date' in request.data and request.data['start_date']:
         try:
-            offer.start_date = datetime.strptime(request.data['start_date'], '%Y-%m-%d')
+            start_date = datetime.strptime(request.data['start_date'], '%Y-%m-%d')
+            offer.start_date = timezone.make_aware(start_date)
         except ValueError:
             return Response({'success': False, 'message': 'start_date must be YYYY-MM-DD'}, status=400)
 
-    if 'deadline' in request.data:
+    if 'deadline' in request.data and request.data['deadline']:
         try:
-            offer.deadline = datetime.strptime(request.data['deadline'], '%Y-%m-%d')
+            deadline = datetime.strptime(request.data['deadline'], '%Y-%m-%d')
+            offer.deadline = timezone.make_aware(deadline)
         except ValueError:
             return Response({'success': False, 'message': 'deadline must be YYYY-MM-DD'}, status=400)
 
+    # Mettre à jour les compétences requises
     if 'required_skills' in request.data:
         skills = request.data['required_skills']
         if isinstance(skills, str):
             skills = [s.strip() for s in skills.split(',') if s.strip()]
+        elif isinstance(skills, list):
+            skills = [s.strip() for s in skills if s and s.strip()]
+        else:
+            skills = []
         offer.required_skills = skills
 
-    if 'title' in request.data:
-        duplicate = InternshipOffer.objects(company=company, title=request.data['title']).first()
+    # Vérifier les doublons de titre (sauf pour l'offre actuelle)
+    if 'title' in request.data and request.data['title']:
+        duplicate = InternshipOffer.objects(company=company, title=request.data['title'].strip()).first()
         if duplicate and str(duplicate.id) != offer_id:
             return Response({'success': False, 'message': 'An offer with this title already exists.'}, status=400)
 
-   
+    # Mettre à jour l'image si fournie
     if 'image' in request.FILES:
+        # Supprimer l'ancienne image si elle existe
+        if offer.image:
+            try:
+                offer.image.delete()
+            except Exception as e:
+                print(f"Warning: could not delete old image: {e}")
         offer.image = request.FILES['image']
 
     offer.save()
@@ -1823,6 +1850,13 @@ def update_offer(request, offer_id):
         'offer': {
             'id': str(offer.id),
             'title': offer.title,
+            'internship_type': offer.internship_type,
+            'wilaya': offer.wilaya,
+            'duration': offer.duration,
+            'start_date': offer.start_date.strftime('%Y-%m-%d') if offer.start_date else None,
+            'deadline': offer.deadline.strftime('%Y-%m-%d') if offer.deadline else None,
+            'is_active': offer.is_active,
+            'required_skills': offer.required_skills,
             'image_url': f"/api/company/offers/{offer.id}/image/" if offer.image else None,
         }
     })
