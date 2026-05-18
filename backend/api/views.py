@@ -1618,8 +1618,21 @@ def create_offer(request):
         return Response({'success': False, 'message': 'Company profile not found.'}, status=404)
     
     perms = get_user_permissions(request.user)
-    if not perms or not perms.can_create_offer:
-        return Response({'success': False, 'error': 'You do not have permission to create offers.'}, status=403)
+    
+    # Vérification spécifique
+    if request.user.sub_role == 'company_manager':
+        if not perms or not perms.can_create_offer:
+            from .permissions_utils import update_user_permissions
+            update_user_permissions(str(request.user.id), {'can_create_offer': True})
+    elif request.user.sub_role == 'hiring_manager':
+        if not perms or not perms.can_create_offer:
+            return Response({
+                'success': False, 
+                'error': 'You do not have permission to create offers. Please contact your Company Manager.'
+            }, status=403)
+    else:
+        if not perms or not perms.can_create_offer:
+            return Response({'success': False, 'error': 'You do not have permission to create offers.'}, status=403)
 
     required = ['title', 'description', 'wilaya', 'internship_type', 'duration', 'start_date', 'deadline']
     missing = [f for f in required if not request.data.get(f)]
@@ -1643,7 +1656,6 @@ def create_offer(request):
     if isinstance(skills, str):
         skills = [s.strip() for s in skills.split(',') if s.strip()]
 
-    
     image_file = request.FILES.get('image')
 
     offer = InternshipOffer(
@@ -1658,7 +1670,7 @@ def create_offer(request):
         start_date=timezone.make_aware(start_date),
         deadline=timezone.make_aware(deadline),
         is_active=request.data.get('is_active', True),
-        image=image_file,               
+        image=image_file,
     )
     offer.save()
 
@@ -1689,7 +1701,6 @@ def create_offer(request):
             'image_url': f"/api/company/offers/{offer.id}/image/" if offer.image else None,
         }
     }, status=201)
-   
 
 
 @api_view(['GET'])
@@ -1753,8 +1764,27 @@ def update_offer(request, offer_id):
         return Response({'success': False, 'message': 'Company profile not found.'}, status=404)
     
     perms = get_user_permissions(request.user)
-    if not perms or not perms.can_modify_offer:
-        return Response({'success': False, 'error': 'You do not have permission to modify offers.'}, status=403)
+    
+    # Vérification spécifique pour company_manager et hiring_manager
+    if request.user.sub_role == 'company_manager':
+        # Company Manager a toujours le droit de modifier
+        if not perms or not perms.can_modify_offer:
+            # Si pas de permissions, on les active par défaut
+            from .permissions_utils import update_user_permissions
+            update_user_permissions(str(request.user.id), {'can_modify_offer': True})
+    elif request.user.sub_role == 'hiring_manager':
+        # Hiring Manager doit avoir la permission explicite
+        if not perms or not perms.can_modify_offer:
+            return Response({
+                'success': False, 
+                'error': 'You do not have permission to modify offers. Please contact your Company Manager.'
+            }, status=403)
+    else:
+        if not perms or not perms.can_modify_offer:
+            return Response({
+                'success': False, 
+                'error': 'You do not have permission to modify offers.'
+            }, status=403)
 
     try:
         offer = InternshipOffer.objects(id=offer_id, company=company).first()
@@ -1764,15 +1794,20 @@ def update_offer(request, offer_id):
     if not offer:
         return Response({'success': False, 'message': 'Offer not found or does not belong to your company.'}, status=404)
 
-    for field in ['title', 'description', 'wilaya', 'duration', 'is_active']:
+    # Champs modifiables
+    updatable_fields = ['title', 'description', 'wilaya', 'duration', 'is_active', 'internship_type', 'required_skills']
+    
+    for field in updatable_fields:
         if field in request.data:
-            setattr(offer, field, request.data[field])
+            if field == 'required_skills' and isinstance(request.data[field], str):
+                setattr(offer, field, [s.strip() for s in request.data[field].split(',') if s.strip()])
+            elif field == 'internship_type':
+                if request.data[field] in ['PFE', 'ouvrier', 'technicien', 'été']:
+                    setattr(offer, field, request.data[field])
+            else:
+                setattr(offer, field, request.data[field])
 
-    if 'internship_type' in request.data:
-        if request.data['internship_type'] not in ['PFE', 'ouvrier', 'technicien', 'été']:
-            return Response({'success': False, 'message': 'Invalid internship_type'}, status=400)
-        offer.internship_type = request.data['internship_type']
-
+    # Dates
     if 'start_date' in request.data:
         try:
             offer.start_date = datetime.strptime(request.data['start_date'], '%Y-%m-%d')
@@ -1785,20 +1820,15 @@ def update_offer(request, offer_id):
         except ValueError:
             return Response({'success': False, 'message': 'deadline must be YYYY-MM-DD'}, status=400)
 
-    if 'required_skills' in request.data:
-        skills = request.data['required_skills']
-        if isinstance(skills, str):
-            skills = [s.strip() for s in skills.split(',') if s.strip()]
-        offer.required_skills = skills
+    # Image
+    if 'image' in request.FILES:
+        offer.image = request.FILES['image']
 
+    # Vérification du titre dupliqué
     if 'title' in request.data:
         duplicate = InternshipOffer.objects(company=company, title=request.data['title']).first()
         if duplicate and str(duplicate.id) != offer_id:
             return Response({'success': False, 'message': 'An offer with this title already exists.'}, status=400)
-
-   
-    if 'image' in request.FILES:
-        offer.image = request.FILES['image']
 
     offer.save()
 
@@ -1830,8 +1860,26 @@ def delete_offer(request, offer_id):
         return Response({'success': False, 'message': 'Company profile not found.'}, status=404)
     
     perms = get_user_permissions(request.user)
-    if not perms or not perms.can_delete_offer:
-        return Response({'success': False, 'error': 'You do not have permission to delete offers.'}, status=403)
+    
+    # Vérification spécifique pour company_manager et hiring_manager
+    if request.user.sub_role == 'company_manager':
+        # Company Manager a toujours le droit de supprimer
+        if not perms or not perms.can_delete_offer:
+            from .permissions_utils import update_user_permissions
+            update_user_permissions(str(request.user.id), {'can_delete_offer': True})
+    elif request.user.sub_role == 'hiring_manager':
+        # Hiring Manager doit avoir la permission explicite
+        if not perms or not perms.can_delete_offer:
+            return Response({
+                'success': False, 
+                'error': 'You do not have permission to delete offers. Please contact your Company Manager.'
+            }, status=403)
+    else:
+        if not perms or not perms.can_delete_offer:
+            return Response({
+                'success': False, 
+                'error': 'You do not have permission to delete offers.'
+            }, status=403)
 
     try:
         offer = InternshipOffer.objects(id=offer_id, company=company).first()
@@ -1843,13 +1891,11 @@ def delete_offer(request, offer_id):
 
     title = offer.title
 
-    
+    # Supprimer l'image associée
     if offer.image:
         try:
-            
-            offer.image.delete() 
+            offer.image.delete()
         except Exception as e:
-            
             print(f"Warning: could not delete image for offer {offer_id}: {e}")
 
     offer.delete()
@@ -1863,7 +1909,6 @@ def delete_offer(request, offer_id):
     )
 
     return Response({'success': True, 'message': f'Offer "{title}" deleted successfully.'})
-
 
 @api_view(['GET'])
 @jwt_authenticated
