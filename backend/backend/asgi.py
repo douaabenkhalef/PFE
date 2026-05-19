@@ -28,6 +28,7 @@ websocket_urlpatterns = [
     
     # Route pour groupe université (Dept Head + Co Dept Heads)
     re_path(r'ws/university-group/(?P<university>[\w\s-]+)/$', consumers.UniversityGroupChatConsumer.as_asgi()),
+    re_path(r'ws/company-group/(?P<company_name>[^/]+)/$', consumers.CompanyGroupChatConsumer.as_asgi()),
 ]
 
 application = ProtocolTypeRouter({
