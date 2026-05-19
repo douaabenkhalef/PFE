@@ -3033,6 +3033,15 @@ def co_dept_validate_application(request, application_id):
         application.co_dept_id = str(co_dept.id)
         application.save()
         
+        # ========== NOUVEAU : Marquer l'étudiant comme placé ==========
+        student = application.student
+        if student and not student.is_placed:
+            student.is_placed = True
+            student.placed_company = application.offer.company
+            student.placement_date = datetime.now()
+            student.save()
+            print(f"✅ Student {student.full_name} marked as placed at {application.offer.company.company_name}")
+        
         log_activity(
             user=request.user,
             action_type='validate_convention',
@@ -3042,7 +3051,8 @@ def co_dept_validate_application(request, application_id):
             details={
                 'student_name': application.student.full_name,
                 'offer_title': application.offer.title,
-                'company_name': application.offer.company.company_name
+                'company_name': application.offer.company.company_name,
+                'marked_as_placed': True
             }
         )
         
@@ -3050,18 +3060,18 @@ def co_dept_validate_application(request, application_id):
         
         Notification.objects.create(
             recipient=application.student.user,
-            message=f" Félicitations ! Votre stage '{application.offer.title}' a été validé par {co_dept.full_name}. Votre convention de stage est disponible.",
+            message=f"🎉 Félicitations ! Votre stage '{application.offer.title}' a été validé par {co_dept.full_name}. Vous êtes maintenant officiellement placé(e) !",
             related_id=str(application.id)
         )
         Notification.objects.create(
             recipient=application.offer.company.user,
-            message=f" La candidature de {application.student.full_name} pour '{application.offer.title}' a été validée par l'université {co_dept.university}.",
+            message=f"✅ La candidature de {application.student.full_name} pour '{application.offer.title}' a été validée par l'université {co_dept.university}. L'étudiant est maintenant marqué comme placé.",
             related_id=str(application.id)
         )
         
         return Response({
             'success': True,
-            'message': 'Candidature validée et convention générée',
+            'message': 'Candidature validée et étudiant marqué comme placé',
             'convention_url': f'/api/co-dept/download-convention/{application.id}/'
         })
         
@@ -3292,6 +3302,15 @@ def dept_head_validate_application(request, application_id):
         application.co_dept_id = str(dept_head.id)
         application.save()
         
+        # ========== NOUVEAU : Marquer l'étudiant comme placé ==========
+        student = application.student
+        if student and not student.is_placed:
+            student.is_placed = True
+            student.placed_company = application.offer.company
+            student.placement_date = datetime.now()
+            student.save()
+            print(f"✅ Student {student.full_name} marked as placed at {application.offer.company.company_name}")
+        
         log_activity(
             user=request.user,
             action_type='validate_convention',
@@ -3302,6 +3321,7 @@ def dept_head_validate_application(request, application_id):
                 'student_name': application.student.full_name,
                 'offer_title': application.offer.title,
                 'company_name': application.offer.company.company_name,
+                'marked_as_placed': True,
                 'validated_by': 'dept_head'
             }
         )
@@ -3310,25 +3330,24 @@ def dept_head_validate_application(request, application_id):
         
         Notification.objects.create(
             recipient=application.student.user,
-            message=f" Félicitations ! Votre stage '{application.offer.title}' a été validé par {dept_head.full_name}. Votre convention de stage est disponible.",
+            message=f"🎉 Félicitations ! Votre stage '{application.offer.title}' a été validé par {dept_head.full_name}. Vous êtes maintenant officiellement placé(e) !",
             related_id=str(application.id)
         )
         Notification.objects.create(
             recipient=application.offer.company.user,
-            message=f" La candidature de {application.student.full_name} pour '{application.offer.title}' a été validée par l'université {dept_head.university}.",
+            message=f"✅ La candidature de {application.student.full_name} pour '{application.offer.title}' a été validée par l'université {dept_head.university}. L'étudiant est maintenant marqué comme placé.",
             related_id=str(application.id)
         )
         
         return Response({
             'success': True,
-            'message': 'Candidature validée et convention générée',
+            'message': 'Candidature validée et étudiant marqué comme placé',
             'convention_url': f'/api/dept-head/download-convention/{application.id}/'
         })
         
     except Exception as e:
         print(f" Erreur: {str(e)}")
         return Response({'success': False, 'error': str(e)}, status=500)
-
 
 @api_view(['POST'])
 @jwt_authenticated

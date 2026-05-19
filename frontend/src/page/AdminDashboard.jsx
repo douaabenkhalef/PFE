@@ -406,13 +406,44 @@ const AdminDashboard = () => {
     }
   };
 
+  // ========== MODIFIED useEffect WITH EVENT LISTENER ==========
   useEffect(() => {
     fetchPlacementStats();
     fetchUniversityProfile();
     fetchRequestStats();
     fetchAllStudents();
     fetchNotifications();
+    
+    // 🔥 AJOUT DE L'ÉCOUTEUR D'ÉVÉNEMENT POUR LES MISES À JOUR
+    const handleStatsUpdate = (event) => {
+      console.log('🔄 AdminDashboard: Stats update triggered by convention validation', event?.detail);
+      // Rafraîchir toutes les données
+      fetchPlacementStats();
+      fetchRequestStats();
+      fetchAllStudents();
+      // Optionnel: Afficher une notification toast
+      if (event?.detail?.message) {
+        toast.success(event.detail.message);
+      } else {
+        toast.success('📊 Statistics updated');
+      }
+    };
+    
+    window.addEventListener('placementStatsUpdated', handleStatsUpdate);
+    
+    // Optionnel: Rafraîchir périodiquement toutes les 30 secondes (fallback)
+    const interval = setInterval(() => {
+      fetchPlacementStats();
+      fetchRequestStats();
+      fetchAllStudents();
+    }, 30000);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('placementStatsUpdated', handleStatsUpdate);
+    };
   }, []);
+  // ============================================================
 
   const fetchPlacementStats = async () => {
     setStatsLoading(true);
@@ -1248,7 +1279,7 @@ const AdminDashboard = () => {
       <footer className="footer">
         <div className="footer-grid">
           <div className="footer-brand">
-            <div className="footer-brand-logo">🎓 UnivStage</div>
+            <div className="footer-brand-logo"> UnivStage</div>
             <p>Connecting students with professional opportunities and empowering the next generation of innovators.</p>
             <p>By:</p>
             <p>Nouha Labdi</p>

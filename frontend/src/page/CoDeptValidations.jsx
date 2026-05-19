@@ -801,6 +801,19 @@ export default function CoDeptValidations() {
         toast.success('Convention validated and generated successfully!');
         await fetchApplications();
         setSelectedApp(null);
+        
+        // ========== 🔥 DISPATCH EVENT FOR STATS UPDATE ==========
+        // This event will be caught by AdminDashboard and ManageStudents to refresh stats
+        window.dispatchEvent(new CustomEvent('placementStatsUpdated', { 
+          detail: { 
+            applicationId: applicationId,
+            studentId: selectedApp?.student?.id,
+            message: 'Student marked as placed successfully'
+          } 
+        }));
+        console.log('📢 Event placementStatsUpdated dispatched for application:', applicationId);
+        // ========================================================
+        
       } else {
         toast.error(data.error || 'Error during validation');
       }

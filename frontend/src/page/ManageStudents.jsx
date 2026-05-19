@@ -595,6 +595,7 @@ export default function ManageStudents() {
     }
   };
 
+  // ========== MODIFIED useEffect with event listener ==========
   useEffect(() => {
     fetchStudents();
   }, [filters]);
@@ -604,6 +605,32 @@ export default function ManageStudents() {
       fetchPlacementStats();
     }
   }, [students]);
+
+  // 🔥 ADD EVENT LISTENER FOR REAL-TIME UPDATES
+  useEffect(() => {
+    const handleStatsUpdate = (event) => {
+      console.log('🔄 ManageStudents: Refreshing student list after placement update', event?.detail);
+      // Refresh the student list to show updated placement status
+      fetchStudents();
+      // Also refresh placement stats if they are visible
+      if (showStats) {
+        fetchPlacementStats();
+      }
+      // Show a toast notification
+      if (event?.detail?.message) {
+        toast.success(event.detail.message);
+      } else {
+        toast.success('📋 Student list updated');
+      }
+    };
+    
+    window.addEventListener('placementStatsUpdated', handleStatsUpdate);
+    
+    return () => {
+      window.removeEventListener('placementStatsUpdated', handleStatsUpdate);
+    };
+  }, [filters, showStats]); // Re-run when filters or showStats changes
+  // ============================================================
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
