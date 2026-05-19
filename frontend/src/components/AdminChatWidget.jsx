@@ -834,7 +834,7 @@ const AdminChatWidget = ({ university, onClose: externalOnClose }) => {
 
   if (activeConversation) {
     return (
-      <div className="fixed bottom-6 right-6 z-50 w-[380px] h-[550px] bg-[#1e293b] rounded-2xl shadow-2xl border border-slate-700 overflow-hidden flex flex-col">
+      <div className="fixed bottom-6 right-6 z-50 w-[320px] h-[480px] bg-[#1e293b] rounded-2xl shadow-2xl border border-slate-700 overflow-hidden flex flex-col">
         <ChatWindow
           conversation={activeConversation}
           onBack={handleBackToList}
@@ -848,7 +848,7 @@ const AdminChatWidget = ({ university, onClose: externalOnClose }) => {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-[380px] h-[550px] bg-[#1e293b] rounded-2xl shadow-2xl border border-slate-700 overflow-hidden flex flex-col">
+    <div className="fixed bottom-6 right-6 z-50 w-[320px] h-[480px] bg-[#1e293b] rounded-2xl shadow-2xl border border-slate-700 overflow-hidden flex flex-col">
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-3 flex justify-between items-center flex-shrink-0">
         <div className="flex items-center gap-2">
           <MessageCircle size={16} className="text-white" />

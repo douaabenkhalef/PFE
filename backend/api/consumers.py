@@ -968,7 +968,7 @@ class CompanyGroupChatConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
         
-        
+        # Vérifier que l'utilisateur est bien une entreprise
         if user.role != 'company':
             print(f"❌ Company chat: User role {user.role} not allowed, closing connection")
             await self.close()
@@ -988,12 +988,14 @@ class CompanyGroupChatConsumer(AsyncWebsocketConsumer):
         await self.accept()
         print(f"✅ Company WebSocket accepted")
         
+        # Récupérer l'historique des messages
         messages = await self.get_recent_messages()
         await self.send(text_data=json.dumps({
             'type': 'history',
             'messages': messages
         }))
         
+        # Annoncer que l'utilisateur est en ligne
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -1028,28 +1030,49 @@ class CompanyGroupChatConsumer(AsyncWebsocketConsumer):
             if not hasattr(self, 'user') or not self.user:
                 return
             
-            await self.save_message(self.user, message)
+            message_type_field = data.get('message_type', 'text')
+            file_data = data.get('file_data', None)
+            file_name = data.get('file_name', '')
             
+            file_url = ''
+            if file_data and message_type_field in ['image', 'file']:
+                file_url = await self.save_file(file_data, file_name, message_type_field)
+            
+            # Sauvegarder le message dans GroupChatMessage
+            await self.save_message(self.user, message, message_type_field, file_url, file_name)
+            
+            # Envoyer le message à tous les membres du groupe
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     'type': 'chat_message',
                     'message': message,
+                    'message_type': message_type_field,
+                    'file_url': file_url,
+                    'file_name': file_name,
                     'username': self.user.username,
                     'full_name': self.user.username,
                     'timestamp': datetime.now().isoformat(),
-                    'user_id': str(self.user.id)
+                    'user_id': str(self.user.id),
+                    'sender_id': str(self.user.id),
+                    'sender_name': self.user.username
                 }
             )
     
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
             'type': 'message',
+            'message_id': event.get('message_id', None),
             'message': event['message'],
+            'message_type': event.get('message_type', 'text'),
+            'file_url': event.get('file_url', ''),
+            'file_name': event.get('file_name', ''),
             'username': event['username'],
             'full_name': event['full_name'],
             'timestamp': event['timestamp'],
-            'user_id': event['user_id']
+            'user_id': event['user_id'],
+            'sender_id': event.get('sender_id', event['user_id']),
+            'sender_name': event.get('sender_name', event['username'])
         }))
     
     async def user_online(self, event):
@@ -1076,33 +1099,68 @@ class CompanyGroupChatConsumer(AsyncWebsocketConsumer):
             return None
     
     @database_sync_to_async
-    def save_message(self, user, message):
-        from .models import ChatMessage
-        ChatMessage.objects.create(
-            university=self.company_name,
-            user_id=str(user.id),
-            username=user.username,
+    def save_file(self, file_data, file_name, file_type):
+        try:
+            import base64, uuid, os
+            from django.conf import settings
+            upload_dir = os.path.join(settings.MEDIA_ROOT, 'chat_files')
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            if ',' in file_data:
+                imgstr = file_data.split(',')[1]
+            else:
+                imgstr = file_data
+            
+            ext = file_name.split('.')[-1] if '.' in file_name else 'png'
+            unique_name = f"{uuid.uuid4().hex}.{ext}"
+            file_path = os.path.join(upload_dir, unique_name)
+            
+            with open(file_path, 'wb') as f:
+                f.write(base64.b64decode(imgstr))
+            
+            return f'/media/chat_files/{unique_name}'
+        except Exception as e:
+            print(f"Erreur sauvegarde fichier: {e}")
+            return ''
+    
+    @database_sync_to_async
+    def save_message(self, user, message, message_type, file_url, file_name):
+        from .models import GroupChatMessage
+        GroupChatMessage.objects.create(
+            group_id=f"company_{self.company_name}",
+            sender_id=str(user.id),
+            sender_name=user.username,
             message=message,
+            message_type=message_type,
+            file_url=file_url,
+            file_name=file_name,
             created_at=datetime.now()
         )
     
     @database_sync_to_async
     def get_recent_messages(self):
-        from .models import ChatMessage
-        messages = ChatMessage.objects(
-            university=self.company_name
-        ).order_by('-created_at')[:50]
+        from .models import GroupChatMessage
+        messages = GroupChatMessage.objects(
+            group_id=f"company_{self.company_name}"
+        ).order_by('created_at')[:100]
         
-        return [{
-            'id': str(msg.id),
-            'username': msg.username,
-            'message': msg.message,
-            'timestamp': msg.created_at.isoformat(),
-            'user_id': msg.user_id
-        } for msg in reversed(messages)]
-    
+        result = []
+        for msg in messages:
+            result.append({
+                'id': str(msg.id),
+                'message': msg.message,
+                'message_type': msg.message_type,
+                'file_url': msg.file_url,
+                'file_name': msg.file_name,
+                'sender_id': msg.sender_id,
+                'sender_name': msg.sender_name,
+                'username': msg.sender_name,
+                'user_id': msg.sender_id,
+                'timestamp': msg.created_at.isoformat(),
+                'is_own': msg.sender_id == str(self.user.id) if hasattr(self, 'user') else False
+            })
+        return result
 
-# ==================== UNIVERSITY GROUP CHAT ====================
 
 class UniversityGroupChatConsumer(AsyncWebsocketConsumer):
     """Chat de groupe pour une université (Dept Head + Co Dept Heads)"""
@@ -1122,10 +1180,19 @@ class UniversityGroupChatConsumer(AsyncWebsocketConsumer):
                 user_id = payload.get('user_id')
                 if user_id:
                     user = await self.get_user_by_id(user_id)
+                    if user:
+                        print(f"✅ University group chat user authenticated: {user.email}")
             except Exception as e:
                 print(f"❌ University group chat token error: {e}")
         
-        if user is None or user.role != 'admin':
+        if user is None:
+            print("❌ University group chat: No valid user, closing connection")
+            await self.close()
+            return
+        
+        # Vérifier que l'utilisateur est bien un admin
+        if user.role != 'admin':
+            print(f"❌ University group chat: User role {user.role} not allowed, closing connection")
             await self.close()
             return
         
@@ -1136,8 +1203,11 @@ class UniversityGroupChatConsumer(AsyncWebsocketConsumer):
         # Vérifier que l'utilisateur appartient à cette université
         has_access = await self.check_university_access(self.university)
         if not has_access:
+            print(f"❌ User {user.email} does not have access to university {self.university}")
             await self.close()
             return
+        
+        print(f"🔵 University: {self.university} -> {self.room_group_name}")
         
         await self.channel_layer.group_add(
             self.room_group_name,
@@ -1145,13 +1215,16 @@ class UniversityGroupChatConsumer(AsyncWebsocketConsumer):
         )
         
         await self.accept()
+        print(f"✅ University WebSocket accepted")
         
+        # Récupérer l'historique des messages
         messages = await self.get_group_messages(self.university)
         await self.send(text_data=json.dumps({
             'type': 'history',
             'messages': messages
         }))
         
+        # Annoncer que l'utilisateur est en ligne
         full_name = await self.get_user_full_name(user)
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -1194,10 +1267,12 @@ class UniversityGroupChatConsumer(AsyncWebsocketConsumer):
             
             full_name = await self.get_user_full_name(self.user)
             
+            # Sauvegarder le message dans GroupChatMessage
             saved_msg = await self.save_group_message(
                 self.university, self.user, message, message_type, file_url, file_name
             )
             
+            # Envoyer le message à tous les membres du groupe
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -1326,6 +1401,6 @@ class UniversityGroupChatConsumer(AsyncWebsocketConsumer):
                 'sender_id': msg.sender_id,
                 'sender_name': msg.sender_name,
                 'timestamp': msg.created_at.isoformat(),
-                'is_own': msg.sender_id == str(self.user.id)
+                'is_own': msg.sender_id == str(self.user.id) if hasattr(self, 'user') else False
             })
         return result
