@@ -2632,98 +2632,55 @@ def download_application_cv_student(request, application_id):
 @api_view(['GET'])
 def list_companies(request):
     """
-    List companies that have completed their profile (CompanyProfile)
-    sorted by number of active offers (top companies first)
+    List all companies sorted by number of active offers (top companies first)
     """
     try:
         companies_with_data = []
         
         
-        all_profiles = CompanyProfile.objects()
+        all_companies = Company.objects()
         
-        print(f"📊 Number of CompanyProfile found: {all_profiles.count()}")
-        
-        for profile in all_profiles:
-            print(f"🔍 Processing profile: company_id={profile.company_id}")
+        for company in all_companies:
+            
+            if not company.user or not company.user.status:
+                continue
+                
+            offers = InternshipOffer.objects(company=company)
+            active_offers = offers.filter(is_active=True).count()
+            total_offers = offers.count()
             
             
-            company = Company.objects(id=profile.company_id).first()
+            students_applied = 0
+            for offer in offers:
+                apps = Application.objects(offer=offer)
+                students_applied += apps.count()
             
-            if company:
-                print(f"✅ Found company: {company.company_name}")
-                
-                
-                offers = InternshipOffer.objects(company=company)
-                active_offers = offers.filter(is_active=True).count()
-                total_offers = offers.count()
-                
-               
-                students_applied = 0
-                for offer in offers:
-                    apps = Application.objects(offer=offer)
-                    students_applied += apps.count()
-                
-                
-                company_data = {
-                    'id': str(company.id),
-                    'company_name': profile.name or company.company_name,
-                    'description': profile.description or company.description or '',
-                    'industry': profile.industry or company.industry or '',
-                    'location': profile.location or company.location or 'Algeria',
-                    'logo': profile.logo or company.logo or '',
-                    'cover_picture': profile.cover_picture or '',
-                    'website': profile.website or company.website or '',
-                    'email': profile.contact_email or (company.user.email if company.user else ''),
-                    'phone': profile.phone or getattr(company, 'phone', ''),
-                    'active_offers': active_offers,
-                    'total_offers': total_offers,  
-                    'students_applied': students_applied,
-                    'has_profile': True
-                }
-                
-                companies_with_data.append(company_data)
-                print(f"✅ Added {company.company_name} with {active_offers} active offers")
-            else:
-                print(f"⚠️ No company found for profile: {profile.company_id}")
-        
-         
-        if len(companies_with_data) == 0:
-            print("📊 No CompanyProfile found, fetching regular companies...")
             
-            all_companies = Company.objects()
-            for company in all_companies:
-                if company.user and company.user.status:
-                    offers = InternshipOffer.objects(company=company)
-                    active_offers = offers.filter(is_active=True).count()
-                    total_offers = offers.count()
-                    
-                    students_applied = 0
-                    for offer in offers:
-                        apps = Application.objects(offer=offer)
-                        students_applied += apps.count()
-                    
-                    companies_with_data.append({
-                        'id': str(company.id),
-                        'company_name': company.company_name,
-                        'description': company.description or '',
-                        'industry': company.industry or '',
-                        'location': company.location or 'Algeria',
-                        'logo': company.logo or '',
-                        'cover_picture': '',
-                        'website': company.website or '',
-                        'email': company.user.email if company.user else '',
-                        'phone': getattr(company, 'phone', ''),
-                        'active_offers': active_offers,
-                        'total_offers': total_offers,
-                        'students_applied': students_applied,
-                        'has_profile': False
-                    })
+            profile = CompanyProfile.objects(company_id=str(company.id)).first()
+            
+            company_data = {
+                'id': str(company.id),
+                'company_name': profile.name if profile else company.company_name,
+                'name': profile.name if profile else company.company_name,
+                'description': profile.description if profile else (company.description or ''),
+                'industry': profile.industry if profile else (company.industry or ''),
+                'location': profile.location if profile else (company.location or 'Algeria'),
+                'logo': profile.logo if profile else (company.logo or ''),
+                'cover_picture': profile.cover_picture if profile else '',
+                'website': profile.website if profile else (company.website or ''),
+                'contact_email': profile.contact_email if profile else (company.user.email if company.user else ''),
+                'phone': profile.phone if profile else getattr(company, 'phone', ''),
+                'active_offers': active_offers,
+                'total_offers': total_offers,
+                'students_applied': students_applied,
+                'has_profile': profile is not None
+            }
+            companies_with_data.append(company_data)
         
         
         companies_with_data.sort(key=lambda x: x['active_offers'], reverse=True)
         
         print(f"📊 Total companies to display: {len(companies_with_data)}")
-        
         
         return Response(companies_with_data)
         

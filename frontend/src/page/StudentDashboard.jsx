@@ -740,6 +740,7 @@ export default function StudentDashboard() {
 
   // Display first 3 companies (they are already sorted by active_offers from API)
   const displayedCompanies = showAllCompanies ? companies : companies.slice(0, 3);
+  console.log("📊 Displayed companies:", displayedCompanies.length, "showAllCompanies:", showAllCompanies);
   const displayedInternships = showAllInternships ? internships : internships.slice(0, 3);
 
   const handleStartPrivateChat = (targetUser) => {

@@ -689,18 +689,6 @@ export default function Home() {
           )}
         </div>
         
-        {/* Show "See All" button only if there are more than 3 companies */}
-        {companies.length > 3 && (
-          <div className="see-all-btn-wrap">
-            <button 
-              className="btn-see-all" 
-              onClick={() => setShowAllCompanies(!showAllCompanies)}
-            >
-              {showAllCompanies ? "Show Less" : "See All"} 
-              <ArrowRight />
-            </button>
-          </div>
-        )}
       </section>
 
       {/* Services Section */}
