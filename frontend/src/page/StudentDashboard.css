@@ -502,9 +502,29 @@ body {
 
 
 .sd-companies-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.8rem;
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 20px !important;
+  overflow: visible !important;      /* إضافة */
+  height: auto !important;          /* إضافة */
+  min-height: auto !important;      /* إضافة */
+  max-height: none !important;      /* إضافة */
+}
+.sd-section {
+  overflow: visible !important;
+  height: auto !important;
+}
+
+@media (max-width: 768px) {
+  .sd-companies-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .sd-companies-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 .sd-company-card {
@@ -2432,5 +2452,54 @@ body.light-mode button.w-full.p-3.text-left:hover {
     width: 45% !important;
     align-self: flex-start !important;
     margin-top: 0 !important;
+  }
+}
+.sd-companies-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.8rem;
+}
+
+.sd-internships-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.8rem;
+}
+
+.sd-see-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.85);
+  padding: 9px 22px;
+  border-radius: 40px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.sd-see-all-btn:hover {
+  background: rgba(141,35,212,0.25);
+  border-color: var(--pink);
+  transform: translateY(-2px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sd-companies-grid,
+  .sd-internships-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .sd-companies-grid,
+  .sd-internships-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
 }
