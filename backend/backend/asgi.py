@@ -20,6 +20,14 @@ websocket_urlpatterns = [
     
  
     re_path(r'ws/private-chat/$', consumers.PrivateChatConsumer.as_asgi()),
+
+
+    # ========== NOUVELLES ROUTES POUR LES GROUPES ==========
+    # Route pour groupe entreprise (Company Manager + Hiring Managers)
+    re_path(r'ws/company-group/(?P<company_id>[\w-]+)/$', consumers.CompanyGroupChatConsumer.as_asgi()),
+    
+    # Route pour groupe université (Dept Head + Co Dept Heads)
+    re_path(r'ws/university-group/(?P<university>[\w\s-]+)/$', consumers.UniversityGroupChatConsumer.as_asgi()),
 ]
 
 application = ProtocolTypeRouter({
