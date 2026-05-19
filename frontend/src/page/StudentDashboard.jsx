@@ -1,12 +1,8 @@
+// frontend/src/page/StudentDashboard.jsx
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { 
-  Bell, CheckCheck, X, FileText, CheckCircle, XCircle, Clock, 
-  MessageCircle, Users, Briefcase, MessageSquare, MapPin, 
-  Building2, Mail, Phone, Globe, Linkedin, Eye, Calendar, 
-  Award, Code, BookOpen, GraduationCap, ArrowLeft 
-} from 'lucide-react';
+import { Bell, CheckCheck, X, FileText, CheckCircle, XCircle, Clock, MessageCircle, Users, Briefcase, MessageSquare, MapPin, Building2, Mail, Phone, Globe, Linkedin, Eye, Calendar, Award, Code, BookOpen, GraduationCap, ArrowLeft } from 'lucide-react';
 import StudentSidebar from '../components/Studentsidebar';
 import ChatWidget from '../components/ChatWidget';
 import PrivateChat from '../components/PrivateChat';
@@ -22,7 +18,7 @@ const authHeaders = () => ({
   Authorization: `Bearer ${token()}`,
 });
 
-
+// Helper function for image URLs
 const getImageUrl = (url) => {
   if (!url) return null;
   if (url.startsWith('data:image')) return url;
@@ -32,17 +28,17 @@ const getImageUrl = (url) => {
   return `${BACKEND}/api/${url}`;
 };
 
-
+// Notification types with icons
 const NOTIFICATION_ICONS = {
-  'application_accepted': { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10' },
-  'application_rejected': { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
-  'convention_validated': { icon: FileText, color: 'text-green-400', bg: 'bg-green-500/10' },
-  'convention_rejected': { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
-  'pending_validation': { icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
-  'default': { icon: Bell, color: 'text-purple-400', bg: 'bg-purple-500/10' }
+    'application_accepted': { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10' },
+    'application_rejected': { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
+    'convention_validated': { icon: FileText, color: 'text-green-400', bg: 'bg-green-500/10' },
+    'convention_rejected': { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
+    'pending_validation': { icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
+    'default': { icon: Bell, color: 'text-purple-400', bg: 'bg-purple-500/10' }
 };
 
-
+// SVG Icons
 const wilayas = [
   "Adrar","Chlef","Laghouat","Oum El Bouaghi","Batna","Béjaïa","Biskra","Béchar","Blida","Bouira",
   "Tamanrasset","Tébessa","Tlemcen","Tiaret","Tizi Ouzou","Alger","Djelfa","Jijel","Sétif","Saïda",
@@ -155,100 +151,100 @@ function Stars({ n = 5, max = 5 }) {
 }
 
 const NotificationItem = ({ notification, onMarkRead, onNavigate }) => {
-  const [isHovered, setIsHovered] = useState(false);
-  const config = NOTIFICATION_ICONS[notification.type] || NOTIFICATION_ICONS.default;
-  const IconComponent = config.icon;
-  
-  const isSuccess = notification.message.includes('✅') || notification.message.includes('Congratulations');
-  const isError = notification.message.includes('❌');
-  
-  const handleClick = () => {
-    if (!notification.is_read && onMarkRead) {
-      onMarkRead(notification.id);
-    }
-    if (notification.related_id && onNavigate) {
-      onNavigate(notification.related_id);
-    }
-  };
-  
-  return (
-    <div 
-      className={`sd-notif-item ${!notification.is_read ? 'unread' : ''}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onClick={handleClick}
-      style={{ cursor: notification.related_id ? 'pointer' : 'default' }}
-    >
-      <div className={`sd-notif-icon ${config.bg}`}>
-        <IconComponent size={14} className={config.color} />
-      </div>
-      <div className="sd-notif-body">
-        <p className={isSuccess ? 'text-green-300' : isError ? 'text-red-300' : 'text-white/90'}>
-          {notification.message}
-        </p>
-        <span className="sd-notif-time">{notification.created_at}</span>
-      </div>
-      {!notification.is_read && <div className="sd-notif-unread-dot" />}
-      {isHovered && !notification.is_read && (
-        <button 
-          className="sd-notif-mark-read"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onMarkRead) onMarkRead(notification.id);
-          }}
+    const [isHovered, setIsHovered] = useState(false);
+    const config = NOTIFICATION_ICONS[notification.type] || NOTIFICATION_ICONS.default;
+    const IconComponent = config.icon;
+    
+    const isSuccess = notification.message.includes('✅') || notification.message.includes('Congratulations');
+    const isError = notification.message.includes('❌');
+    
+    const handleClick = () => {
+        if (!notification.is_read && onMarkRead) {
+            onMarkRead(notification.id);
+        }
+        if (notification.related_id && onNavigate) {
+            onNavigate(notification.related_id);
+        }
+    };
+    
+    return (
+        <div 
+            className={`sd-notif-item ${!notification.is_read ? 'unread' : ''}`}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            onClick={handleClick}
+            style={{ cursor: notification.related_id ? 'pointer' : 'default' }}
         >
-          <CheckCheck size={14} />
-        </button>
-      )}
-    </div>
-  );
+            <div className={`sd-notif-icon ${config.bg}`}>
+                <IconComponent size={14} className={config.color} />
+            </div>
+            <div className="sd-notif-body">
+                <p className={isSuccess ? 'text-green-300' : isError ? 'text-red-300' : 'text-white/90'}>
+                    {notification.message}
+                </p>
+                <span className="sd-notif-time">{notification.created_at}</span>
+            </div>
+            {!notification.is_read && <div className="sd-notif-unread-dot" />}
+            {isHovered && !notification.is_read && (
+                <button 
+                    className="sd-notif-mark-read"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (onMarkRead) onMarkRead(notification.id);
+                    }}
+                >
+                    <CheckCheck size={14} />
+                </button>
+            )}
+        </div>
+    );
 };
 
 const NotificationsDropdown = ({ notifications, onClose, onMarkRead, onMarkAllRead, onNavigate }) => {
-  const unreadCount = notifications.filter(n => !n.is_read).length;
-  
-  return (
-    <div className="sd-notif-dropdown">
-      <div className="sd-notif-header">
-        <div className="flex items-center gap-2">
-          <Bell size={14} className="text-purple-400" />
-          <span>Notifications</span>
-          {unreadCount > 0 && <span className="sd-notif-unread-badge">{unreadCount}</span>}
+    const unreadCount = notifications.filter(n => !n.is_read).length;
+    
+    return (
+        <div className="sd-notif-dropdown">
+            <div className="sd-notif-header">
+                <div className="flex items-center gap-2">
+                    <Bell size={14} className="text-purple-400" />
+                    <span>Notifications</span>
+                    {unreadCount > 0 && <span className="sd-notif-unread-badge">{unreadCount}</span>}
+                </div>
+                {unreadCount > 0 && (
+                    <button className="sd-notif-clear" onClick={onMarkAllRead}>
+                        Mark all as read
+                    </button>
+                )}
+            </div>
+            <div className="sd-notif-list">
+                {notifications.length === 0 ? (
+                    <div className="sd-notif-empty">
+                        <Bell size={32} className="mx-auto mb-2 opacity-30" />
+                        <p>No notifications</p>
+                        <span className="text-xs">Notifications will appear here</span>
+                    </div>
+                ) : (
+                    notifications.slice(0, 15).map(notif => (
+                        <NotificationItem 
+                            key={notif.id}
+                            notification={notif}
+                            onMarkRead={onMarkRead}
+                            onNavigate={onNavigate}
+                        />
+                    ))
+                )}
+            </div>
+            {notifications.length > 0 && (
+                <div className="sd-notif-footer">
+                    <button onClick={onClose}>Close</button>
+                </div>
+            )}
         </div>
-        {unreadCount > 0 && (
-          <button className="sd-notif-clear" onClick={onMarkAllRead}>
-            Mark all as read
-          </button>
-        )}
-      </div>
-      <div className="sd-notif-list">
-        {notifications.length === 0 ? (
-          <div className="sd-notif-empty">
-            <Bell size={32} className="mx-auto mb-2 opacity-30" />
-            <p>No notifications</p>
-            <span className="text-xs">Notifications will appear here</span>
-          </div>
-        ) : (
-          notifications.slice(0, 15).map(notif => (
-            <NotificationItem 
-              key={notif.id}
-              notification={notif}
-              onMarkRead={onMarkRead}
-              onNavigate={onNavigate}
-            />
-          ))
-        )}
-      </div>
-      {notifications.length > 0 && (
-        <div className="sd-notif-footer">
-          <button onClick={onClose}>Close</button>
-        </div>
-      )}
-    </div>
-  );
+    );
 };
 
-
+// ==================== COMPANY DETAIL MODAL ====================
 const CompanyDetailModal = ({ company, onClose, onNavigateToPublicProfile }) => {
   return (
     <div className="sd-modal-overlay" onClick={onClose}>
@@ -322,7 +318,7 @@ const CompanyDetailModal = ({ company, onClose, onNavigateToPublicProfile }) => 
   );
 };
 
-
+// ==================== INTERNSHIP DETAIL MODAL ====================
 const InternshipDetailModal = ({ offer, onClose, onApply }) => {
   const [showApplyForm, setShowApplyForm] = useState(false);
   
@@ -331,6 +327,7 @@ const InternshipDetailModal = ({ offer, onClose, onApply }) => {
   const isExpired = offer.deadline && new Date(offer.deadline) < new Date();
   
   if (showApplyForm) {
+    // إذا اختار المستخدم التقديم، نعرض نموذج ApplyModal
     setTimeout(() => {
       onApply();
       onClose();
@@ -343,6 +340,7 @@ const InternshipDetailModal = ({ offer, onClose, onApply }) => {
       <div className="sd-modal" style={{ maxWidth: '550px', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
         <button className="sd-modal-close" onClick={onClose}><CloseIcon /></button>
         
+        {/* Offer Image */}
         {offer.image && (
           <div className="w-full h-48 rounded-xl overflow-hidden mb-4">
             <img src={getImageUrl(offer.image)} alt={offer.title} className="w-full h-full object-cover" />
@@ -418,7 +416,7 @@ const InternshipDetailModal = ({ offer, onClose, onApply }) => {
   );
 };
 
-
+// Apply Modal
 const ApplyModal = ({ offer, onClose, onSuccess }) => {
   const [step, setStep] = useState('check'); 
   const [loading, setLoading] = useState(false);
@@ -686,9 +684,11 @@ export default function StudentDashboard() {
   const [showAllCompanies, setShowAllCompanies] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   
+  // New state for modals
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [selectedOfferDetail, setSelectedOfferDetail] = useState(null);
   
+  // Chat states
   const [privateChatOpen, setPrivateChatOpen] = useState(false);
   const [selectedChatUser, setSelectedChatUser] = useState(null);
   const [activeInternshipChat, setActiveInternshipChat] = useState(null);
@@ -713,6 +713,7 @@ export default function StudentDashboard() {
   const internshipsRef = useRef(null);
   const groupsRef = useRef(null);
 
+  // Load saved settings from localStorage when page loads
   useEffect(() => {
     const savedMode = localStorage.getItem('darkMode');
     if (savedMode === 'false') {
@@ -724,6 +725,7 @@ export default function StudentDashboard() {
     }
   }, []);
 
+  // Function to toggle theme
   const toggleTheme = () => {
     if (isDarkMode) {
       document.body.classList.add('light-mode');
@@ -735,6 +737,10 @@ export default function StudentDashboard() {
       setIsDarkMode(true);
     }
   };
+
+  // Display first 3 companies (they are already sorted by active_offers from API)
+  const displayedCompanies = showAllCompanies ? companies : companies.slice(0, 3);
+  const displayedInternships = showAllInternships ? internships : internships.slice(0, 3);
 
   const handleStartPrivateChat = (targetUser) => {
     setSelectedChatUser(targetUser);
@@ -756,14 +762,17 @@ export default function StudentDashboard() {
     setActiveInternshipChat(null);
   };
 
+  // Handle company click - show company details modal
   const handleCompanyClick = (company) => {
     setSelectedCompany(company);
   };
   
+  // Handle internship details view
   const handleInternshipDetails = (offer) => {
     setSelectedOfferDetail(offer);
   };
   
+  // Handle apply from detail modal
   const handleApplyFromDetail = () => {
     if (selectedOfferDetail) {
       setApplyOffer(selectedOfferDetail);
@@ -771,6 +780,7 @@ export default function StudentDashboard() {
     }
   };
   
+  // Navigate to public company profile
   const navigateToPublicCompanyProfile = (companyId) => {
     if (companyId) {
       setSelectedCompany(null);
@@ -790,6 +800,18 @@ export default function StudentDashboard() {
   }, []);
 
   useEffect(() => {
+    // When showing all companies, force-reveal new cards that are already in viewport
+    if (showAllCompanies) {
+      const timer = setTimeout(() => {
+        document.querySelectorAll(".sd-company-card:not(.is-visible)").forEach(el => {
+          el.classList.add("is-visible");
+        });
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [showAllCompanies]);
+
+  useEffect(() => {
     const els = document.querySelectorAll(".sd-company-card, .sd-internship-card");
     const revealObs = new IntersectionObserver(entries => {
       entries.forEach(e => {
@@ -801,7 +823,7 @@ export default function StudentDashboard() {
     }, { threshold: 0.12 });
     els.forEach(el => revealObs.observe(el));
     return () => revealObs.disconnect();
-  }, [companies, internships]);
+  }, [companies, internships, showAllCompanies, showAllInternships]);
 
   useEffect(() => {
     (async () => {
@@ -869,44 +891,44 @@ export default function StudentDashboard() {
    
   const fetchNotifications = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/student/notifications/`, { 
-        headers: { 
-          'Authorization': `Bearer ${token()}`,
-          'Content-Type': 'application/json'
-        } 
-      });
-      const data = await res.json();
-      if (data.success) {
-        setNotifications(data.notifications || []);
-      }
+        const res = await fetch(`${API}/student/notifications/`, { 
+            headers: { 
+                'Authorization': `Bearer ${token()}`,
+                'Content-Type': 'application/json'
+            } 
+        });
+        const data = await res.json();
+        if (data.success) {
+            setNotifications(data.notifications || []);
+        }
     } catch (err) {
-      console.error("Error loading notifications:", err);
+        console.error("Error loading notifications:", err);
     }
   }, []);
 
   const markNotificationRead = async (notificationId) => {
     try {
-      await fetch(`${API}/student/notifications/${notificationId}/read/`, {
-        method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token()}` }
-      });
-      setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
-      );
+        await fetch(`${API}/student/notifications/${notificationId}/read/`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token()}` }
+        });
+        setNotifications(prev => 
+            prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
+        );
     } catch (err) {
-      console.error("Error:", err);
+        console.error("Error:", err);
     }
   };
 
   const markAllNotificationsRead = async () => {
     try {
-      await fetch(`${API}/student/notifications/read-all/`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token()}` }
-      });
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+        await fetch(`${API}/student/notifications/read-all/`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token()}` }
+        });
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     } catch (err) {
-      console.error("Error:", err);
+        console.error("Error:", err);
     }
   };
 
@@ -923,9 +945,9 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (notifRef.current && !notifRef.current.contains(event.target)) {
-        setNotifOpen(false);
-      }
+        if (notifRef.current && !notifRef.current.contains(event.target)) {
+            setNotifOpen(false);
+        }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -950,15 +972,6 @@ export default function StudentDashboard() {
   };
 
   const hasActiveFilters = filters.search || filters.wilaya || filters.skills || filters.company_name;
-
-  // Fonctions pour l'affichage conditionnel
-  const toggleShowAllCompanies = () => {
-    setShowAllCompanies(!showAllCompanies);
-  };
-
-  const toggleShowAllInternships = () => {
-    setShowAllInternships(!showAllInternships);
-  };
 
   return (
     <>
@@ -998,6 +1011,7 @@ export default function StudentDashboard() {
         <Toast msg={toastMsg.msg} type={toastMsg.type} onHide={() => setToastMsg(null)} />
       )}
 
+      {/* Group Chat */}
       {activeInternshipChat && (
         <ChatWidget 
           internshipId={activeInternshipChat}
@@ -1005,6 +1019,7 @@ export default function StudentDashboard() {
         />
       )}
       
+      {/* Private Chat */}
       {privateChatOpen && selectedChatUser && (
         <PrivateChat
           university={user?.university || "University"}
@@ -1014,6 +1029,7 @@ export default function StudentDashboard() {
         />
       )}
 
+      {/* FLOATING CHAT BUTTON */}
       {!activeInternshipChat && acceptedInternships.length > 0 && (
         <button
           onClick={() => setShowGroupsPanel(!showGroupsPanel)}
@@ -1023,6 +1039,7 @@ export default function StudentDashboard() {
         </button>
       )}
 
+      {/* CHAT GROUPS PANEL */}
       {showGroupsPanel && (
         <div className="fixed bottom-24 right-6 z-50 w-80 bg-[#1e293b] rounded-2xl shadow-2xl border border-slate-700 overflow-hidden">
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-3 flex justify-between items-center">
@@ -1065,7 +1082,7 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {/* NAVBAR */}
+      {/* ========== NAVBAR ========== */}
       <nav className="sd-navbar">
         <div className="sd-navbar-left">
           <button className="sd-hamburger" aria-label="Menu" onClick={() => setSidebarOpen(true)}>
@@ -1137,7 +1154,7 @@ export default function StudentDashboard() {
       </nav>
 
       <main className="sd-main">
-        {/* HERO SECTION */}
+        {/* ========== HERO SECTION WITH STUDENT IMAGE ========== */}
         <section className="sd-hero" id="home" ref={homeRef} data-section="home">
           <div className="sd-hero-container">
             <div className="sd-hero-content">
@@ -1152,7 +1169,7 @@ export default function StudentDashboard() {
                 upload your CV, browse internships, and track your applications.
               </p>
               
-              {/* SEARCH BAR */}
+              {/* SEARCH SECTION */}
               <div className="sd-search-container" style={{ marginTop: "2rem", width: "100%" }}>
                 <div className="sd-search-bar" style={{ 
                   maxWidth: "100%", 
@@ -1290,7 +1307,7 @@ export default function StudentDashboard() {
                 )}
               </div>
 
-              {/* SEARCH RESULTS */}
+              {/* RESULTS SECTION */}
               {hasActiveFilters && (
                 <div style={{ marginTop: "2rem", width: "100%" }}>
                   <div className="flex items-center justify-between mb-4">
@@ -1386,7 +1403,7 @@ export default function StudentDashboard() {
               )}
             </div>
             
-            {/* HERO IMAGE */}
+            {/* ========== STUDENT IMAGE ========== */}
             <div className="sd-hero-image">
               <img 
                 src="/images/student.png" 
@@ -1407,7 +1424,7 @@ export default function StudentDashboard() {
           </div>
         </section>
 
-        {/* COMPANIES SECTION */}
+        {/* ========== COMPANIES SECTION - FIXED ========== */}
         <section className="sd-section" id="companies" ref={companiesRef} data-section="companies">
           <div className="sd-section-header">
             <div>
@@ -1422,10 +1439,9 @@ export default function StudentDashboard() {
             {companies.length > 3 && (
               <button 
                 className="sd-see-all-btn"
-                onClick={toggleShowAllCompanies}
+                onClick={() => setShowAllCompanies(!showAllCompanies)}
               >
-                {showAllCompanies ? "Show Less" : `See All (${companies.length})`} &nbsp;
-                <ArrowRightIcon />
+                {showAllCompanies ? "Show Less" : `See All ${companies.length} Companies`} &nbsp;<ArrowRightIcon />
               </button>
             )}
           </div>
@@ -1438,12 +1454,12 @@ export default function StudentDashboard() {
           ) : companies.length === 0 ? (
             <div className="sd-empty">
               <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.95rem" }}>
-                No companies available at the moment.
+                This section is not available yet. Please check back later.
               </p>
             </div>
           ) : (
             <div className="sd-companies-grid">
-              {(showAllCompanies ? companies : companies.slice(0, 3)).map((c, index) => (
+              {displayedCompanies.map((c, index) => (
                 <div className="sd-company-card" key={c.id} onClick={() => handleCompanyClick(c)}>
                   <div className="sd-company-img" style={{
                     position: 'relative',
@@ -1453,6 +1469,7 @@ export default function StudentDashboard() {
                       ? 'transparent'
                       : 'linear-gradient(135deg, rgba(168,85,247,0.2), rgba(99,102,241,0.2))',
                   }}>
+                    {/* Cover picture as full background */}
                     {c.cover_picture && (
                       <img
                         src={getImageUrl(c.cover_picture)}
@@ -1467,12 +1484,14 @@ export default function StudentDashboard() {
                       />
                     )}
 
+                    {/* Dark gradient overlay for readability */}
                     <div style={{
                       position: 'absolute', inset: 0,
                       background: 'linear-gradient(to top, rgba(0,0,0,0.6) 35%, transparent 100%)',
                       pointerEvents: 'none',
                     }} />
 
+                    {/* Logo badge — bottom-left corner */}
                     <div style={{
                       position: 'absolute', bottom: 10, left: 10,
                       width: 56, height: 56,
@@ -1492,10 +1511,11 @@ export default function StudentDashboard() {
                           onError={(e) => { e.target.style.display = 'none'; }}
                         />
                       ) : (
-                        <Building2 size={20} style={{ color: 'rgba(255,255,255,0.6)' }} />
+                        <Briefcase size={20} style={{ color: 'rgba(255,255,255,0.6)' }} />
                       )}
                     </div>
 
+                    {/* Industry label — bottom-right */}
                     <span style={{
                       position: 'absolute', bottom: 10, right: 10,
                       background: 'rgba(0,0,0,0.45)',
@@ -1529,9 +1549,27 @@ export default function StudentDashboard() {
               ))}
             </div>
           )}
+
+          {!loadingComp && companies.length > 3 && showAllCompanies && (
+            <div style={{ display: "flex", justifyContent: "center", marginTop: "2rem" }}>
+              <button 
+                className="sd-see-all-btn"
+                onClick={() => setShowAllCompanies(false)}
+              >
+                Show Less &nbsp;<ArrowRightIcon />
+              </button>
+            </div>
+          )}
+
+          <div className="sd-join-banner">
+            <h3>Join Us to Apply for Your dream Internship</h3>
+            <button className="sd-join-btn" onClick={() => scrollTo("internships", internshipsRef)}>
+              Browse Internships
+            </button>
+          </div>
         </section>
 
-        {/* INTERNSHIPS SECTION */}
+        {/* ========== INTERNSHIPS SECTION ========== */}
         <section className="sd-section" id="internships" ref={internshipsRef} data-section="internships">
           <div className="sd-section-header">
             <div>
@@ -1543,13 +1581,12 @@ export default function StudentDashboard() {
                 Find the perfect opportunity to start your career
               </p>
             </div>
-            {internships.length > 3 && !hasActiveFilters && (
+            {internships.length > 0 && !hasActiveFilters && (
               <button 
                 className="sd-see-all-btn"
-                onClick={toggleShowAllInternships}
+                onClick={() => setShowAllInternships(!showAllInternships)}
               >
-                {showAllInternships ? "Show Less" : `See All (${internships.length})`} &nbsp;
-                <ArrowRightIcon />
+                {showAllInternships ? "Show Less" : "See All"} &nbsp;<ArrowRightIcon />
               </button>
             )}
           </div>
@@ -1562,12 +1599,12 @@ export default function StudentDashboard() {
           ) : (!hasActiveFilters && internships.length === 0) ? (
             <div className="sd-empty">
               <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.95rem" }}>
-                No internships available at the moment.
+                This section is not available yet. Please check back later.
               </p>
             </div>
           ) : !hasActiveFilters ? (
             <div className="sd-internships-grid">
-              {(showAllInternships ? internships : internships.slice(0, 3)).map(offer => (
+              {displayedInternships.map(offer => (
                 <div className="sd-internship-card is-visible" key={offer.id}>
                   <div className="sd-intern-img">
                     {offer.image ? (
@@ -1617,9 +1654,22 @@ export default function StudentDashboard() {
               ))}
             </div>
           ) : null}
+
+          {!hasActiveFilters && internships.length > 3 && !showAllInternships && (
+            <div style={{ display: "flex", justifyContent: "center", marginTop: "2rem" }}>
+              <button 
+                className="sd-see-all-btn"
+                onClick={() => setShowAllInternships(true)}
+              >
+                See All {internships.length} Internships &nbsp;<ArrowRightIcon />
+              </button>
+            </div>
+          )}
         </section>
 
-        {/* FOOTER */}
+    
+
+        {/* ========== FOOTER ========== */}
         <footer className="footer">
           <div className="footer-grid">
             <div className="footer-brand">
@@ -1629,18 +1679,18 @@ export default function StudentDashboard() {
                 empowering the next generation of innovators.
               </p>
               <p>By:</p>
-              <p>Nouha Labdi</p>
-              <p>Safa Oughidni</p>
-              <p>Douaa Benkhalef</p>
+             <p>Nouha Labdi</p>
+             <p>Safa Oughidni</p>
+             <p>Douaa Benkhalef</p>
             </div>
             <div className="footer-contact">
               <h4>Contact Us</h4>
               <ul>
-                <li><MapPinIcon /> University constantine2, Algeria</li>
-                <li><PhoneIcon />+213 (0) 798864489</li>
-                <li><PhoneIcon />+213 (0) 799003478</li>
-                <li><PhoneIcon />+213 (0) 557217736</li>
-                <li><MailIcon />stageuniversity18@gmail.com</li>
+              <li><MapPinIcon /> University constantine2, Algeria</li>
+              <li><PhoneIcon />+213 (0) 798864489</li>
+              <li><PhoneIcon />+213 (0) 799003478</li>
+              <li><PhoneIcon />+213 (0) 557217736</li>
+              <li><MailIcon />stageuniversity18@gmail.com </li>
               </ul>
             </div>
           </div>
