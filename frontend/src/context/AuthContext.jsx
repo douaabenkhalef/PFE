@@ -1,5 +1,3 @@
-// frontend/src/context/AuthContext.jsx
-
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { authAPI } from "../services/auth";
 import toast from "react-hot-toast";
@@ -18,44 +16,67 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Changé à true initialement
   const [pendingEmail, setPendingEmail] = useState(null);
   const [pendingRole, setPendingRole] = useState(null);
   const [pendingData, setPendingData] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
-  // 🔥 حالات 2FA
   const [requires2FA, setRequires2FA] = useState(false);
   const [pending2FAEmail, setPending2FAEmail] = useState('');
 
+  // Vérifier le token au chargement de l'application
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    const userRole = localStorage.getItem("user_role");
-    const userSubRole = localStorage.getItem("user_sub_role");
-    const userEmail = localStorage.getItem("user_email");
-    const userFullName = localStorage.getItem("user_full_name");
-    const userCompanyName = localStorage.getItem("user_company_name");
-    const userUniversity = localStorage.getItem("user_university");
-    const userId = localStorage.getItem("user_id");
-    const userUsername = localStorage.getItem("user_username");
+    const initAuth = async () => {
+      const token = localStorage.getItem("access_token");
+      const userRole = localStorage.getItem("user_role");
+      const userSubRole = localStorage.getItem("user_sub_role");
+      const userEmail = localStorage.getItem("user_email");
+      const userFullName = localStorage.getItem("user_full_name");
+      const userCompanyName = localStorage.getItem("user_company_name");
+      const userUniversity = localStorage.getItem("user_university");
+      const userId = localStorage.getItem("user_id");
+      const userUsername = localStorage.getItem("user_username");
 
-    if (token && userRole) {
-      setUser({
-        id: userId,
-        role: userRole,
-        sub_role: userSubRole,
-        email: userEmail,
-        username: userUsername,
-        full_name: userFullName,
-        company_name: userCompanyName,
-        university: userUniversity,
-        status: true,
-      });
-      setIsAuthenticated(true);
-    }
+      if (token && userRole) {
+        // Vérifier si le token est encore valide
+        try {
+          const response = await authAPI.getCurrentUser();
+          if (response.success) {
+            setUser({
+              id: userId,
+              role: userRole,
+              sub_role: userSubRole,
+              email: userEmail,
+              username: userUsername,
+              full_name: userFullName,
+              company_name: userCompanyName,
+              university: userUniversity,
+              status: true,
+            });
+            setIsAuthenticated(true);
+          } else {
+            // Token invalide, nettoyer
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("user_role");
+            localStorage.removeItem("user_sub_role");
+            localStorage.removeItem("user_email");
+            localStorage.removeItem("user_full_name");
+            localStorage.removeItem("user_company_name");
+            localStorage.removeItem("user_university");
+            localStorage.removeItem("user_id");
+            localStorage.removeItem("user_username");
+          }
+        } catch (err) {
+          console.error("Token validation error:", err);
+        }
+      }
+      setLoading(false);
+    };
+
+    initAuth();
   }, []);
 
-  // 🔥 دالة تسجيل الدخول مع دعم 2FA و Super Admin OTP
   const login = async (email, password) => {
     setLoading(true);
     try {
@@ -63,23 +84,19 @@ export const AuthProvider = ({ children }) => {
       console.log("📥 Login response:", response);
       
       if (response.success) {
-        // 🔥 إذا كان المستخدم يحتاج إلى 2FA العادي
         if (response.requires_2fa) {
           setRequires2FA(true);
           setPending2FAEmail(response.email);
-          // إرسال الكود تلقائياً
           await authAPI.send2FACode(email);
           return { success: true, requires_2fa: true, email: response.email };
         }
-        
-        // 🔥 إذا كان المستخدم يحتاج إلى OTP (Super Admin)
+       
         if (response.requires_otp) {
           setRequires2FA(true);
           setPending2FAEmail(response.email);
           return { success: true, requires_otp: true, email: response.email };
         }
         
-        // تسجيل الدخول العادي
         localStorage.setItem("access_token", response.token);
         localStorage.setItem("user_role", response.user.role);
         localStorage.setItem("user_sub_role", response.user.sub_role || "");
@@ -112,6 +129,7 @@ export const AuthProvider = ({ children }) => {
         });
         setIsAuthenticated(true);
         
+        // Sauvegarder l'URL actuelle pour redirection après refresh
         let redirectUrl = "/login";
         if (response.user.role === 'student') {
           redirectUrl = "/student/dashboard";
@@ -131,10 +149,12 @@ export const AuthProvider = ({ children }) => {
           redirectUrl = "/super-admin/dashboard";
         }
         
+        // Sauvegarder la dernière page visitée
+        localStorage.setItem("last_visited_page", window.location.pathname);
+        
         return { success: true, redirectUrl };
       }
       
-      // 🔥 معالجة الأخطاء - استخراج رسالة الخطأ من response
       let errorMessage = "Email or password is incorrect.";
       
       if (response.message) {
@@ -147,7 +167,6 @@ export const AuthProvider = ({ children }) => {
         } else if (response.errors.password && response.errors.password.length > 0) {
           errorMessage = response.errors.password[0];
         } else {
-          // محاولة استخراج أول خطأ موجود
           const firstErrorKey = Object.keys(response.errors)[0];
           if (firstErrorKey && response.errors[firstErrorKey] && response.errors[firstErrorKey].length > 0) {
             errorMessage = response.errors[firstErrorKey][0];
@@ -194,7 +213,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 🔥 التحقق من كود 2FA (يدعم أيضاً Super Admin)
   const verify2FACode = async (email, code) => {
     setLoading(true);
     try {
@@ -255,6 +273,8 @@ export const AuthProvider = ({ children }) => {
           redirectUrl = "/super-admin/dashboard";
         }
         
+        localStorage.setItem("last_visited_page", window.location.pathname);
+        
         return { success: true, redirectUrl };
       }
       
@@ -267,7 +287,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 🔥 تفعيل 2FA عبر البريد الإلكتروني
   const enableEmail2FA = async () => {
     setLoading(true);
     try {
@@ -286,7 +305,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 🔥 تعطيل 2FA
   const disableEmail2FA = async () => {
     setLoading(true);
     try {
@@ -305,7 +323,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 🔥 الحصول على حالة 2FA
   const get2FAStatus = async () => {
     try {
       const response = await authAPI.get2FAStatus();
@@ -438,6 +455,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("user_university");
     localStorage.removeItem("user_id");
     localStorage.removeItem("user_username");
+    localStorage.removeItem("last_visited_page");
     setUser(null);
     setIsAuthenticated(false);
     setPendingEmail(null);
@@ -463,7 +481,7 @@ export const AuthProvider = ({ children }) => {
         registerAdmin,
         completeSignup,
         isAuthenticated,
-        // 🔥 دوال 2FA
+        
         requires2FA,
         pending2FAEmail,
         verify2FACode,
