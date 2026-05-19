@@ -968,13 +968,14 @@ class CompanyGroupChatConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
         
-        # Vérifier que l'utilisateur est bien une entreprise
         if user.role != 'company':
             print(f"❌ Company chat: User role {user.role} not allowed, closing connection")
             await self.close()
             return
         
         self.user = user
+        
+        # استقبل company_name من الرابط
         self.company_name = self.scope['url_route']['kwargs']['company_name']
         self.room_group_name = f'company_chat_{self.company_name}'
         
@@ -988,14 +989,13 @@ class CompanyGroupChatConsumer(AsyncWebsocketConsumer):
         await self.accept()
         print(f"✅ Company WebSocket accepted")
         
-        # Récupérer l'historique des messages
+        # استرجاع الرسائل من GroupChatMessage
         messages = await self.get_recent_messages()
         await self.send(text_data=json.dumps({
             'type': 'history',
             'messages': messages
         }))
         
-        # Annoncer que l'utilisateur est en ligne
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -1038,10 +1038,10 @@ class CompanyGroupChatConsumer(AsyncWebsocketConsumer):
             if file_data and message_type_field in ['image', 'file']:
                 file_url = await self.save_file(file_data, file_name, message_type_field)
             
-            # Sauvegarder le message dans GroupChatMessage
+            # حفظ الرسالة في GroupChatMessage
             await self.save_message(self.user, message, message_type_field, file_url, file_name)
             
-            # Envoyer le message à tous les membres du groupe
+            # إرسال الرسالة لجميع الأعضاء
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {

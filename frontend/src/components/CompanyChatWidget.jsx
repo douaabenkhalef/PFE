@@ -594,7 +594,7 @@ const CompanyChatWidget = ({ companyName, onClose: externalOnClose }) => {
           id: `company_group_${data.group.id}`,
           name: data.group.name,
           type: 'company_group',
-          group_id: data.group.id,
+          group_id: data.group.name,
           member_count: data.group.member_count,
           unread_count: 0,
           avatar: 'T'
