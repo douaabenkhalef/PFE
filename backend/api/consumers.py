@@ -1100,3 +1100,232 @@ class CompanyGroupChatConsumer(AsyncWebsocketConsumer):
             'timestamp': msg.created_at.isoformat(),
             'user_id': msg.user_id
         } for msg in reversed(messages)]
+    
+
+# ==================== UNIVERSITY GROUP CHAT ====================
+
+class UniversityGroupChatConsumer(AsyncWebsocketConsumer):
+    """Chat de groupe pour une université (Dept Head + Co Dept Heads)"""
+    
+    async def connect(self):
+        query_string = self.scope['query_string'].decode()
+        token = None
+        if 'token=' in query_string:
+            token = query_string.split('token=')[1].split('&')[0]
+        
+        user = None
+        if token:
+            try:
+                import jwt
+                from django.conf import settings
+                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+                user_id = payload.get('user_id')
+                if user_id:
+                    user = await self.get_user_by_id(user_id)
+            except Exception as e:
+                print(f"❌ University group chat token error: {e}")
+        
+        if user is None or user.role != 'admin':
+            await self.close()
+            return
+        
+        self.user = user
+        self.university = self.scope['url_route']['kwargs']['university']
+        self.room_group_name = f'university_group_{self.university.replace(" ", "_")}'
+        
+        # Vérifier que l'utilisateur appartient à cette université
+        has_access = await self.check_university_access(self.university)
+        if not has_access:
+            await self.close()
+            return
+        
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+        
+        await self.accept()
+        
+        messages = await self.get_group_messages(self.university)
+        await self.send(text_data=json.dumps({
+            'type': 'history',
+            'messages': messages
+        }))
+        
+        full_name = await self.get_user_full_name(user)
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'user_online',
+                'username': user.username,
+                'full_name': full_name,
+                'is_online': True
+            }
+        )
+    
+    async def disconnect(self, close_code):
+        if hasattr(self, 'room_group_name') and hasattr(self, 'user') and self.user:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'user_offline',
+                    'username': self.user.username,
+                    'is_online': False
+                }
+            )
+            await self.channel_layer.group_discard(
+                self.room_group_name,
+                self.channel_name
+            )
+    
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        msg_type = data.get('type', 'message')
+        
+        if msg_type == 'message':
+            message = data.get('message', '')
+            message_type = data.get('message_type', 'text')
+            file_data = data.get('file_data', None)
+            file_name = data.get('file_name', '')
+            
+            file_url = ''
+            if file_data and message_type in ['image', 'file']:
+                file_url = await self.save_file(file_data, file_name, message_type)
+            
+            full_name = await self.get_user_full_name(self.user)
+            
+            saved_msg = await self.save_group_message(
+                self.university, self.user, message, message_type, file_url, file_name
+            )
+            
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'group_message',
+                    'message_id': str(saved_msg.id),
+                    'message': message,
+                    'message_type': message_type,
+                    'file_url': file_url,
+                    'file_name': file_name,
+                    'sender_id': str(self.user.id),
+                    'sender_name': self.user.username,
+                    'full_name': full_name,
+                    'timestamp': datetime.now().isoformat()
+                }
+            )
+    
+    async def group_message(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'message',
+            'message_id': event['message_id'],
+            'message': event['message'],
+            'message_type': event.get('message_type', 'text'),
+            'file_url': event.get('file_url', ''),
+            'file_name': event.get('file_name', ''),
+            'sender_id': event['sender_id'],
+            'sender_name': event['sender_name'],
+            'full_name': event.get('full_name', event['sender_name']),
+            'timestamp': event['timestamp']
+        }))
+    
+    async def user_online(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'user_online',
+            'username': event['username'],
+            'full_name': event.get('full_name', event['username']),
+            'is_online': True
+        }))
+    
+    async def user_offline(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'user_offline',
+            'username': event['username'],
+            'is_online': False
+        }))
+    
+    @database_sync_to_async
+    def get_user_by_id(self, user_id):
+        from .models import User
+        try:
+            return User.objects(id=user_id).first()
+        except Exception:
+            return None
+    
+    @database_sync_to_async
+    def get_user_full_name(self, user):
+        from .models import Admin
+        admin = Admin.objects(user=user).first()
+        return admin.full_name if admin else user.username
+    
+    @database_sync_to_async
+    def check_university_access(self, university):
+        from .models import Admin
+        try:
+            admin = Admin.objects(user=self.user, university=university).first()
+            return admin is not None
+        except Exception as e:
+            print(f"❌ Error checking university access: {e}")
+            return False
+    
+    @database_sync_to_async
+    def save_file(self, file_data, file_name, file_type):
+        try:
+            import base64, uuid, os
+            from django.conf import settings
+            upload_dir = os.path.join(settings.MEDIA_ROOT, 'chat_files')
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            if ',' in file_data:
+                imgstr = file_data.split(',')[1]
+            else:
+                imgstr = file_data
+            
+            ext = file_name.split('.')[-1] if '.' in file_name else 'png'
+            unique_name = f"{uuid.uuid4().hex}.{ext}"
+            file_path = os.path.join(upload_dir, unique_name)
+            
+            with open(file_path, 'wb') as f:
+                f.write(base64.b64decode(imgstr))
+            
+            return f'/media/chat_files/{unique_name}'
+        except Exception as e:
+            print(f"Erreur sauvegarde fichier: {e}")
+            return ''
+    
+    @database_sync_to_async
+    def save_group_message(self, university, user, message, message_type, file_url, file_name):
+        from .models import GroupChatMessage
+        msg = GroupChatMessage(
+            group_id=f"university_{university.replace(' ', '_')}",
+            sender_id=str(user.id),
+            sender_name=user.username,
+            message=message,
+            message_type=message_type,
+            file_url=file_url,
+            file_name=file_name,
+            created_at=datetime.now()
+        )
+        msg.save()
+        return msg
+    
+    @database_sync_to_async
+    def get_group_messages(self, university):
+        from .models import GroupChatMessage
+        messages = GroupChatMessage.objects(
+            group_id=f"university_{university.replace(' ', '_')}"
+        ).order_by('created_at')[:100]
+        
+        result = []
+        for msg in messages:
+            result.append({
+                'id': str(msg.id),
+                'message': msg.message,
+                'message_type': msg.message_type,
+                'file_url': msg.file_url,
+                'file_name': msg.file_name,
+                'sender_id': msg.sender_id,
+                'sender_name': msg.sender_name,
+                'timestamp': msg.created_at.isoformat(),
+                'is_own': msg.sender_id == str(self.user.id)
+            })
+        return result

@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   MessageCircle, X, Send, Minimize2, Users, 
-  Search, MessageSquare, ArrowLeft, Loader2, Paperclip, File
+  Search, MessageSquare, ArrowLeft, Loader2, Paperclip, File,
+  GraduationCap
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -82,6 +82,7 @@ const MessageItem = ({ message, isOwn, showAvatar, senderName }) => {
 };
 
 
+// ChatWindow modifié pour supporter les groupes
 const ChatWindow = ({ 
   conversation, 
   onBack, 
@@ -97,6 +98,7 @@ const ChatWindow = ({
   const [isTyping, setIsTyping] = useState(false);
   const [typingUsers, setTypingUsers] = useState({});
   const [uploading, setUploading] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState([]);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
@@ -120,12 +122,22 @@ const ChatWindow = ({
     audio.play().catch(() => {});
   };
 
-  const connectWebSocket = useCallback(() => {
+  const getWebSocketUrl = () => {
     const accessToken = token();
-    if (!accessToken) return;
+    if (!accessToken) return null;
 
-    
-    const wsUrl = `${WS_BASE}/ws/private-chat/?token=${accessToken}`;
+    if (conversation.type === 'university_group') {
+      const encodedUniv = encodeURIComponent(conversation.group_id);
+      return `${WS_BASE}/ws/university-group/${encodedUniv}/?token=${accessToken}`;
+    } else if (conversation.type === 'private') {
+      return `${WS_BASE}/ws/private-chat/?token=${accessToken}`;
+    }
+    return null;
+  };
+
+  const connectWebSocket = useCallback(() => {
+    const wsUrl = getWebSocketUrl();
+    if (!wsUrl) return;
 
     const socket = new WebSocket(wsUrl);
 
@@ -178,13 +190,43 @@ const ChatWindow = ({
         if (onConversationUpdate) {
           onConversationUpdate(conversation.id, newMessage);
         }
+      } else if (data.type === 'message' || data.type === 'group_message') {
+        const newMessage = {
+          id: data.message_id || Date.now(),
+          from_user_id: data.sender_id || data.user_id,
+          from_user_name: data.full_name || data.sender_name || data.username,
+          message: data.message,
+          message_type: data.message_type || 'text',
+          file_url: data.file_url,
+          file_name: data.file_name,
+          timestamp: data.timestamp || new Date().toISOString(),
+          is_own: (data.sender_id || data.user_id) === user?.id,
+          is_read: false
+        };
+        
+        if (!newMessage.is_own) {
+          playNotificationSound();
+        }
+        
+        setMessages(prev => [...prev, newMessage]);
+        
+        if (onConversationUpdate) {
+          onConversationUpdate(conversation.id, newMessage);
+        }
       } else if (data.type === 'history') {
         setMessages(data.messages.map(msg => ({
           ...msg,
           id: msg.id || Date.now(),
           is_own: msg.sender_id === user?.id || msg.user_id === user?.id,
-          from_user_name: msg.full_name || msg.username
+          from_user_name: msg.full_name || msg.username || msg.sender_name
         })));
+      } else if (data.type === 'user_online') {
+        setOnlineUsers(prev => {
+          if (prev.some(u => u.username === data.username)) return prev;
+          return [...prev, { username: data.username, full_name: data.full_name }];
+        });
+      } else if (data.type === 'user_offline') {
+        setOnlineUsers(prev => prev.filter(u => u.username !== data.username));
       } else if (data.type === 'user_typing') {
         setTypingUsers(prev => ({ ...prev, [data.from_user_id]: data.is_typing }));
         setTimeout(() => {
@@ -209,12 +251,21 @@ const ChatWindow = ({
   const sendMessage = () => {
     if (!inputMessage.trim() || !ws || ws.readyState !== WebSocket.OPEN) return;
     
-    const messageData = {
-      type: 'private_message',
-      message: inputMessage.trim(),
-      message_type: 'text',
-      receiver_id: conversation.user_id
-    };
+    let messageData;
+    if (conversation.type === 'private') {
+      messageData = {
+        type: 'private_message',
+        message: inputMessage.trim(),
+        message_type: 'text',
+        receiver_id: conversation.user_id
+      };
+    } else {
+      messageData = {
+        type: 'message',
+        message: inputMessage.trim(),
+        message_type: 'text'
+      };
+    }
     
     ws.send(JSON.stringify(messageData));
     setInputMessage('');
@@ -225,21 +276,27 @@ const ChatWindow = ({
     
     if (!isTyping) {
       setIsTyping(true);
-      ws.send(JSON.stringify({
+      const typingData = {
         type: 'typing',
-        is_typing: true,
-        receiver_id: conversation.user_id
-      }));
+        is_typing: true
+      };
+      if (conversation.type === 'private' && conversation.user_id) {
+        typingData.receiver_id = conversation.user_id;
+      }
+      ws.send(JSON.stringify(typingData));
     }
     
     clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
       setIsTyping(false);
-      ws.send(JSON.stringify({
+      const typingData = {
         type: 'typing',
-        is_typing: false,
-        receiver_id: conversation.user_id
-      }));
+        is_typing: false
+      };
+      if (conversation.type === 'private' && conversation.user_id) {
+        typingData.receiver_id = conversation.user_id;
+      }
+      ws.send(JSON.stringify(typingData));
     }, 1000);
   };
 
@@ -257,14 +314,26 @@ const ChatWindow = ({
     setUploading(true);
     const reader = new FileReader();
     reader.onloadend = () => {
-      ws.send(JSON.stringify({
-        type: 'private_message',
-        message: '',
-        message_type: type,
-        file_data: reader.result,
-        file_name: file.name,
-        receiver_id: conversation.user_id
-      }));
+      let messageData;
+      if (conversation.type === 'private') {
+        messageData = {
+          type: 'private_message',
+          message: '',
+          message_type: type,
+          file_data: reader.result,
+          file_name: file.name,
+          receiver_id: conversation.user_id
+        };
+      } else {
+        messageData = {
+          type: 'message',
+          message: '',
+          message_type: type,
+          file_data: reader.result,
+          file_name: file.name
+        };
+      }
+      ws.send(JSON.stringify(messageData));
       setUploading(false);
     };
     reader.readAsDataURL(file);
@@ -295,12 +364,17 @@ const ChatWindow = ({
         </button>
         <div className="flex-1">
           <h3 className="text-white font-semibold text-sm">{conversation.name}</h3>
-          <div className="flex items-center gap-1">
-            <div className={`w-1.5 h-1.5 rounded-full ${conversation.is_online ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
-            <span className="text-white/60 text-xs">
-              {conversation.is_online ? 'En ligne' : 'Hors ligne'}
-            </span>
-          </div>
+          {conversation.type === 'university_group' && (
+            <p className="text-white/60 text-xs">{conversation.member_count || 0} membres</p>
+          )}
+          {conversation.type === 'private' && (
+            <div className="flex items-center gap-1">
+              <div className={`w-1.5 h-1.5 rounded-full ${conversation.is_online ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
+              <span className="text-white/60 text-xs">
+                {conversation.is_online ? 'En ligne' : 'Hors ligne'}
+              </span>
+            </div>
+          )}
         </div>
         <button onClick={onCloseWindow} className="text-white/80 hover:text-white transition">
           <X size={18} />
@@ -393,6 +467,11 @@ const ConversationItem = ({ conversation, isActive, onClick, lastMessage }) => {
     return date.toLocaleDateString();
   };
 
+  const getIcon = () => {
+    if (conversation.type === 'university_group') return <GraduationCap size={14} className="text-purple-400" />;
+    return null;
+  };
+
   return (
     <button
       onClick={() => onClick(conversation)}
@@ -404,15 +483,22 @@ const ConversationItem = ({ conversation, isActive, onClick, lastMessage }) => {
     >
       <div className="relative">
         <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
-          {conversation.avatar || conversation.name?.charAt(0).toUpperCase() || 'U'}
+          {conversation.type === 'private' ? (
+            conversation.avatar || conversation.name?.charAt(0).toUpperCase() || 'U'
+          ) : (
+            getIcon() || <Users size={18} />
+          )}
         </div>
-        {conversation.is_online && (
+        {conversation.type === 'private' && conversation.is_online && (
           <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-slate-800" />
         )}
       </div>
       <div className="flex-1 text-left min-w-0">
         <div className="flex justify-between items-baseline">
-          <p className="text-white font-medium text-sm truncate">{conversation.name}</p>
+          <div className="flex items-center gap-1.5">
+            {conversation.type !== 'private' && getIcon()}
+            <p className="text-white font-medium text-sm truncate">{conversation.name}</p>
+          </div>
           {lastMessage && (
             <span className="text-white/40 text-[10px] flex-shrink-0 ml-2">
               {formatTime(lastMessage.timestamp)}
@@ -425,6 +511,11 @@ const ConversationItem = ({ conversation, isActive, onClick, lastMessage }) => {
             {lastMessage.message_type === 'image' ? '📷 Image' :
              lastMessage.message_type === 'file' ? '📎 Fichier' :
              lastMessage.message}
+          </p>
+        )}
+        {conversation.type === 'university_group' && conversation.member_count && (
+          <p className="text-white/40 text-[10px] mt-0.5 flex items-center gap-1">
+            <Users size={8} /> {conversation.member_count} membres
           </p>
         )}
       </div>
@@ -493,6 +584,31 @@ const AdminChatWidget = ({ university, onClose: externalOnClose }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeConversation, setActiveConversation] = useState(null);
   const [lastMessages, setLastMessages] = useState({});
+  const [universityGroup, setUniversityGroup] = useState(null);
+
+  // Charger les informations du groupe universitaire
+  const fetchUniversityGroupInfo = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/chat/university-group/info/`, { headers: authHeaders() });
+      const data = await res.json();
+      if (data.success && data.group) {
+        setUniversityGroup(data.group);
+        return {
+          id: `university_group_${data.group.id.replace(/ /g, '_')}`,
+          name: data.group.name,
+          type: 'university_group',
+          group_id: data.group.id,
+          member_count: data.group.member_count,
+          unread_count: 0,
+          avatar: 'U'
+        };
+      }
+      return null;
+    } catch (err) {
+      console.error('Error fetching university group info:', err);
+      return null;
+    }
+  }, []);
 
   const loadExistingConversations = useCallback(async () => {
     try {
@@ -561,32 +677,32 @@ const AdminChatWidget = ({ university, onClose: externalOnClose }) => {
   const loadAllConversations = useCallback(async () => {
     setLoading(true);
     try {
-      
       const privateConversations = await loadExistingConversations();
-      setConversations([...privateConversations]);
+      const groupConversation = await fetchUniversityGroupInfo();
+      
+      if (groupConversation) {
+        setConversations([groupConversation, ...privateConversations]);
+      } else {
+        setConversations([...privateConversations]);
+      }
     } catch (err) {
       console.error('Error loading conversations:', err);
     } finally {
       setLoading(false);
     }
-  }, [loadExistingConversations]);
+  }, [loadExistingConversations, fetchUniversityGroupInfo]);
 
   useEffect(() => {
     if (user?.role === 'admin' && (user?.sub_role === 'admin' || user?.sub_role === 'co_dept_head')) {
       const init = async () => {
         await fetchTeamMembers();
+        await loadAllConversations();
       };
       init();
     } else {
       setLoading(false);
     }
-  }, [user?.role, user?.sub_role, fetchTeamMembers]);
-
-  useEffect(() => {
-    if (teamMembers.length > 0 && user?.role === 'admin') {
-      loadAllConversations();
-    }
-  }, [teamMembers, loadAllConversations, user?.role]);
+  }, [user?.role, user?.sub_role, fetchTeamMembers, loadAllConversations]);
 
   const handleCloseChat = () => {
     setIsOpen(false);

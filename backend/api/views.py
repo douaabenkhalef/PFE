@@ -8770,3 +8770,153 @@ def verify_super_admin_otp(request):
     except Exception as e:
         print(f"❌ Error in verify_super_admin_otp: {str(e)}")
         return Response({'success': False, 'error': str(e)}, status=500)
+
+
+# ==================== GROUP CHAT VIEWS ====================
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['company'])
+def get_company_group_info(request):
+    """Récupère les infos du groupe d'entreprise"""
+    from .models import Company, GroupChatMessage, User
+    
+    company = _get_user_company(request.user)
+    if not company:
+        return Response({'success': False, 'error': 'Company not found'}, status=404)
+    
+    # Compter les membres
+    members = User.objects(
+        role='company',
+        status=True,
+        pending_company_id=str(company.id)
+    )
+    
+    company_manager = User.objects(
+        role='company',
+        sub_role='company_manager',
+        status=True
+    ).first()
+    
+    member_count = members.count() + (1 if company_manager else 0)
+    
+    # Dernier message
+    last_message = GroupChatMessage.objects(
+        group_id=f"company_{company.id}"
+    ).order_by('-created_at').first()
+    
+    return Response({
+        'success': True,
+        'group': {
+            'id': str(company.id),
+            'name': f"Équipe {company.company_name}",
+            'member_count': member_count,
+            'last_message': last_message.message if last_message else None,
+            'last_message_time': last_message.created_at.isoformat() if last_message else None,
+            'type': 'company_group'
+        }
+    })
+
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'])
+def get_university_group_info(request):
+    """Récupère les infos du groupe universitaire"""
+    from .models import Admin, GroupChatMessage
+    
+    admin_profile = Admin.objects(user=request.user).first()
+    if not admin_profile:
+        return Response({'success': False, 'error': 'Admin profile not found'}, status=404)
+    
+    university = admin_profile.university
+    
+    # Compter les membres
+    admins = Admin.objects(university=university)
+    member_count = admins.count()
+    
+    # Dernier message
+    last_message = GroupChatMessage.objects(
+        group_id=f"university_{university.replace(' ', '_')}"
+    ).order_by('-created_at').first()
+    
+    return Response({
+        'success': True,
+        'group': {
+            'id': university,
+            'name': f"Équipe {university}",
+            'member_count': member_count,
+            'last_message': last_message.message if last_message else None,
+            'last_message_time': last_message.created_at.isoformat() if last_message else None,
+            'type': 'university_group'
+        }
+    })
+
+
+@api_view(['GET'])
+@jwt_authenticated
+def get_company_group_messages(request, company_id):
+    """Récupère l'historique des messages du groupe entreprise"""
+    from .models import GroupChatMessage
+    
+    user = request.user
+    
+    if user.role != 'company':
+        return Response({'success': False, 'error': 'Unauthorized'}, status=403)
+    
+    # Vérifier l'accès
+    company = _get_user_company(user)
+    if not company or str(company.id) != company_id:
+        return Response({'success': False, 'error': 'Access denied'}, status=403)
+    
+    messages = GroupChatMessage.objects(
+        group_id=f"company_{company_id}"
+    ).order_by('created_at')[:100]
+    
+    result = []
+    for msg in messages:
+        result.append({
+            'id': str(msg.id),
+            'sender_id': msg.sender_id,
+            'sender_name': msg.sender_name,
+            'message': msg.message,
+            'message_type': msg.message_type,
+            'file_url': msg.file_url,
+            'file_name': msg.file_name,
+            'timestamp': msg.created_at.isoformat(),
+            'is_own': msg.sender_id == str(user.id)
+        })
+    
+    return Response({'success': True, 'messages': result})
+
+
+@api_view(['GET'])
+@jwt_authenticated
+@role_required(allowed_roles=['admin'])
+def get_university_group_messages(request, university):
+    """Récupère l'historique des messages du groupe universitaire"""
+    from .models import GroupChatMessage, Admin
+    
+    admin_profile = Admin.objects(user=request.user).first()
+    if not admin_profile or admin_profile.university != university:
+        return Response({'success': False, 'error': 'Access denied'}, status=403)
+    
+    messages = GroupChatMessage.objects(
+        group_id=f"university_{university.replace(' ', '_')}"
+    ).order_by('created_at')[:100]
+    
+    result = []
+    for msg in messages:
+        result.append({
+            'id': str(msg.id),
+            'sender_id': msg.sender_id,
+            'sender_name': msg.sender_name,
+            'message': msg.message,
+            'message_type': msg.message_type,
+            'file_url': msg.file_url,
+            'file_name': msg.file_name,
+            'timestamp': msg.created_at.isoformat(),
+            'is_own': msg.sender_id == str(request.user.id)
+        })
+    
+    return Response({'success': True, 'messages': result})

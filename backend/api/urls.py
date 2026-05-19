@@ -215,6 +215,10 @@ path('student/offers/applicants-counts/', views.get_all_offers_applicants_counts
     path('super-admin/applications/', views.super_admin_get_applications, name='super-admin-applications'),
     path('super-admin/stats/', views.super_admin_get_stats, name='super-admin-stats'),
     path('auth/verify-super-admin-otp/', views.verify_super_admin_otp, name='verify-super-admin-otp'),
+    path('chat/company-group/info/', views.get_company_group_info, name='company-group-info'),
+    path('chat/company-group/<str:company_id>/messages/', views.get_company_group_messages, name='company-group-messages'),
+    path('chat/university-group/info/', views.get_university_group_info, name='university-group-info'),
+    path('chat/university-group/<str:university>/messages/', views.get_university_group_messages, name='university-group-messages'),
 
     
 ]
